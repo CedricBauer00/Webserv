@@ -11,6 +11,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <sys/wait.h>
+#include <sys/epoll.h>
 #include <signal.h>
 
 class httpServer
