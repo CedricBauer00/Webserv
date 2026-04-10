@@ -1,6 +1,6 @@
-#include "eventloop.hpp"
+#include "../inc/eventloop.hpp"
 
-#define PORT "3490"
+#define PORT "3491"
 #define BACKLOG 5
 //  getaddrinfo() 
 
@@ -185,8 +185,6 @@ int httpServer::run()
         }
         close(new_fd);  // parent doesn't need this
     }
-
-    return 0; 
 
     return 0;
 }

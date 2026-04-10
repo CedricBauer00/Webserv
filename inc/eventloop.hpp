@@ -1,6 +1,7 @@
 #ifndef HTTP_SERVER
 #define HTTP_SERVER
 
+#include <unistd.h>
 #include <string>
 #include <cstring>
 #include <iostream>
