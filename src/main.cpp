@@ -5,8 +5,11 @@ int main( void )
 {
     httpServer server;
 
-    server.createSocket();
-    server.eventLoop();
+    if ( !server.createSocket() )
+        return -1;
     
+    if ( server.eventLoop() )
+        return -1;
+        
     return 0;
 }
