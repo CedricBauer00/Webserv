@@ -39,7 +39,7 @@
 
 // }
 
-httpServer::httpServer() : _sockfd( 0 )
+httpServer::httpServer() : _listenSock( 0 )
 {
     std::cout << "Server created" << std::endl;
 }
@@ -93,21 +93,21 @@ int httpServer::createSocket()
     for ( p = servinfo; p != NULL; p = p->ai_next )
     {
         // print_addrinfo(p, it++, s);
-        if ( ( _sockfd = socket( p->ai_family, p->ai_socktype, p->ai_protocol ) ) == -1 )
+        if ( ( _listenSock = socket( p->ai_family, p->ai_socktype, p->ai_protocol ) ) == -1 )
         {
             perror( "server: socket" );
             continue ;
         }
 
-        if ( setsockopt( _sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof( int ) ) == -1 )
+        if ( setsockopt( _listenSock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof( int ) ) == -1 )
         {
             perror( "setsockopt" );
             exit( 1 );
         }
 
-        if ( bind( _sockfd, p->ai_addr, p->ai_addrlen ) == -1 )
+        if ( bind( _listenSock, p->ai_addr, p->ai_addrlen ) == -1 )
         {
-            close ( _sockfd );
+            close ( _listenSock );
             perror( "server: bind" );
             continue ;
         }
@@ -125,7 +125,7 @@ int httpServer::createSocket()
         exit( 1 );
     }
 
-    if ( listen( _sockfd, BACKLOG ) == -1 )
+    if ( listen( _listenSock, BACKLOG ) == -1 )
     {
         perror( "listen" );
         exit( 1 );
@@ -143,13 +143,12 @@ int httpServer::createSocket()
     return 0;
 }
 
-
 int httpServer::eventLoop()
 {
 
     socklen_t addrlen;
     struct sockaddr_storage their_addr;
-    int new_fd, epollfd, nfds;
+    int new_fd = 0, epollfd, nfds;
     const char* response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 44\r\n\r\n<html><body>Hello, World!</body></html>";
     struct epoll_event ev, events[MAX_EVENTS];
     char s[INET6_ADDRSTRLEN];
@@ -162,30 +161,31 @@ int httpServer::eventLoop()
     }
     
     ev.events = EPOLLIN;
-    ev.data.fd = _sockfd; // == listen_sock
-    if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, _sockfd, &ev ) == -1 )
+    ev.data.fd = _listenSock; // == listen_sock
+    if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, _listenSock, &ev ) == -1 )
     {
-        perror( "epollwait" );
+        perror( "epollwait(listening)" );
         exit( EXIT_FAILURE );
     }
 
     while ( 1 )
     {
+        std::cout << "new_fd = " << new_fd << std::endl;
         nfds = epoll_wait( epollfd, events, MAX_EVENTS, -1 );
         if ( nfds == -1 )
         {
             perror( "epoll_wait" );
             exit( EXIT_FAILURE );
         }
-
+        
         std::cout << "been there1" << std::endl;
     
         for ( int n = 0; n < nfds; ++n )// main accept() loop
         {
-            if ( events[ n ].data.fd == _sockfd )
+            if ( events[ n ].data.fd == _listenSock )
             {
                 addrlen = sizeof their_addr;
-                new_fd = accept(_sockfd, (struct sockaddr *) &their_addr, &addrlen);
+                new_fd = accept(_listenSock, (struct sockaddr *) &their_addr, &addrlen);
                 if (new_fd == -1)
                 {
                     perror("accept");
@@ -193,9 +193,8 @@ int httpServer::eventLoop()
                 }
                 
                 // setnonblocking( new_fd );
-
-                
-                ev.events = EPOLLIN | EPOLLET;
+                fcntl(new_fd, F_SETFL, O_NONBLOCK);
+                ev.events = EPOLLIN | EPOLLET | EPOLLOUT;
                 ev.data.fd = new_fd;
 
                 if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, new_fd, &ev ) == -1 )
@@ -208,20 +207,22 @@ int httpServer::eventLoop()
                 inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr *)&their_addr), s, sizeof s);
                 printf("server: got connection from %s\n", s);
                 //
-
-                if (!fork())
-                { // this is the child process
-                    close(_sockfd); // child doesn't need the listener
-                    if (send(new_fd, response, strlen(response), 0) == -1)
-                        perror("send");
-                    close(new_fd);
-                    exit(0);
-                }
+                if (send(new_fd, response, strlen(response), 0) == -1)
+                    perror("send");
             }   
+            else
+            {
+                if ( epoll_ctl( epollfd, EPOLL_CTL_DEL, ev.data.fd, NULL ) == -1 )
+                {
+                    perror( "epoll_ctl:delete fd" );
+                    exit( EXIT_FAILURE );
+                }
+                close(ev.data.fd);
+            }
             std::cout << "been there2" << std::endl;
-
-            close(new_fd);  // parent doesn't need this
+            
         }
+        close(new_fd);  // parent doesn't need this
     }
     return 0;
 }

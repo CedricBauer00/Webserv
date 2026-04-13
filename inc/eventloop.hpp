@@ -13,11 +13,12 @@
 #include <sys/wait.h>
 #include <sys/epoll.h>
 #include <signal.h>
+#include <fcntl.h>
 
 class httpServer
 {
     private:
-        int _sockfd;
+        int _listenSock;
     public:
         httpServer();
         ~httpServer();
