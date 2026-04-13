@@ -39,7 +39,7 @@
 
 // }
 
-httpServer::httpServer()
+httpServer::httpServer() : _sockfd( 0 )
 {
     std::cout << "Server created" << std::endl;
 }
@@ -70,27 +70,10 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-// void    print_addrinfo( struct addrinfo *p, int it, char *s )
-// {
-//     std::cout << "\n--- iteration: " << it << "---" << std::endl;
-//     std::cout << "ai_flags: " << p->ai_flags << std::endl;
-//     std::cout << "ai_family: " << (p->ai_family == AF_INET ? "AF_INET (4)" : p->ai_family == AF_INET6 ? "AF_INET6 (6)" : "UNKNOWN" ) << std::endl;
-//     std::cout << "ai_socktype: " << (p->ai_socktype == SOCK_STREAM ? "SOCK_STREAM" : "UNKNOWN" ) << std::endl;
-//     std::cout << "ai_protocol: " << p->ai_protocol << std::endl;
-//     std::cout << "ai_addrlen: " << p->ai_addrlen << std::endl;
-
-//     if ( p->ai_canonname )
-//         std::cout << "ai_canonname: " << p->ai_canonname << std::endl;
-
-//     inet_ntop( p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof( s ) );
-//     std::cout << "Address: " << s << std::endl;
-// }
-
-int httpServer::run()
+int httpServer::createSocket()
 {
-    int rv, sockfd, yes=1;
+    int rv, yes=1;
     struct sigaction sa;
-    char s[INET6_ADDRSTRLEN];
 
     std::cout << "Running webserver" << std::endl;
 
@@ -110,21 +93,21 @@ int httpServer::run()
     for ( p = servinfo; p != NULL; p = p->ai_next )
     {
         // print_addrinfo(p, it++, s);
-        if ( ( sockfd = socket( p->ai_family, p->ai_socktype, p->ai_protocol ) ) == -1 )
+        if ( ( _sockfd = socket( p->ai_family, p->ai_socktype, p->ai_protocol ) ) == -1 )
         {
             perror( "server: socket" );
             continue ;
         }
 
-        if ( setsockopt( sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof( int ) ) == -1 )
+        if ( setsockopt( _sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof( int ) ) == -1 )
         {
             perror( "setsockopt" );
             exit( 1 );
         }
 
-        if ( bind( sockfd, p->ai_addr, p->ai_addrlen ) == -1 )
+        if ( bind( _sockfd, p->ai_addr, p->ai_addrlen ) == -1 )
         {
-            close ( sockfd );
+            close ( _sockfd );
             perror( "server: bind" );
             continue ;
         }
@@ -142,7 +125,7 @@ int httpServer::run()
         exit( 1 );
     }
 
-    if ( listen( sockfd, BACKLOG ) == -1 )
+    if ( listen( _sockfd, BACKLOG ) == -1 )
     {
         perror( "listen" );
         exit( 1 );
@@ -157,14 +140,19 @@ int httpServer::run()
     }
 
     std::cout << "Server wating for connection...\n" << std::endl;
+    return 0;
+}
 
-    /////////
 
-    socklen_t sin_size;
+int httpServer::eventLoop()
+{
+
+    socklen_t addrlen;
     struct sockaddr_storage their_addr;
-    int new_fd;
+    int new_fd, epollfd, nfds;
     const char* response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 44\r\n\r\n<html><body>Hello, World!</body></html>";
     struct epoll_event ev, events[MAX_EVENTS];
+    char s[INET6_ADDRSTRLEN];
 
     epollfd = epoll_create1(0);
     if ( epollfd == -1 ) 
@@ -174,8 +162,8 @@ int httpServer::run()
     }
     
     ev.events = EPOLLIN;
-    ev.data.fd = sockfd;
-    if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, sockfd, &ev ) == -1 )
+    ev.data.fd = _sockfd; // == listen_sock
+    if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, _sockfd, &ev ) == -1 )
     {
         perror( "epollwait" );
         exit( EXIT_FAILURE );
@@ -191,36 +179,49 @@ int httpServer::run()
             perror( "epoll_wait" );
             exit( EXIT_FAILURE );
         }
+
+        std::cout << "been there1" << std::endl;
     
         for ( int n = 0; n < nfds; ++n )// main accept() loop
         {
-            // sin_size = sizeof their_addr;
-            // new_fd = accept(sockfd, (struct sockaddr *)&their_addr,
-            //     &sin_size);
-            // if (new_fd == -1) {
-            //     perror("accept");
-            //     continue;
-            // }
-
-            if ( events[ n ].data.fd == sockfd )
+            if ( events[ n ].data.fd == _sockfd )
             {
+                addrlen = sizeof their_addr;
+                new_fd = accept(_sockfd, (struct sockaddr *) &their_addr, &addrlen);
+                if (new_fd == -1)
+                {
+                    perror("accept");
+                    exit( EXIT_FAILURE );
+                }
                 
-            }
+                // setnonblocking( new_fd );
 
-            //printing
-            inet_ntop(their_addr.ss_family,
-                get_in_addr((struct sockaddr *)&their_addr),
-                s, sizeof s);
-            printf("server: got connection from %s\n", s);
-            //
+                
+                ev.events = EPOLLIN | EPOLLET;
+                ev.data.fd = new_fd;
 
-            if (!fork()) { // this is the child process
-                close(sockfd); // child doesn't need the listener
-                if (send(new_fd, response, strlen(response), 0) == -1)
-                    perror("send");
-                close(new_fd);
-                exit(0);
-            }
+                if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, new_fd, &ev ) == -1 )
+                {
+                    perror( "epoll_ctl:P new_fd" );
+                    exit( EXIT_FAILURE );
+                }
+            
+                //printing
+                inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr *)&their_addr), s, sizeof s);
+                printf("server: got connection from %s\n", s);
+                //
+
+                if (!fork())
+                { // this is the child process
+                    close(_sockfd); // child doesn't need the listener
+                    if (send(new_fd, response, strlen(response), 0) == -1)
+                        perror("send");
+                    close(new_fd);
+                    exit(0);
+                }
+            }   
+            std::cout << "been there2" << std::endl;
+
             close(new_fd);  // parent doesn't need this
         }
     }
@@ -249,58 +250,58 @@ int httpServer::run()
 // if use EPOLLET, should use non-blocking file descriptors, to avoid having a blocking read or write starve a task that is handling multiple file descriptors
 // recommendation when using EPOLLET is using nonblocking file descriptors and waiting for an event only after read or write return EAGAIN
 
-     #define MAX_EVENTS 10
-           struct epoll_event ev, events[MAX_EVENTS];
-           int listen_sock, conn_sock, nfds, epollfd;
+    //  #define MAX_EVENTS 10
+    //        struct epoll_event ev, events[MAX_EVENTS];
+    //        int listen_sock, conn_sock, nfds, epollfd;
 
            /* Code to set up listening socket, 'listen_sock',
               (socket(), bind(), listen()) omitted */
 
-           epollfd = epoll_create1(0);
-           if (epollfd == -1) {
-               perror("epoll_create1");
-               exit(EXIT_FAILURE);
-           }
+        //    epollfd = epoll_create1(0);
+        //    if (epollfd == -1) {
+        //        perror("epoll_create1");
+        //        exit(EXIT_FAILURE);
+        //    }
 
-           ev.events = EPOLLIN;
-           ev.data.fd = listen_sock;
-           if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1) {
-               perror("epoll_ctl: listen_sock");
-               exit(EXIT_FAILURE);
-           }
+        //    ev.events = EPOLLIN;
+        //    ev.data.fd = listen_sock;
+        //    if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1) {
+        //        perror("epoll_ctl: listen_sock");
+        //        exit(EXIT_FAILURE);
+        //    }
 
-           for (;;) {
-               nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
-               if (nfds == -1) {
-                   perror("epoll_wait");
-                   exit(EXIT_FAILURE);
-               }
+        //    for (;;) {
+        //        nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
+        //        if (nfds == -1) {
+        //            perror("epoll_wait");
+        //            exit(EXIT_FAILURE);
+        //        }
 
-               for (n = 0; n < nfds; ++n)
-               {
-                   if (events[n].data.fd == listen_sock)
-                   {
-                       conn_sock = accept(listen_sock, (struct sockaddr *) &addr, &addrlen);
+        //        for (n = 0; n < nfds; ++n)
+        //        {
+        //            if (events[n].data.fd == listen_sock)
+        //            {
+        //                conn_sock = accept(listen_sock, (struct sockaddr *) &addr, &addrlen);
                
-                       if (conn_sock == -1)
-                       {
-                           perror("accept");
-                           exit(EXIT_FAILURE);
-                       }
+        //                if (conn_sock == -1)
+        //                {
+        //                    perror("accept");
+        //                    exit(EXIT_FAILURE);
+        //                }
 
-                       setnonblocking(conn_sock);
-                       ev.events = EPOLLIN | EPOLLET;
-                       ev.data.fd = conn_sock;
+        //                setnonblocking(conn_sock);
+        //                ev.events = EPOLLIN | EPOLLET;
+        //                ev.data.fd = conn_sock;
                
-                       if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
-                       {
-                           perror("epoll_ctl: conn_sock");
-                           exit(EXIT_FAILURE);
-                       }
-                    }
-                    else
-                    {
-                       do_use_fd(events[n].data.fd);
-                    }
-                }
-            }
+        //                if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
+        //                {
+        //                    perror("epoll_ctl: conn_sock");
+        //                    exit(EXIT_FAILURE);
+        //                }
+        //             }
+        //             else
+        //             {
+        //                do_use_fd(events[n].data.fd);
+        //             }
+        //         }
+        //     }

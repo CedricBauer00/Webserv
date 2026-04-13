@@ -17,11 +17,12 @@
 class httpServer
 {
     private:
-
+        int _sockfd;
     public:
         httpServer();
         ~httpServer();
-        int run();
+        int createSocket();
+        int eventLoop();
 };
 
 #endif
