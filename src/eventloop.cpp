@@ -1,6 +1,6 @@
-#include "../inc/eventloop.hpp"
+#include "eventloop.hpp"
 
-#define PORT "3491"
+#define PORT "3490"
 #define BACKLOG 5
 #define MAX_EVENTS 10
 
@@ -169,8 +169,6 @@ int httpServer::eventLoop()
         exit( EXIT_FAILURE );
     }
 
-<<<<<<< HEAD
-=======
     while ( 1 )
     {
         nfds = epoll_wait( epollfd, events, MAX_EVENTS, -1 );
@@ -225,7 +223,6 @@ int httpServer::eventLoop()
             close(new_fd);  // parent doesn't need this
         }
     }
->>>>>>> refs/remotes/origin/execution
     return 0;
 }
 
