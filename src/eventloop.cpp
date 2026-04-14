@@ -3,6 +3,7 @@
 #define PORT "3490"
 #define BACKLOG 5
 #define MAX_EVENTS 10
+#define BUFFER_SIZE 1024
 
 //  getaddrinfo() 
 
@@ -68,6 +69,12 @@ void *get_in_addr(struct sockaddr *sa)
     }
 
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+int set_nonblocking(int fd) {
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1) return -1;
+    return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
 int httpServer::createSocket()
@@ -148,8 +155,8 @@ int httpServer::eventLoop()
 
     socklen_t addrlen;
     struct sockaddr_storage their_addr;
-    int new_fd = 0, epollfd, nfds;
-    const char* response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 44\r\n\r\n<html><body>Hello, World!</body></html>";
+    int new_fd, epollfd, nfds;
+    const char* response = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n<html><body>Hello, World!</body></html>";
     struct epoll_event ev, events[MAX_EVENTS];
     char s[INET6_ADDRSTRLEN];
 
@@ -160,6 +167,10 @@ int httpServer::eventLoop()
         exit( EXIT_FAILURE );
     }
     
+    if (set_nonblocking(_listenSock) == -1) {
+        perror("set_nonblocking");
+        exit(EXIT_FAILURE);
+    }
     ev.events = EPOLLIN;
     ev.data.fd = _listenSock; // == listen_sock
     if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, _listenSock, &ev ) == -1 )
@@ -168,9 +179,9 @@ int httpServer::eventLoop()
         exit( EXIT_FAILURE );
     }
 
+    char buffer[BUFFER_SIZE];
     while ( 1 )
     {
-        std::cout << "new_fd = " << new_fd << std::endl;
         nfds = epoll_wait( epollfd, events, MAX_EVENTS, -1 );
         if ( nfds == -1 )
         {
@@ -186,43 +197,60 @@ int httpServer::eventLoop()
             {
                 addrlen = sizeof their_addr;
                 new_fd = accept(_listenSock, (struct sockaddr *) &their_addr, &addrlen);
+                std::cout << "new_fd = " << new_fd << std::endl;
                 if (new_fd == -1)
                 {
                     perror("accept");
                     exit( EXIT_FAILURE );
                 }
-                
-                // setnonblocking( new_fd );
-                fcntl(new_fd, F_SETFL, O_NONBLOCK);
-                ev.events = EPOLLIN | EPOLLET | EPOLLOUT;
-                ev.data.fd = new_fd;
 
-                if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, new_fd, &ev ) == -1 )
+                //printing
+                inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr *)&their_addr), s, sizeof s);
+                printf("server: accepted connection from %s port %d\n", s, ntohs(((struct sockaddr_in *)&their_addr)->sin_port));
+                
+                if (set_nonblocking(new_fd) == -1) {
+                    perror("set_nonblocking");
+                    exit(EXIT_FAILURE);
+                }
+                struct epoll_event client_ev;
+                client_ev.events = EPOLLIN | EPOLLRDHUP;
+                client_ev.data.fd = new_fd;
+
+                if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, new_fd, &client_ev ) == -1 )
                 {
                     perror( "epoll_ctl:P new_fd" );
                     exit( EXIT_FAILURE );
                 }
-            
-                //printing
-                inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr *)&their_addr), s, sizeof s);
-                printf("server: got connection from %s\n", s);
-                //
-                if (send(new_fd, response, strlen(response), 0) == -1)
-                    perror("send");
             }   
             else
             {
-                if ( epoll_ctl( epollfd, EPOLL_CTL_DEL, ev.data.fd, NULL ) == -1 )
-                {
-                    perror( "epoll_ctl:delete fd" );
-                    exit( EXIT_FAILURE );
+                printf("server: got event on fd %d of type %u\n", events[n].data.fd, events[n].events);
+                if (events[n].events & (EPOLLHUP | EPOLLERR | EPOLLRDHUP)) {
+                    printf("Client disconnected: fd=%d\n", events[n].data.fd);
+                    close(events[n].data.fd);
+                    continue;
                 }
-                close(ev.data.fd);
+                int flags = fcntl(events[n].data.fd, F_GETFL, 0);
+                printf("flags: %x\n", flags);
+                ssize_t count = recv(events[n].data.fd, buffer, sizeof(buffer), 0);
+                if (count > 0) {
+                    buffer[count] = '\0'; // Null-terminate the buffer
+                    printf("Received %zd bytes: %.*s\n", count, (int)count, buffer);
+                }
+                if (send(events[n].data.fd, response, strlen(response), 0) == -1)
+                    perror("send");
+                printf("Sent response to fd=%d\n", events[n].data.fd);
+                // if ( epoll_ctl( epollfd, EPOLL_CTL_DEL, events[n].data.fd, NULL ) == -1 )
+                // {
+                //     perror( "epoll_ctl:delete fd" );
+                //     exit( EXIT_FAILURE );
+                // }
+                close(events[n].data.fd);
+                printf("Closed: fd=%d\n", events[n].data.fd);
             }
             std::cout << "been there2" << std::endl;
             
         }
-        close(new_fd);  // parent doesn't need this
     }
     return 0;
 }
