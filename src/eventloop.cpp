@@ -1,9 +1,8 @@
-#include "eventloop.hpp"
+#include "../inc/eventloop.hpp"
 
-#define PORT "3490"
+#define PORT "3491"
 #define BACKLOG 5
 #define MAX_EVENTS 10
-#define BUFFER_SIZE 1024
 
 //  getaddrinfo() 
 
@@ -40,7 +39,7 @@
 
 // }
 
-httpServer::httpServer() : _listenSock( 0 )
+httpServer::httpServer()
 {
     std::cout << "Server created" << std::endl;
 }
@@ -71,16 +70,27 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-int set_nonblocking(int fd) {
-    int flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1) return -1;
-    return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-}
+// void    print_addrinfo( struct addrinfo *p, int it, char *s )
+// {
+//     std::cout << "\n--- iteration: " << it << "---" << std::endl;
+//     std::cout << "ai_flags: " << p->ai_flags << std::endl;
+//     std::cout << "ai_family: " << (p->ai_family == AF_INET ? "AF_INET (4)" : p->ai_family == AF_INET6 ? "AF_INET6 (6)" : "UNKNOWN" ) << std::endl;
+//     std::cout << "ai_socktype: " << (p->ai_socktype == SOCK_STREAM ? "SOCK_STREAM" : "UNKNOWN" ) << std::endl;
+//     std::cout << "ai_protocol: " << p->ai_protocol << std::endl;
+//     std::cout << "ai_addrlen: " << p->ai_addrlen << std::endl;
 
-int httpServer::createSocket()
+//     if ( p->ai_canonname )
+//         std::cout << "ai_canonname: " << p->ai_canonname << std::endl;
+
+//     inet_ntop( p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof( s ) );
+//     std::cout << "Address: " << s << std::endl;
+// }
+
+int httpServer::run()
 {
-    int rv, yes=1;
+    int rv, sockfd, yes=1;
     struct sigaction sa;
+    char s[INET6_ADDRSTRLEN];
 
     std::cout << "Running webserver" << std::endl;
 
@@ -100,21 +110,21 @@ int httpServer::createSocket()
     for ( p = servinfo; p != NULL; p = p->ai_next )
     {
         // print_addrinfo(p, it++, s);
-        if ( ( _listenSock = socket( p->ai_family, p->ai_socktype, p->ai_protocol ) ) == -1 )
+        if ( ( sockfd = socket( p->ai_family, p->ai_socktype, p->ai_protocol ) ) == -1 )
         {
             perror( "server: socket" );
             continue ;
         }
 
-        if ( setsockopt( _listenSock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof( int ) ) == -1 )
+        if ( setsockopt( sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof( int ) ) == -1 )
         {
             perror( "setsockopt" );
             exit( 1 );
         }
 
-        if ( bind( _listenSock, p->ai_addr, p->ai_addrlen ) == -1 )
+        if ( bind( sockfd, p->ai_addr, p->ai_addrlen ) == -1 )
         {
-            close ( _listenSock );
+            close ( sockfd );
             perror( "server: bind" );
             continue ;
         }
@@ -132,7 +142,7 @@ int httpServer::createSocket()
         exit( 1 );
     }
 
-    if ( listen( _listenSock, BACKLOG ) == -1 )
+    if ( listen( sockfd, BACKLOG ) == -1 )
     {
         perror( "listen" );
         exit( 1 );
@@ -147,18 +157,14 @@ int httpServer::createSocket()
     }
 
     std::cout << "Server wating for connection...\n" << std::endl;
-    return 0;
-}
 
-int httpServer::eventLoop()
-{
+    /////////
 
-    socklen_t addrlen;
+    socklen_t sin_size;
     struct sockaddr_storage their_addr;
-    int new_fd, epollfd, nfds;
-    const char* response = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n<html><body>Hello, World!</body></html>";
+    int new_fd;
+    const char* response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 44\r\n\r\n<html><body>Hello, World!</body></html>";
     struct epoll_event ev, events[MAX_EVENTS];
-    char s[INET6_ADDRSTRLEN];
 
     epollfd = epoll_create1(0);
     if ( epollfd == -1 ) 
@@ -167,19 +173,14 @@ int httpServer::eventLoop()
         exit( EXIT_FAILURE );
     }
     
-    if (set_nonblocking(_listenSock) == -1) {
-        perror("set_nonblocking");
-        exit(EXIT_FAILURE);
-    }
     ev.events = EPOLLIN;
-    ev.data.fd = _listenSock; // == listen_sock
-    if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, _listenSock, &ev ) == -1 )
+    ev.data.fd = sockfd;
+    if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, sockfd, &ev ) == -1 )
     {
-        perror( "epollwait(listening)" );
+        perror( "epollwait" );
         exit( EXIT_FAILURE );
     }
 
-    char buffer[BUFFER_SIZE];
     while ( 1 )
     {
         nfds = epoll_wait( epollfd, events, MAX_EVENTS, -1 );
@@ -188,68 +189,37 @@ int httpServer::eventLoop()
             perror( "epoll_wait" );
             exit( EXIT_FAILURE );
         }
-        
-        std::cout << "been there1" << std::endl;
     
         for ( int n = 0; n < nfds; ++n )// main accept() loop
         {
-            if ( events[ n ].data.fd == _listenSock )
-            {
-                addrlen = sizeof their_addr;
-                new_fd = accept(_listenSock, (struct sockaddr *) &their_addr, &addrlen);
-                std::cout << "new_fd = " << new_fd << std::endl;
-                if (new_fd == -1)
-                {
-                    perror("accept");
-                    exit( EXIT_FAILURE );
-                }
+            // sin_size = sizeof their_addr;
+            // new_fd = accept(sockfd, (struct sockaddr *)&their_addr,
+            //     &sin_size);
+            // if (new_fd == -1) {
+            //     perror("accept");
+            //     continue;
+            // }
 
-                //printing
-                inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr *)&their_addr), s, sizeof s);
-                printf("server: accepted connection from %s port %d\n", s, ntohs(((struct sockaddr_in *)&their_addr)->sin_port));
+            if ( events[ n ].data.fd == sockfd )
+            {
                 
-                if (set_nonblocking(new_fd) == -1) {
-                    perror("set_nonblocking");
-                    exit(EXIT_FAILURE);
-                }
-                struct epoll_event client_ev;
-                client_ev.events = EPOLLIN | EPOLLRDHUP;
-                client_ev.data.fd = new_fd;
-
-                if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, new_fd, &client_ev ) == -1 )
-                {
-                    perror( "epoll_ctl:P new_fd" );
-                    exit( EXIT_FAILURE );
-                }
-            }   
-            else
-            {
-                printf("server: got event on fd %d of type %u\n", events[n].data.fd, events[n].events);
-                if (events[n].events & (EPOLLHUP | EPOLLERR | EPOLLRDHUP)) {
-                    printf("Client disconnected: fd=%d\n", events[n].data.fd);
-                    close(events[n].data.fd);
-                    continue;
-                }
-                int flags = fcntl(events[n].data.fd, F_GETFL, 0);
-                printf("flags: %x\n", flags);
-                ssize_t count = recv(events[n].data.fd, buffer, sizeof(buffer), 0);
-                if (count > 0) {
-                    buffer[count] = '\0'; // Null-terminate the buffer
-                    printf("Received %zd bytes: %.*s\n", count, (int)count, buffer);
-                }
-                if (send(events[n].data.fd, response, strlen(response), 0) == -1)
-                    perror("send");
-                printf("Sent response to fd=%d\n", events[n].data.fd);
-                // if ( epoll_ctl( epollfd, EPOLL_CTL_DEL, events[n].data.fd, NULL ) == -1 )
-                // {
-                //     perror( "epoll_ctl:delete fd" );
-                //     exit( EXIT_FAILURE );
-                // }
-                close(events[n].data.fd);
-                printf("Closed: fd=%d\n", events[n].data.fd);
             }
-            std::cout << "been there2" << std::endl;
-            
+
+            //printing
+            inet_ntop(their_addr.ss_family,
+                get_in_addr((struct sockaddr *)&their_addr),
+                s, sizeof s);
+            printf("server: got connection from %s\n", s);
+            //
+
+            if (!fork()) { // this is the child process
+                close(sockfd); // child doesn't need the listener
+                if (send(new_fd, response, strlen(response), 0) == -1)
+                    perror("send");
+                close(new_fd);
+                exit(0);
+            }
+            close(new_fd);  // parent doesn't need this
         }
     }
     return 0;
@@ -276,58 +246,119 @@ int httpServer::eventLoop()
 // if use EPOLLET, should use non-blocking file descriptors, to avoid having a blocking read or write starve a task that is handling multiple file descriptors
 // recommendation when using EPOLLET is using nonblocking file descriptors and waiting for an event only after read or write return EAGAIN
 
-    //  #define MAX_EVENTS 10
-    //        struct epoll_event ev, events[MAX_EVENTS];
-    //        int listen_sock, conn_sock, nfds, epollfd;
+     #define MAX_EVENTS 10
+           struct epoll_event ev, events[MAX_EVENTS];
+           int listen_sock, conn_sock, nfds, epollfd;
 
            /* Code to set up listening socket, 'listen_sock',
               (socket(), bind(), listen()) omitted */
 
-        //    epollfd = epoll_create1(0);
-        //    if (epollfd == -1) {
-        //        perror("epoll_create1");
-        //        exit(EXIT_FAILURE);
-        //    }
+           epollfd = epoll_create1(0);
+           if (epollfd == -1) {
+               perror("epoll_create1");
+               exit(EXIT_FAILURE);
+           }
 
-        //    ev.events = EPOLLIN;
-        //    ev.data.fd = listen_sock;
-        //    if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1) {
-        //        perror("epoll_ctl: listen_sock");
-        //        exit(EXIT_FAILURE);
-        //    }
+           ev.events = EPOLLIN;
+           ev.data.fd = listen_sock;
+           if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1) {
+               perror("epoll_ctl: listen_sock");
+               exit(EXIT_FAILURE);
+           }
 
-        //    for (;;) {
-        //        nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
-        //        if (nfds == -1) {
-        //            perror("epoll_wait");
-        //            exit(EXIT_FAILURE);
-        //        }
+           for (;;) {
+               nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
+               if (nfds == -1) {
+                   perror("epoll_wait");
+                   exit(EXIT_FAILURE);
+               }
 
-        //        for (n = 0; n < nfds; ++n)
-        //        {
-        //            if (events[n].data.fd == listen_sock)
-        //            {
-        //                conn_sock = accept(listen_sock, (struct sockaddr *) &addr, &addrlen);
+               for (n = 0; n < nfds; ++n)
+               {
+                   if (events[n].data.fd == listen_sock)
+                   {
+                       conn_sock = accept(listen_sock, (struct sockaddr *) &addr, &addrlen);
                
-        //                if (conn_sock == -1)
-        //                {
-        //                    perror("accept");
-        //                    exit(EXIT_FAILURE);
-        //                }
+                       if (conn_sock == -1)
+                       {
+                           perror("accept");
+                           exit(EXIT_FAILURE);
+                       }
 
-        //                setnonblocking(conn_sock);
-        //                ev.events = EPOLLIN | EPOLLET;
-        //                ev.data.fd = conn_sock;
+                       setnonblocking(conn_sock);
+                       ev.events = EPOLLIN | EPOLLET;
+                       ev.data.fd = conn_sock;
                
-        //                if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
-        //                {
-        //                    perror("epoll_ctl: conn_sock");
-        //                    exit(EXIT_FAILURE);
-        //                }
-        //             }
-        //             else
-        //             {
-        //                do_use_fd(events[n].data.fd);
-        //             }
-        //         }
-        //     }
+                       if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
+                       {
+                           perror("epoll_ctl: conn_sock");
+                           exit(EXIT_FAILURE);
+                       }
+                    }
+                    else
+                    {
+                       do_use_fd(events[n].data.fd);
+                    }
+                }
+            }
+
+
+
+
+// response codes function
+
+void Response::setStatus(int code)
+{
+    static const std::map<int, std::string> reasons = {
+        {200, "OK"},
+        {201, "Created"},
+        {204, "No Content"},
+        {301, "Moved Permanently"},
+        {308, "Permanent Redirect"},
+        {400, "Bad Request"},
+        {401, "Unauthorized"},
+        {402, "Payment Required"},
+        {403, "Forbidden"},
+        {404, "Not Found"},
+        {405, "Method Not Allowed"},
+        {406, "Not Acceptable"},
+        {407, "Proxy Authentication Required"},
+        {408, "Request Timeout"},
+        {409, "Conflict"},
+        {410, "Gone"},
+        {411, "Length Required"},
+        {412, "Precondition Failed"},
+        {413, "Payload Too Large"},
+        {414, "URI Too Long"},
+        {415, "Unsupported Media Type"},
+        {416, "Range Not Satisfiable"},
+        {417, "Expectation Failed"},
+        {418, "I'm a teapot"},
+        {421, "Misdirected Request"},
+        {422, "Unprocessable Entity"},
+        {423, "Locked"},
+        {424, "Failed Dependency"},
+        {425, "Too Early"},
+        {426, "Upgrade Required"},
+        {428, "Precondition Required"},
+        {429, "Too Many Requests"},
+        {431, "Request Header Fields Too Large"},
+        {451, "Unavailable For Legal Reasons"},
+        {500, "Internal Server Error"},
+        {501, "Not Implemented"},
+        {502, "Bad Gateway"},
+        {503, "Service Unavailable"},
+        {504, "Gateway Timeout"},
+        {505, "HTTP Version Not Supported"},
+        {506, "Variant Also Negotiates"},
+        {507, "Insufficient Storage"},
+        {508, "Loop Detected"},
+        {510, "Not Extended"},
+        {511, "Network Authentication Required"}
+    };
+    _statusCode = code;
+    if (reasons.count(code))
+        _reasonPhrase = reasons.at(code);
+    else
+        _reasonPhrase = "Unknown";
+}
