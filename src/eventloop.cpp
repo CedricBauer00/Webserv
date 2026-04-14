@@ -1,4 +1,6 @@
 #include "eventloop.hpp"
+#include <cerrno>
+#include <cstdlib>
 
 #define PORT "3490"
 #define BACKLOG 5
@@ -156,9 +158,17 @@ int httpServer::eventLoop()
     socklen_t addrlen;
     struct sockaddr_storage their_addr;
     int new_fd, epollfd, nfds;
-    const char* response = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n<html><body>Hello, World!</body></html>";
+    // const char* response = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n<html><body>Hello, World!</body></html>";
+    const char* response =
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: text/html; charset=utf-8\r\n"
+        "Content-Length: 44\r\n"
+        "Connection: keep-alive\r\n"
+        "\r\n"
+        "<html><body>Hello, World!</body></html>";
     struct epoll_event ev, events[MAX_EVENTS];
     char s[INET6_ADDRSTRLEN];
+    int epoll_fd_count = 0;
 
     epollfd = epoll_create1(0);
     if ( epollfd == -1 ) 
@@ -178,10 +188,12 @@ int httpServer::eventLoop()
         perror( "epollwait(listening)" );
         exit( EXIT_FAILURE );
     }
+    ++epoll_fd_count;
 
     char buffer[BUFFER_SIZE];
     while ( 1 )
     {
+        printf("epoll fds: %d\n", epoll_fd_count);
         nfds = epoll_wait( epollfd, events, MAX_EVENTS, -1 );
         if ( nfds == -1 )
         {
@@ -206,7 +218,7 @@ int httpServer::eventLoop()
 
                 //printing
                 inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr *)&their_addr), s, sizeof s);
-                printf("server: accepted connection from %s port %d\n", s, ntohs(((struct sockaddr_in *)&their_addr)->sin_port));
+                printf(GREEN"server: accepted connection from %s port %d" RESET "\n", s, ntohs(((struct sockaddr_in *)&their_addr)->sin_port));
                 
                 if (set_nonblocking(new_fd) == -1) {
                     perror("set_nonblocking");
@@ -221,6 +233,7 @@ int httpServer::eventLoop()
                     perror( "epoll_ctl:P new_fd" );
                     exit( EXIT_FAILURE );
                 }
+                ++epoll_fd_count;
             }   
             else
             {
@@ -228,15 +241,51 @@ int httpServer::eventLoop()
                 if (events[n].events & (EPOLLHUP | EPOLLERR | EPOLLRDHUP)) {
                     printf("Client disconnected: fd=%d\n", events[n].data.fd);
                     close(events[n].data.fd);
+                    --epoll_fd_count;
                     continue;
                 }
                 int flags = fcntl(events[n].data.fd, F_GETFL, 0);
                 printf("flags: %x\n", flags);
-                ssize_t count = recv(events[n].data.fd, buffer, sizeof(buffer), 0);
-                if (count > 0) {
-                    buffer[count] = '\0'; // Null-terminate the buffer
-                    printf("Received %zd bytes: %.*s\n", count, (int)count, buffer);
+                
+                // http parsing call
+                char *heap_buf = NULL;
+                size_t total = 0;
+                while (1) {
+                    ssize_t count = recv(events[n].data.fd, buffer, sizeof(buffer), 0);
+                    if (count > 0) {
+                        char *next = static_cast<char *>(realloc(heap_buf, total + count + 1));
+                        if (!next) {
+                            perror("realloc");
+                            free(heap_buf);
+                            heap_buf = NULL;
+                            break;
+                        }
+                        heap_buf = next;
+                        memcpy(heap_buf + total, buffer, count);
+                        total += static_cast<size_t>(count);
+                        heap_buf[total] = '\0';
+                    } else if (count == 0) {
+                        printf("Client closed the connection\n");
+                        break;
+                    } else {
+                        if (errno == EAGAIN || errno == EWOULDBLOCK)
+                            break;
+                        if (errno == EINTR)
+                            continue;
+                        perror("recv");
+                        if (close(events[n].data.fd) == -1)
+                            return -1;
+                        printf("Closed: fd=%d\n", events[n].data.fd);
+                        --epoll_fd_count;
+                        break;
+                    }
                 }
+
+                if (heap_buf && total > 0) {
+                    printf("Received %zu bytes:\n\n%.*s\n", total, (int)total, heap_buf);
+                }
+                free(heap_buf);
+
                 if (send(events[n].data.fd, response, strlen(response), 0) == -1)
                     perror("send");
                 printf("Sent response to fd=%d\n", events[n].data.fd);
@@ -245,11 +294,12 @@ int httpServer::eventLoop()
                 //     perror( "epoll_ctl:delete fd" );
                 //     exit( EXIT_FAILURE );
                 // }
-                close(events[n].data.fd);
-                printf("Closed: fd=%d\n", events[n].data.fd);
+                // if (close(events[n].data.fd) == -1)
+                //     return -1;
+                // --epoll_fd_count;
+                // printf("Closed: fd=%d\n", events[n].data.fd);
+                printf("---------------\n");
             }
-            std::cout << "been there2" << std::endl;
-            
         }
     }
     return 0;
@@ -275,62 +325,6 @@ int httpServer::eventLoop()
 // in case not all of the information is being read from the input buffer might cause epoll_wait(2) to be stuck indefinetly
 // if use EPOLLET, should use non-blocking file descriptors, to avoid having a blocking read or write starve a task that is handling multiple file descriptors
 // recommendation when using EPOLLET is using nonblocking file descriptors and waiting for an event only after read or write return EAGAIN
-
-    //  #define MAX_EVENTS 10
-    //        struct epoll_event ev, events[MAX_EVENTS];
-    //        int listen_sock, conn_sock, nfds, epollfd;
-
-           /* Code to set up listening socket, 'listen_sock',
-              (socket(), bind(), listen()) omitted */
-
-        //    epollfd = epoll_create1(0);
-        //    if (epollfd == -1) {
-        //        perror("epoll_create1");
-        //        exit(EXIT_FAILURE);
-        //    }
-
-        //    ev.events = EPOLLIN;
-        //    ev.data.fd = listen_sock;
-        //    if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1) {
-        //        perror("epoll_ctl: listen_sock");
-        //        exit(EXIT_FAILURE);
-        //    }
-
-        //    for (;;) {
-        //        nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
-        //        if (nfds == -1) {
-        //            perror("epoll_wait");
-        //            exit(EXIT_FAILURE);
-        //        }
-
-        //        for (n = 0; n < nfds; ++n)
-        //        {
-        //            if (events[n].data.fd == listen_sock)
-        //            {
-        //                conn_sock = accept(listen_sock, (struct sockaddr *) &addr, &addrlen);
-               
-        //                if (conn_sock == -1)
-        //                {
-        //                    perror("accept");
-        //                    exit(EXIT_FAILURE);
-        //                }
-
-        //                setnonblocking(conn_sock);
-        //                ev.events = EPOLLIN | EPOLLET;
-        //                ev.data.fd = conn_sock;
-               
-        //                if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
-        //                {
-        //                    perror("epoll_ctl: conn_sock");
-        //                    exit(EXIT_FAILURE);
-        //                }
-        //             }
-        //             else
-        //             {
-        //                do_use_fd(events[n].data.fd);
-        //             }
-        //         }
-        //     }
 
 // response codes function
 
