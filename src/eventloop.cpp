@@ -42,14 +42,19 @@
 
 // }
 
-httpServer::httpServer() : _listenSock( 0 )
+HttpServer::HttpServer() : _listenSock( 0 )
 {
     std::cout << "Server created" << std::endl;
 }
 
-httpServer::~httpServer()
+HttpServer::~HttpServer()
 {
     std::cout << "Server destroyed" << std::endl;
+}
+
+int HttpServer::get_sock()
+{
+    return _listenSock;
 }
 
 void sigchld_handler(int s)
@@ -79,7 +84,7 @@ int set_nonblocking(int fd) {
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
-int httpServer::createSocket()
+int HttpServer::createSocket()
 {
     int rv, yes=1;
     struct sigaction sa;
@@ -152,7 +157,7 @@ int httpServer::createSocket()
     return 0;
 }
 
-int httpServer::eventLoop()
+int HttpServer::eventLoop()
 {
 
     socklen_t addrlen;
@@ -246,28 +251,22 @@ int httpServer::eventLoop()
                 }
                 int flags = fcntl(events[n].data.fd, F_GETFL, 0);
                 printf("flags: %x\n", flags);
-                
-                // http parsing call
-                char *heap_buf = NULL;
-                size_t total = 0;
-                while (1) {
+
+                std::string request;
+
+                while ( true )
+                {
                     ssize_t count = recv(events[n].data.fd, buffer, sizeof(buffer), 0);
-                    if (count > 0) {
-                        char *next = static_cast<char *>(realloc(heap_buf, total + count + 1));
-                        if (!next) {
-                            perror("realloc");
-                            free(heap_buf);
-                            heap_buf = NULL;
-                            break;
-                        }
-                        heap_buf = next;
-                        memcpy(heap_buf + total, buffer, count);
-                        total += static_cast<size_t>(count);
-                        heap_buf[total] = '\0';
-                    } else if (count == 0) {
+
+                    if (count > 0)
+                        request.append( buffer, static_cast<size_t>( count ) );
+                    else if (count == 0)
+                    {
                         printf("Client closed the connection\n");
                         break;
-                    } else {
+                    }
+                    else
+                    {
                         if (errno == EAGAIN || errno == EWOULDBLOCK)
                             break;
                         if (errno == EINTR)
@@ -280,11 +279,10 @@ int httpServer::eventLoop()
                         break;
                     }
                 }
-
-                if (heap_buf && total > 0) {
-                    printf("Received %zu bytes:\n\n%.*s\n", total, (int)total, heap_buf);
-                }
-                free(heap_buf);
+                
+                HttpParsing::HttpParser result = 
+// <-- hier! der http parser oder?
+                std::cout << "Received byte:\n\n" << request << std::endl; 
 
                 if (send(events[n].data.fd, response, strlen(response), 0) == -1)
                     perror("send");
@@ -328,58 +326,58 @@ int httpServer::eventLoop()
 
 // response codes function
 
-void Response::setStatus(int code)
-{
-    static const std::map<int, std::string> reasons = {
-        {200, "OK"},
-        {201, "Created"},
-        {204, "No Content"},
-        {301, "Moved Permanently"},
-        {308, "Permanent Redirect"},
-        {400, "Bad Request"},
-        {401, "Unauthorized"},
-        {402, "Payment Required"},
-        {403, "Forbidden"},
-        {404, "Not Found"},
-        {405, "Method Not Allowed"},
-        {406, "Not Acceptable"},
-        {407, "Proxy Authentication Required"},
-        {408, "Request Timeout"},
-        {409, "Conflict"},
-        {410, "Gone"},
-        {411, "Length Required"},
-        {412, "Precondition Failed"},
-        {413, "Payload Too Large"},
-        {414, "URI Too Long"},
-        {415, "Unsupported Media Type"},
-        {416, "Range Not Satisfiable"},
-        {417, "Expectation Failed"},
-        {418, "I'm a teapot"},
-        {421, "Misdirected Request"},
-        {422, "Unprocessable Entity"},
-        {423, "Locked"},
-        {424, "Failed Dependency"},
-        {425, "Too Early"},
-        {426, "Upgrade Required"},
-        {428, "Precondition Required"},
-        {429, "Too Many Requests"},
-        {431, "Request Header Fields Too Large"},
-        {451, "Unavailable For Legal Reasons"},
-        {500, "Internal Server Error"},
-        {501, "Not Implemented"},
-        {502, "Bad Gateway"},
-        {503, "Service Unavailable"},
-        {504, "Gateway Timeout"},
-        {505, "HTTP Version Not Supported"},
-        {506, "Variant Also Negotiates"},
-        {507, "Insufficient Storage"},
-        {508, "Loop Detected"},
-        {510, "Not Extended"},
-        {511, "Network Authentication Required"}
-    };
-    _statusCode = code;
-    if (reasons.count(code))
-        _reasonPhrase = reasons.at(code);
-    else
-        _reasonPhrase = "Unknown";
-}
+// void Response::setStatus(int code)
+// {
+//     static const std::map<int, std::string> reasons = {
+//         {200, "OK"},
+//         {201, "Created"},
+//         {204, "No Content"},
+//         {301, "Moved Permanently"},
+//         {308, "Permanent Redirect"},
+//         {400, "Bad Request"},
+//         {401, "Unauthorized"},
+//         {402, "Payment Required"},
+//         {403, "Forbidden"},
+//         {404, "Not Found"},
+//         {405, "Method Not Allowed"},
+//         {406, "Not Acceptable"},
+//         {407, "Proxy Authentication Required"},
+//         {408, "Request Timeout"},
+//         {409, "Conflict"},
+//         {410, "Gone"},
+//         {411, "Length Required"},
+//         {412, "Precondition Failed"},
+//         {413, "Payload Too Large"},
+//         {414, "URI Too Long"},
+//         {415, "Unsupported Media Type"},
+//         {416, "Range Not Satisfiable"},
+//         {417, "Expectation Failed"},
+//         {418, "I'm a teapot"},
+//         {421, "Misdirected Request"},
+//         {422, "Unprocessable Entity"},
+//         {423, "Locked"},
+//         {424, "Failed Dependency"},
+//         {425, "Too Early"},
+//         {426, "Upgrade Required"},
+//         {428, "Precondition Required"},
+//         {429, "Too Many Requests"},
+//         {431, "Request Header Fields Too Large"},
+//         {451, "Unavailable For Legal Reasons"},
+//         {500, "Internal Server Error"},
+//         {501, "Not Implemented"},
+//         {502, "Bad Gateway"},
+//         {503, "Service Unavailable"},
+//         {504, "Gateway Timeout"},
+//         {505, "HTTP Version Not Supported"},
+//         {506, "Variant Also Negotiates"},
+//         {507, "Insufficient Storage"},
+//         {508, "Loop Detected"},
+//         {510, "Not Extended"},
+//         {511, "Network Authentication Required"}
+//     };
+//     _statusCode = code;
+//     if (reasons.count(code))
+//         _reasonPhrase = reasons.at(code);
+//     else
+//         _reasonPhrase = "Unknown";
+// }

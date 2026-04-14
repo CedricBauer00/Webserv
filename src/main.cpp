@@ -3,7 +3,7 @@
 
 int main( void )
 {
-    httpServer server;
+    HttpServer server;
 
     if ( server.createSocket()  )
     {

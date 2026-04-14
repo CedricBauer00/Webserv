@@ -22,15 +22,17 @@
 #define ORANGE  "\033[38;2;255;120;0m"
 #define RESET  "\033[0m"
 
-class httpServer
+class HttpServer
 {
     private:
         int _listenSock;
     public:
-        httpServer();
-        ~httpServer();
+        HttpServer();
+        ~HttpServer();
         int createSocket();
         int eventLoop();
+        
+        int get_sock();
 };
 
 #endif
