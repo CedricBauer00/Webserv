@@ -1,21 +1,24 @@
-#include "../inc/httpparser.hpp"
+#include "../inc/Httpparser.hpp"
 
-HttpParsing::HttpParser( std::string request ) : _result(request )
+HttpParser::HttpParser( std::string request ) : _request( request )
 {
     std::cout << "HttpParsing" << std::endl;
 }
 
-HttpParsing::~HttpParser() : _result()
+HttpParser::~HttpParser()
 {
     std::cout << "HttpParsing" << std::endl;
 }
 
-int HttpParsing::parse()
+int HttpParser::parse()
 {
-
+ 
+    std::cout << "Received byte:\n\n" << _request << std::endl; 
+    
+    return 0;
 }
 
-std::string HttpParsing::getRequest()
+std::string HttpParser::getRequest()
 {
     return _request;
 }

@@ -1,7 +1,9 @@
 NAME = server
 
 SRC = src/main.cpp \
-		src/eventloop.cpp
+		src/Eventloop.cpp \
+		src/HttpParser.cpp \
+		src/Client.cpp
 
 OBJ := $(SRC:%.cpp=%.o)
 

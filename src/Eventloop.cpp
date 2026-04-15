@@ -1,11 +1,12 @@
-#include "eventloop.hpp"
+#include "../inc/Eventloop.hpp"
+#include "../inc/Httpparser.hpp"
+#include "../inc/Client.hpp"
 #include <cerrno>
 #include <cstdlib>
 
 #define PORT "3490"
 #define BACKLOG 5
 #define MAX_EVENTS 10
-#define BUFFER_SIZE 1024
 
 //  getaddrinfo() 
 
@@ -126,8 +127,6 @@ int HttpServer::createSocket()
             continue ;
         }
 
-        std::cout << "printing family: " << (p->ai_family == AF_INET ? "AF_INET" : "AF_INET6") << std::endl;
-
         break ;
     }
 
@@ -168,7 +167,6 @@ int HttpServer::eventLoop()
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: text/html; charset=utf-8\r\n"
         "Content-Length: 44\r\n"
-        "Connection: keep-alive\r\n"
         "\r\n"
         "<html><body>Hello, World!</body></html>";
     struct epoll_event ev, events[MAX_EVENTS];
@@ -187,7 +185,7 @@ int HttpServer::eventLoop()
         exit(EXIT_FAILURE);
     }
     ev.events = EPOLLIN;
-    ev.data.fd = _listenSock; // == listen_sock
+    ev.data.fd = _listenSock;
     if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, _listenSock, &ev ) == -1 )
     {
         perror( "epollwait(listening)" );
@@ -195,18 +193,15 @@ int HttpServer::eventLoop()
     }
     ++epoll_fd_count;
 
-    char buffer[BUFFER_SIZE];
     while ( 1 )
     {
-        printf("epoll fds: %d\n", epoll_fd_count);
+        printf( "epoll fds: %d\n", epoll_fd_count );
         nfds = epoll_wait( epollfd, events, MAX_EVENTS, -1 );
         if ( nfds == -1 )
         {
             perror( "epoll_wait" );
             exit( EXIT_FAILURE );
         }
-        
-        std::cout << "been there1" << std::endl;
     
         for ( int n = 0; n < nfds; ++n )// main accept() loop
         {
@@ -214,7 +209,9 @@ int HttpServer::eventLoop()
             {
                 addrlen = sizeof their_addr;
                 new_fd = accept(_listenSock, (struct sockaddr *) &their_addr, &addrlen);
-                std::cout << "new_fd = " << new_fd << std::endl;
+
+                std::cout << GREEN << "new_fd = " << RESET << new_fd << std::endl;
+
                 if (new_fd == -1)
                 {
                     perror("accept");
@@ -223,12 +220,14 @@ int HttpServer::eventLoop()
 
                 //printing
                 inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr *)&their_addr), s, sizeof s);
-                printf(GREEN"server: accepted connection from %s port %d" RESET "\n", s, ntohs(((struct sockaddr_in *)&their_addr)->sin_port));
+                printf("server: accepted connection from %s port %d\n", s, ntohs(((struct sockaddr_in *)&their_addr)->sin_port));
                 
-                if (set_nonblocking(new_fd) == -1) {
+                if (set_nonblocking(new_fd) == -1)
+                {
                     perror("set_nonblocking");
                     exit(EXIT_FAILURE);
                 }
+
                 struct epoll_event client_ev;
                 client_ev.events = EPOLLIN | EPOLLRDHUP;
                 client_ev.data.fd = new_fd;
@@ -243,60 +242,41 @@ int HttpServer::eventLoop()
             else
             {
                 printf("server: got event on fd %d of type %u\n", events[n].data.fd, events[n].events);
-                if (events[n].events & (EPOLLHUP | EPOLLERR | EPOLLRDHUP)) {
+                if (events[n].events & (EPOLLHUP | EPOLLERR | EPOLLRDHUP))
+                {
                     printf("Client disconnected: fd=%d\n", events[n].data.fd);
                     close(events[n].data.fd);
                     --epoll_fd_count;
                     continue;
                 }
+
                 int flags = fcntl(events[n].data.fd, F_GETFL, 0);
-                printf("flags: %x\n", flags);
+                printf("fcntl: flags: %x\n", flags);
 
-                std::string request;
+                Client client;
 
-                while ( true )
+                client.receiveFromClient( events[ n ].data.fd, epoll_fd_count );
+                    // return -1; // muss hier noch ein error printing?
+                    // wir koennen nicht auf -1 checken, weil der server dann nicht laeuft, ist das normal?
+
+                HttpParser result( client.getRequest() );
+                if ( result.parse() == -1 )
+                    return -1;
+
+                client.sendToClient( events[ n ].data.fd, response ); //woher bekommen wir die response?
+                    // return -1; // wir koennen auch hier nicht auf die send function checken... warum nicht ?
+
+                if ( epoll_ctl( epollfd, EPOLL_CTL_DEL, events[n].data.fd, NULL ) == -1 )
                 {
-                    ssize_t count = recv(events[n].data.fd, buffer, sizeof(buffer), 0);
-
-                    if (count > 0)
-                        request.append( buffer, static_cast<size_t>( count ) );
-                    else if (count == 0)
-                    {
-                        printf("Client closed the connection\n");
-                        break;
-                    }
-                    else
-                    {
-                        if (errno == EAGAIN || errno == EWOULDBLOCK)
-                            break;
-                        if (errno == EINTR)
-                            continue;
-                        perror("recv");
-                        if (close(events[n].data.fd) == -1)
-                            return -1;
-                        printf("Closed: fd=%d\n", events[n].data.fd);
-                        --epoll_fd_count;
-                        break;
-                    }
+                    perror( "epoll_ctl:delete fd" );
+                    exit( EXIT_FAILURE );
                 }
-                
-                HttpParsing::HttpParser result = 
-// <-- hier! der http parser oder?
-                std::cout << "Received byte:\n\n" << request << std::endl; 
 
-                if (send(events[n].data.fd, response, strlen(response), 0) == -1)
-                    perror("send");
-                printf("Sent response to fd=%d\n", events[n].data.fd);
-                // if ( epoll_ctl( epollfd, EPOLL_CTL_DEL, events[n].data.fd, NULL ) == -1 )
-                // {
-                //     perror( "epoll_ctl:delete fd" );
-                //     exit( EXIT_FAILURE );
-                // }
-                // if (close(events[n].data.fd) == -1)
-                //     return -1;
-                // --epoll_fd_count;
-                // printf("Closed: fd=%d\n", events[n].data.fd);
-                printf("---------------\n");
+                if ( close( events[n].data.fd ) == -1)
+                    return -1;
+                --epoll_fd_count;
+                std::cout << RED << "Closed: fd=" << events[n].data.fd << RESET << std::endl;
+                printf("---------------\n\n");
             }
         }
     }

@@ -21,12 +21,12 @@
 #define ORANGE  "\033[38;2;255;120;0m"
 #define RESET  "\033[0m"
 
-class HttpParsing
+class HttpParser
 {
     private:
         std::string _request;
     public:
-        HttpParser();
+        HttpParser( std::string request );
         ~HttpParser();
         int parse();
 
