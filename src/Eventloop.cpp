@@ -161,7 +161,7 @@ int HttpServer::eventLoop()
 
     socklen_t addrlen;
     struct sockaddr_storage their_addr;
-    int new_fd, epollfd, nfds;
+    int new_fd, epollfd, nfds, ret;
     // const char* response = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n<html><body>Hello, World!</body></html>";
     const char* response =
         "HTTP/1.1 200 OK\r\n"
@@ -229,7 +229,7 @@ int HttpServer::eventLoop()
                 }
 
                 struct epoll_event client_ev;
-                client_ev.events = EPOLLIN | EPOLLRDHUP;
+                client_ev.events = EPOLLIN | EPOLLRDHUP | EPOLLOUT | EPOLLET;
                 client_ev.data.fd = new_fd;
 
                 if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, new_fd, &client_ev ) == -1 )
@@ -254,28 +254,35 @@ int HttpServer::eventLoop()
                 printf("fcntl: flags: %x\n", flags);
 
                 Client client;
-
-                client.receiveFromClient( events[ n ].data.fd, epoll_fd_count );
+                ret = client.receiveFromClient( events[ n ].data.fd );
+                printf("%s\n", client.getRequest().c_str());
+                if (ret < 1)
+                {
+                    if ( ret == -1 && (errno == EAGAIN || errno == EWOULDBLOCK ))
+                        (void)1;
+                    else
+                    {
+                        client.closeFd( events[ n ].data.fd, epollfd, epoll_fd_count);
+                        continue;
+                    }
+                }
                     // return -1; // muss hier noch ein error printing?
                     // wir koennen nicht auf -1 checken, weil der server dann nicht laeuft, ist das normal?
 
-                HttpParser result( client.getRequest() );
-                if ( result.parse() == -1 )
-                    return -1;
+                // HttpParser result( client.getRequest() );
+                // if ( result.parse() == -1 )
+                //     return -1;
 
-                client.sendToClient( events[ n ].data.fd, response ); //woher bekommen wir die response?
-                    // return -1; // wir koennen auch hier nicht auf die send function checken... warum nicht ?
+                // response creation
 
-                if ( epoll_ctl( epollfd, EPOLL_CTL_DEL, events[n].data.fd, NULL ) == -1 )
+                // if ( buffer ) exists = response
+                if ( client.sendToClient( events[ n ].data.fd, response ) == -1 )  //woher bekommen wir die response?
                 {
-                    perror( "epoll_ctl:delete fd" );
-                    exit( EXIT_FAILURE );
-                }
-
-                if ( close( events[n].data.fd ) == -1)
-                    return -1;
-                --epoll_fd_count;
-                std::cout << RED << "Closed: fd=" << events[n].data.fd << RESET << std::endl;
+                    if ( errno == EAGAIN || errno == EWOULDBLOCK )
+                        continue;
+                } // return -1; // wir koennen auch hier nicht auf die send function checken... warum nicht ? 
+                
+                client.closeFd( events[ n ].data.fd, epollfd, epoll_fd_count);
                 printf("---------------\n\n");
             }
         }
