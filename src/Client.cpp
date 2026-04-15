@@ -35,7 +35,6 @@ void Client::closeFd(int fd, int epollfd, int &epollFdCount )
 int Client::receiveFromClient( int fd )
 {
     std::cout << BLUE << "client receives on FD = " << fd << RESET << std::endl;
-    
     char buffer[BUFFER_SIZE];
     while ( true )
     {
@@ -52,7 +51,6 @@ int Client::receiveFromClient( int fd )
         }
         else
         {
-            std::cout << " request: " << _request << std::endl;
             if (errno == EINTR)
                 continue;
             return -1;
@@ -63,7 +61,6 @@ int Client::receiveFromClient( int fd )
 int Client::sendToClient( int fd, const char *response )
 {
     std::cout << "Sent response to fd=" << fd << std::endl;
-
     while (response[send_pos] != '\0')
     {
         ssize_t count = send( fd, response, strlen( response ), 0 );

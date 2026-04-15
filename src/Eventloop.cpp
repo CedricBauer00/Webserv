@@ -3,6 +3,7 @@
 #include "../inc/Client.hpp"
 #include <cerrno>
 #include <cstdlib>
+#include <map>
 
 #define PORT "3490"
 #define BACKLOG 5
@@ -172,6 +173,7 @@ int HttpServer::eventLoop()
     struct epoll_event ev, events[MAX_EVENTS];
     char s[INET6_ADDRSTRLEN];
     int epoll_fd_count = 0;
+    std::map<int, Client> clients;
 
     epollfd = epoll_create1(0);
     if ( epollfd == -1 ) 
@@ -237,6 +239,7 @@ int HttpServer::eventLoop()
                     perror( "epoll_ctl:P new_fd" );
                     exit( EXIT_FAILURE );
                 }
+                clients[new_fd] = Client();
                 ++epoll_fd_count;
             }   
             else
@@ -245,44 +248,39 @@ int HttpServer::eventLoop()
                 if (events[n].events & (EPOLLHUP | EPOLLERR | EPOLLRDHUP))
                 {
                     printf("Client disconnected: fd=%d\n", events[n].data.fd);
-                    close(events[n].data.fd);
-                    --epoll_fd_count;
+                    clients.erase(events[n].data.fd);
                     continue;
                 }
 
-                int flags = fcntl(events[n].data.fd, F_GETFL, 0);
-                printf("fcntl: flags: %x\n", flags);
-
-                Client client;
-                ret = client.receiveFromClient( events[ n ].data.fd );
-                printf("%s\n", client.getRequest().c_str());
-                if (ret < 1)
-                {
-                    if ( ret == -1 && (errno == EAGAIN || errno == EWOULDBLOCK ))
-                        (void)1;
-                    else
+                Client &client = clients[events[n].data.fd];
+                if (events[n].events & EPOLLIN == EPOLLIN) {
+                    ret = client.receiveFromClient( events[ n ].data.fd );
+                    printf("%s\n", client.getRequest().c_str());
+                    if (ret < 1)
                     {
-                        client.closeFd( events[ n ].data.fd, epollfd, epoll_fd_count);
-                        continue;
+                        if ( ret == -1 && (errno == EAGAIN || errno == EWOULDBLOCK ))
+                            (void)1;
+                        else
+                        {
+                            client.closeFd( events[ n ].data.fd, epollfd, epoll_fd_count);
+                            clients.erase(events[n].data.fd);
+                            continue;
+                        }
                     }
                 }
-                    // return -1; // muss hier noch ein error printing?
-                    // wir koennen nicht auf -1 checken, weil der server dann nicht laeuft, ist das normal?
 
                 // HttpParser result( client.getRequest() );
                 // if ( result.parse() == -1 )
                 //     return -1;
 
-                // response creation
-
-                // if ( buffer ) exists = response
                 if ( client.sendToClient( events[ n ].data.fd, response ) == -1 )  //woher bekommen wir die response?
                 {
                     if ( errno == EAGAIN || errno == EWOULDBLOCK )
                         continue;
-                } // return -1; // wir koennen auch hier nicht auf die send function checken... warum nicht ? 
+                }
                 
                 client.closeFd( events[ n ].data.fd, epollfd, epoll_fd_count);
+                clients.erase(events[n].data.fd);
                 printf("---------------\n\n");
             }
         }
