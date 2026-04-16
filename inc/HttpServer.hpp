@@ -31,8 +31,8 @@ class HttpServer
         ~HttpServer();
         int createSocket();
         int eventLoop();
-        
         int get_sock();
+        void closeEvent(int fd, int epollfd, int &epollFdCount);
 };
 
 #endif

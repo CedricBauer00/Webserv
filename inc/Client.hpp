@@ -15,5 +15,5 @@ class Client
         int receiveFromClient( int fd );
         int sendToClient( int fd, const char *response );
         std::string getRequest();
-        void closeFd( int fd, int epollfd, int &epoll_fd_count );
+        int getSendPos();
 };

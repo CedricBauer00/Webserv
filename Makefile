@@ -1,7 +1,7 @@
 NAME = server
 
 SRC = src/main.cpp \
-		src/Eventloop.cpp \
+		src/HttpServer.cpp \
 		src/HttpParser.cpp \
 		src/Client.cpp
 

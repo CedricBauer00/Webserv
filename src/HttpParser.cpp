@@ -1,4 +1,4 @@
-#include "../inc/Httpparser.hpp"
+#include "../inc/HttpParser.hpp"
 
 HttpParser::HttpParser( std::string request ) : _request( request )
 {
