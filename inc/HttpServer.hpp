@@ -32,7 +32,7 @@ class HttpServer
         int createSocket();
         int eventLoop();
         int get_sock();
-        void closeEvent(int fd, int epollfd, int &epollFdCount);
+        void closeEvent(struct epoll_event &ev, int epollfd, int &epollFdCount);
 };
 
 #endif

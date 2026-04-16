@@ -3,7 +3,6 @@
 #include "../inc/Client.hpp"
 #include <cerrno>
 #include <cstdlib>
-#include <map>
 
 #define PORT "3490"
 #define BACKLOG 5
@@ -132,15 +131,13 @@ int HttpServer::createSocket() {
     return 0;
 }
 
-void HttpServer::closeEvent(int fd, int epollfd, int &fdCount) {
-    if (epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, NULL) == -1)
-    {
-        perror("epoll_ctl:delete fd");
-        throw std::runtime_error("EPOLL_CTL_ERROR");
-    }
-    if (close(fd) == -1)
-        throw std::runtime_error("CLOSE_ERROR");
-    std::cout << RED << "Closed: fd=" << fd << RESET << std::endl;
+void HttpServer::closeEvent(struct epoll_event &ev, int epollfd, int &fdCount) {
+    if (epoll_ctl(epollfd, EPOLL_CTL_DEL, static_cast<Client*>(ev.data.ptr)->getFd(), NULL) == -1)
+        std::cerr << "EPOLL_CTL_DEL_ERROR: " << strerror(errno) << '\n';
+    if (close(static_cast<Client*>(ev.data.ptr)->getFd()) == -1)
+        std::cerr << "CLOSE_ERROR: " << strerror(errno) << '\n';
+    delete static_cast<Client*>(ev.data.ptr);
+    std::cout << RED << "Closed: fd=" << static_cast<Client*>(ev.data.ptr)->getFd() << RESET << std::endl;
     --fdCount;
 }
 
@@ -157,7 +154,6 @@ int HttpServer::eventLoop() {
     //     "\r\n"
     //     "<html><body>Hello, World!</body></html>";
     struct epoll_event ev, events[MAX_EVENTS];
-    std::map<int, Client> clients;
 
     epollfd = epoll_create1(O_CLOEXEC);
     if ( epollfd == -1 ) {
@@ -177,21 +173,21 @@ int HttpServer::eventLoop() {
     ++fdCount;
 
     std::cout << "Running webserver" << std::endl;
-    while ( 1 ) {
+    while (1) {
         printf("Number of open fds: %d\n", fdCount);
-        nfds = epoll_wait( epollfd, events, MAX_EVENTS, -1 );
-        if ( nfds == -1 ) {
+        nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
+        if (nfds == -1) {
             perror( "epoll_wait" );
             exit( EXIT_FAILURE );
         }
     
-        for ( int n = 0; n < nfds; ++n ) {
-            if ( events[ n ].data.fd == _listenSock ) {
+        for (int n = 0; n < nfds; ++n) {
+            if (events[n].data.fd == _listenSock) {
                 addrlen = sizeof clientAddr;
                 new_fd = accept(_listenSock, (struct sockaddr*)&clientAddr, &addrlen);
                 if (new_fd == -1) {
                     perror("accept");
-                    exit( EXIT_FAILURE ); // TODO: server should never crash (rlimit < no. of fds)
+                    continue;
                 }
                 std::cout << GREEN << "new_fd = " << RESET << new_fd << std::endl;
 
@@ -200,38 +196,42 @@ int HttpServer::eventLoop() {
                 printf("server: accepted connection from %s port %d\n",
                     s, ntohs(((struct sockaddr_in *)&clientAddr)->sin_port));
                 
-                if (set_nonblocking(new_fd) == -1) {
-                    perror("set_nonblocking"); 
-                    exit(EXIT_FAILURE); // TODO: server should never crash (rlimit < no. of fds)
+                try {
+                    if (set_nonblocking(new_fd) == -1)
+                        throw std::runtime_error("SET_NONBLOCKING_ERROR");
+                    ev.data.ptr = new Client(new_fd);
+                    ev.events = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET;
+                    if (epoll_ctl(epollfd, EPOLL_CTL_ADD, new_fd, &ev) == -1) {
+                        delete static_cast<Client*>(ev.data.ptr);
+                        throw std::runtime_error("EPOLL_CTL_ERROR");
+                    }
+                    ++fdCount;
                 }
-
-                ev = {.events = EPOLLIN | EPOLLRDHUP | EPOLLOUT | EPOLLET, .data = {.fd = new_fd}};
-                if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, new_fd, &ev ) == -1 ) {
-                    perror( "epoll_ctl:P new_fd" );
-                    exit( EXIT_FAILURE ); // TODO: server should never crash (rlimit < no. of fds)
+                catch(const std::exception& e) {
+                    std::cerr << e.what() << '\n';
+                    if (close(new_fd) == -1)
+                        std::cerr << "CLOSE_ERROR: " << strerror(errno) << '\n';
                 }
-                clients[new_fd] = Client();
-                ++fdCount;
                 printf("---------------\n\n");
             }   
             else {
-                printf("server: got event on fd %d of type %u\n", events[n].data.fd, events[n].events);
+                printf("server: got event on fd %d of type %u\n",
+                    static_cast<Client*>(events[n].data.ptr)->getFd(), events[n].events);
                 if (events[n].events & (EPOLLHUP | EPOLLERR | EPOLLRDHUP)) {
-                    printf("Client disconnected: fd=%d\n", events[n].data.fd);
-                    closeEvent(events[n].data.fd, epollfd, fdCount);
-                    clients.erase(events[n].data.fd);
+                    printf("Client disconnected: fd=%d\n",
+                        static_cast<Client*>(events[n].data.ptr)->getFd());
+                    closeEvent(events[n], epollfd, fdCount);
                     continue;
                 }
 
-                Client &client = clients[events[n].data.fd];
+                Client &client = *(static_cast<Client*>(events[n].data.ptr));
                 if (events[n].events & EPOLLIN) {
-                    ret = client.receiveFromClient(events[n].data.fd);
+                    ret = client.receiveFromClient();
                     if (ret < 1) {
                         if (ret == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
                             (void)1;
                         else {
-                            closeEvent(events[n].data.fd, epollfd, fdCount);
-                            clients.erase(events[n].data.fd);
+                            closeEvent(events[n], epollfd, fdCount);
                             continue;
                         }
                     }
@@ -243,12 +243,11 @@ int HttpServer::eventLoop() {
                 //     return -1;
 
                 if (events[n].events & EPOLLIN || (events[n].events & EPOLLOUT && client.getSendPos())) {
-                    if (client.sendToClient(events[n].data.fd, response) == -1) {
+                    if (client.sendToClient(response) == -1) {
                         if (errno == EAGAIN || errno == EWOULDBLOCK)
                             continue;
                     }
-                    closeEvent(events[n].data.fd, epollfd, fdCount);
-                    clients.erase(events[n].data.fd);
+                    closeEvent(events[n], epollfd, fdCount);
                 }
                 printf("---------------\n\n");
             }

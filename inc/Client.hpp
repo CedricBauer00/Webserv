@@ -6,14 +6,16 @@
 class Client
 {
     private:
+        int _fd;
         std::string _request;
         std::string _sendBuffer;
         int send_pos;
     public:
-        Client();
+        Client(int fd);
         ~Client();
-        int receiveFromClient( int fd );
-        int sendToClient( int fd, const char *response );
+        int receiveFromClient();
+        int sendToClient(const char *response );
         std::string getRequest();
         int getSendPos();
+        int getFd();
 };
