@@ -1,14 +1,18 @@
 NAME = server
 
-SRC = src/main.cpp \
-		src/HttpServer.cpp \
-		src/HttpParser.cpp \
-		src/Client.cpp
+SRC = main.cpp \
+		HttpServer.cpp \
+		HttpParser.cpp \
+		Client.cpp \
+		ConfigParsing.cpp
 
-OBJ := $(SRC:%.cpp=%.o)
+OBJ_DIR = obj
+
+OBJ := $(SRC:%.cpp=$(OBJ_DIR)/%.o)
+
+vpath %.cpp src
 
 CXX = c++
-
 CXXFLAGS = -Wall -Wextra -Werror -std=c++17 -Iinc
 
 all: $(NAME)
@@ -16,7 +20,8 @@ all: $(NAME)
 $(NAME): $(OBJ)
 	@$(CXX) $(CXXFLAGS) $(OBJ) -o $(NAME) && echo "\033[32mCompilation successful!\033[31m"
 
-%.o: %.cpp
+$(OBJ_DIR)/%.o: %.cpp
+	@mkdir -p $(OBJ_DIR)
 	@$(CXX) $(CXXFLAGS) -o $@ -c $<
 
 clean:
@@ -24,6 +29,7 @@ clean:
 
 fclean:
 	@rm -f $(NAME) $(OBJ) > /dev/null && echo "\033[31mProgram cleared successfully!\033[0m"
+	@rm -rf $(OBJ_DIR)
 
 re: fclean all
 

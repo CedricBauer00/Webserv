@@ -14,6 +14,10 @@
 #include <sys/epoll.h>
 #include <signal.h>
 #include <fcntl.h>
+#include <algorithm>
+#include "../inc/HttpParser.hpp"
+#include "../inc/Client.hpp"
+#include "../inc/ConfigParsing.hpp"
 
 #define RED  "\033[31m"
 #define ELEC_RED "\033[38;2;255;20;20m"
@@ -25,13 +29,13 @@
 class HttpServer
 {
     private:
-        int _listenSock;
+        std::vector<int> _listenFds;
+        
     public:
         HttpServer();
         ~HttpServer();
-        int createSocket();
+        int createSocket( std::vector<Server> &servers );
         int eventLoop();
-        int get_sock();
         void closeEvent(struct epoll_event &ev, int epollfd, int &epollFdCount);
 };
 

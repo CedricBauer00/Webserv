@@ -1,58 +1,17 @@
-#include "../inc/HttpServer.hpp"
-#include "../inc/HttpParser.hpp"
-#include "../inc/Client.hpp"
 #include <cerrno>
 #include <cstdlib>
+#include "../inc/HttpServer.hpp"
 
 #define PORT "3490"
 #define BACKLOG 5
 #define MAX_EVENTS 10
 
-//  getaddrinfo() 
-
-// socket()
-
-// setsockoption()
-
-// bind()
-
-// if ( HTTP 1.0 )
-// {
-// listen()
-
-// accept()
-
-// recv()
-
-// send()
-
-// close()
-// }
-
-// else if ( HTTP 1.1 )
-// {
-// listen()
-
-// accept()
-
-// recv()
-
-// send()
-
-// close()
-
-// }
-
-HttpServer::HttpServer() : _listenSock( 0 ) {
+HttpServer::HttpServer() : _listenFds() {
     std::cout << "Server created" << std::endl;
 }
 
 HttpServer::~HttpServer() {
     std::cout << "Server destroyed" << std::endl;
-}
-
-int HttpServer::get_sock() {
-    return _listenSock;
 }
 
 void sigchld_handler(int s) {
@@ -76,7 +35,7 @@ int set_nonblocking(int fd) {
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
-int HttpServer::createSocket() {
+int HttpServer::createSocket( std::vector<Server> &servers ) {
     int rv, yes=1;
     struct sigaction sa;
     struct addrinfo hints, *servinfo, *p;
@@ -86,47 +45,54 @@ int HttpServer::createSocket() {
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE; // use my IP
 
-    if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return 1;
-    }
+    for ( size_t i = 0; i < servers.size(); ++i )
+    {
+        int _listenSockFd;
 
-    for ( p = servinfo; p != NULL; p = p->ai_next ) {
-        if ( ( _listenSock = socket( p->ai_family, p->ai_socktype, p->ai_protocol ) ) == -1 ) {
-            perror( "server: socket" );
-            continue ;
+        std::cout << GREEN << "bind" << RESET << std::endl;
+        if ((rv = getaddrinfo( servers[ i ].getDomain().c_str(), PORT, &hints, &servinfo)) != 0) {
+            fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+            return 1;
         }
-        if ( setsockopt( _listenSock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof( int ) ) == -1 ) {
-            perror( "setsockopt" );
+
+        for ( p = servinfo; p != NULL; p = p->ai_next ) {
+            if ( ( _listenSockFd = socket( p->ai_family, p->ai_socktype, p->ai_protocol ) ) == -1 ) {
+                perror( "server: socket" );
+                continue ;
+            }
+            if ( setsockopt( _listenSockFd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof( int ) ) == -1 ) {
+                perror( "setsockopt" );
+                exit( 1 );
+            }
+            if ( bind( _listenSockFd, p->ai_addr, p->ai_addrlen ) == -1 ) {
+                close ( _listenSockFd );
+                perror( "server: bind" );
+                continue ;
+            }
+            break ;
+        }
+
+        freeaddrinfo( servinfo );
+
+        if ( p == NULL ) {
+            fprintf( stderr, "server: failed to bind\n" );
             exit( 1 );
         }
-        if ( bind( _listenSock, p->ai_addr, p->ai_addrlen ) == -1 ) {
-            close ( _listenSock );
-            perror( "server: bind" );
-            continue ;
+
+        if ( listen( _listenSockFd, BACKLOG ) == -1 ) {
+            perror( "listen" );
+            exit( 1 );
         }
-        break ;
-    }
+        std::cout << "Listening socket created" << std::endl;
 
-    freeaddrinfo( servinfo );
-
-    if ( p == NULL ) {
-        fprintf( stderr, "server: failed to bind\n" );
-        exit( 1 );
-    }
-
-    if ( listen( _listenSock, BACKLOG ) == -1 ) {
-        perror( "listen" );
-        exit( 1 );
-    }
-    std::cout << "Listening socket created" << std::endl;
-
-    sa.sa_handler = sigchld_handler; // reap all dead processes
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_RESTART;
-    if (sigaction(SIGCHLD, &sa, NULL) == -1) {
-        perror("sigaction");
-        exit(1);
+        sa.sa_handler = sigchld_handler; // reap all dead processes
+        sigemptyset(&sa.sa_mask);
+        sa.sa_flags = SA_RESTART;
+        if (sigaction(SIGCHLD, &sa, NULL) == -1) {
+            perror("sigaction");
+            exit(1);
+        }
+        _listenFds.push_back( _listenSockFd );
     }
     return 0;
 }
@@ -161,30 +127,39 @@ int HttpServer::eventLoop() {
         exit( EXIT_FAILURE );
     }
     
-    if (set_nonblocking(_listenSock) == -1) {
-        perror("set_nonblocking");
-        exit(EXIT_FAILURE);
+    
+    for ( int i : _listenFds )
+    {
+        if (set_nonblocking( i ) == -1) {
+            perror("set_nonblocking");
+            exit(EXIT_FAILURE);
+        }
+    
+        ev = {.events = EPOLLIN, .data = {.fd =  i }};
+
+        if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, i , &ev ) == -1 ) {
+            perror( "epollwait(listening)" );
+            exit( EXIT_FAILURE );
+        }
+        ++fdCount;
+    
     }
-    ev = {.events = EPOLLIN, .data = {.fd = _listenSock}};
-    if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, _listenSock, &ev ) == -1 ) {
-        perror( "epollwait(listening)" );
-        exit( EXIT_FAILURE );
-    }
-    ++fdCount;
 
     std::cout << "Running webserver" << std::endl;
     while (1) {
         printf("Number of open fds: %d\n", fdCount);
+        
         nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
+
         if (nfds == -1) {
             perror( "epoll_wait" );
             exit( EXIT_FAILURE );
         }
     
         for (int n = 0; n < nfds; ++n) {
-            if (events[n].data.fd == _listenSock) {
+            if ( std::find( _listenFds.begin(), _listenFds.end(), events[ n ].data.fd ) != _listenFds.end() ) {
                 addrlen = sizeof clientAddr;
-                new_fd = accept(_listenSock, (struct sockaddr*)&clientAddr, &addrlen);
+                new_fd = accept( events[n].data.fd, (struct sockaddr*)&clientAddr, &addrlen);
                 if (new_fd == -1) {
                     perror("accept");
                     continue;
@@ -212,7 +187,7 @@ int HttpServer::eventLoop() {
                     if (close(new_fd) == -1)
                         std::cerr << "CLOSE_ERROR: " << strerror(errno) << '\n';
                 }
-                printf("---------------\n\n");
+                printf("--------accepted--------\n\n");
             }   
             else {
                 printf("server: got event on fd %d of type %u\n",
@@ -242,7 +217,7 @@ int HttpServer::eventLoop() {
                 // if ( result.parse() == -1 )
                 //     return -1;
 
-                if (events[n].events & EPOLLIN || (events[n].events & EPOLLOUT && client.getSendPos())) {
+                if (events[n].events & EPOLLIN || ((events[n].events & EPOLLOUT) && client.getSendPos())) {
                     if (client.sendToClient(response) == -1) {
                         if (errno == EAGAIN || errno == EWOULDBLOCK)
                             continue;
