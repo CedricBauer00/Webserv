@@ -136,8 +136,9 @@ void HttpServer::closeEvent(struct epoll_event &ev, int epollfd, int &fdCount) {
         std::cerr << "EPOLL_CTL_DEL_ERROR: " << strerror(errno) << '\n';
     if (close(static_cast<Client*>(ev.data.ptr)->getFd()) == -1)
         std::cerr << "CLOSE_ERROR: " << strerror(errno) << '\n';
+    else
+        std::cout << RED << "Closed: fd=" << static_cast<Client*>(ev.data.ptr)->getFd() << RESET << std::endl;
     delete static_cast<Client*>(ev.data.ptr);
-    std::cout << RED << "Closed: fd=" << static_cast<Client*>(ev.data.ptr)->getFd() << RESET << std::endl;
     --fdCount;
 }
 
@@ -178,6 +179,8 @@ int HttpServer::eventLoop() {
         nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
         if (nfds == -1) {
             perror( "epoll_wait" );
+            if (errno == EINTR)
+                continue;
             exit( EXIT_FAILURE );
         }
     
