@@ -29,7 +29,7 @@
 class HttpServer
 {
     private:
-        std::vector<int> _listenFds;
+        std::vector<int>    _listenFds;
         
     public:
         HttpServer();
@@ -37,6 +37,7 @@ class HttpServer
         int createSocket( std::vector<Server> &servers );
         int eventLoop();
         void closeEvent(struct epoll_event &ev, int epollfd, int &epollFdCount);
+        bool    getComplHeader();
 };
 
 #endif

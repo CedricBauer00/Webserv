@@ -9,7 +9,8 @@ class Client
         int _fd;
         std::string _request;
         std::string _sendBuffer;
-        int send_pos;
+        int         _send_pos;
+        bool        _complHeader;
     public:
         Client(int fd);
         ~Client();
@@ -18,4 +19,5 @@ class Client
         std::string getRequest();
         int getSendPos();
         int getFd();
+        bool getComplHeader();
 };

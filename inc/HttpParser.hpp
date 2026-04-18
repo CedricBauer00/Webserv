@@ -13,6 +13,8 @@
 #include <sys/epoll.h>
 #include <signal.h>
 #include <fcntl.h>
+#include <vector>
+#include <map>
 
 #define RED  "\033[31m"
 #define ELEC_RED "\033[38;2;255;20;20m"
@@ -24,13 +26,19 @@
 class HttpParser
 {
     private:
-        std::string _request;
+        std::vector<std::string> _startLine;
+        std::map<std::string, std::string> _headers;
+        //bool _contenLength
+        std::string _body;
     public:
-        HttpParser( std::string request );
-        ~HttpParser();
-        int parse();
-
-        std::string getRequest();
+        HttpParser();
         
-//
+        void    setHeaders( std::string request );
+        void    setBody();
+
+        std::vector<std::string>            getStartLine();
+        std::map<std::string, std::string>  getHeaders();
+        std::string                         getBody();
+
+        ~HttpParser();
 };

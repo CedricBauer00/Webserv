@@ -98,7 +98,8 @@ int HttpServer::createSocket( std::vector<Server> &servers ) {
 }
 
 void HttpServer::closeEvent(struct epoll_event &ev, int epollfd, int &fdCount) {
-    if (epoll_ctl(epollfd, EPOLL_CTL_DEL, static_cast<Client*>(ev.data.ptr)->getFd(), NULL) == -1)
+    // (void)epollfd;
+    if (epoll_ctl(epollfd, EPOLL_CTL_DEL, static_cast<Client*>(ev.data.ptr)->getFd(), NULL) == -1) //HTTP 1.0 doesnt add FD with event to epollfds, so we dont have to remove
         std::cerr << "EPOLL_CTL_DEL_ERROR: " << strerror(errno) << '\n';
     if (close(static_cast<Client*>(ev.data.ptr)->getFd()) == -1)
         std::cerr << "CLOSE_ERROR: " << strerror(errno) << '\n';
@@ -127,7 +128,6 @@ int HttpServer::eventLoop() {
         perror( "epoll_create1" );
         exit( EXIT_FAILURE );
     }
-    
     
     for ( int i : _listenFds )
     {
@@ -182,7 +182,7 @@ int HttpServer::eventLoop() {
                     if (epoll_ctl(epollfd, EPOLL_CTL_ADD, new_fd, &ev) == -1) {
                         delete static_cast<Client*>(ev.data.ptr);
                         throw std::runtime_error("EPOLL_CTL_ERROR");
-                    }
+                    } // HTTP 1.0 doesnt add incoming FD to epoll
                     ++fdCount;
                 }
                 catch(const std::exception& e) {
@@ -216,9 +216,15 @@ int HttpServer::eventLoop() {
                     printf("Received: %s\n", client.getRequest().c_str());
                 }
 
-                // HttpParser result( client.getRequest() );
-                // if ( result.parse() == -1 )
-                //     return -1;
+                if ( client.getComplHeader() )
+                {
+                    std::cout << RED << "bool = " << client.getComplHeader() << RESET << std::endl;
+                    HttpParser result;
+                    result.setHeaders(  client.getRequest() );
+                    // Response response();
+                    // response.create();
+
+                }
 
                 if (events[n].events & EPOLLIN || ((events[n].events & EPOLLOUT) && client.getSendPos())) {
                     if (client.sendToClient(response) == -1) {

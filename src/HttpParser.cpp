@@ -1,6 +1,6 @@
 #include "../inc/HttpParser.hpp"
 
-HttpParser::HttpParser( std::string request ) : _request( request )
+HttpParser::HttpParser()
 {
     std::cout << "HttpParsing" << std::endl;
 }
@@ -10,15 +10,18 @@ HttpParser::~HttpParser()
     std::cout << "HttpParsing" << std::endl;
 }
 
-int HttpParser::parse()
+void    HttpParser::setHeaders( std::string request )
 {
- 
-    std::cout << "Received byte:\n\n" << _request << std::endl; 
-    
-    return 0;
-}
+    std::cout << GREEN << "request = " << request << RESET << std::endl;
+    // for ( int i = 0; i < _request.size(); ++i )
+    // {
+    //     if (  )
+    //     {
 
-std::string HttpParser::getRequest()
-{
-    return _request;
+    //     }
+    //     else
+    //     {
+
+    //     }
+    // }
 }
