@@ -38,4 +38,3 @@ class Global
         std::vector<Server> getServers();
         void setServer( Server s );
 };
-

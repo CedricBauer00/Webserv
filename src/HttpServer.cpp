@@ -160,7 +160,7 @@ int HttpServer::eventLoop() {
         }
     
         for (int n = 0; n < nfds; ++n) {
-            if ( std::find( _listenFds.begin(), _listenFds.end(), events[ n ].data.fd ) != _listenFds.end() ) {
+            if ( std::find( _listenFds.begin(), _listenFds.end(), events[ n ].data.ptr ) != _listenFds.end() ) {
                 addrlen = sizeof clientAddr;
                 new_fd = accept( events[n].data.fd, (struct sockaddr*)&clientAddr, &addrlen);
                 if (new_fd == -1) {
