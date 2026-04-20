@@ -1,4 +1,4 @@
-#include "../inc/ConfigParsing.hpp"
+#include "../../inc/Configparsing/ConfigParsing.hpp"
 
 Global::Global() : _servers() {}
 

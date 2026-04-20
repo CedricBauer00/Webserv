@@ -18,7 +18,7 @@
 #include "../inc/HttpParser.hpp"
 #include "../inc/Client.hpp"
 #include "../inc/ListenHandler.hpp"
-#include "../inc/ConfigParsing.hpp"
+#include "../inc/Configparsing/ConfigParser.hpp"
 
 #define RED  "\033[31m"
 #define ELEC_RED "\033[38;2;255;20;20m"

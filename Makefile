@@ -4,7 +4,8 @@ SRC = main.cpp \
 		HttpServer.cpp \
 		HttpParser.cpp \
 		Client.cpp \
-		ConfigParsing.cpp \
+		Configparsing/ConfigParsing.cpp \
+		Configparsing/ConfigParser.cpp \
 		PageHandler.cpp \
 		HttpException.cpp \
 		Socket.cpp \
@@ -29,7 +30,7 @@ $(NAME): $(OBJ)
 	@$(CXX) $(CXXFLAGS) $(OBJ) -o $(NAME) && echo "\033[32mCompilation successful!\033[31m"
 
 $(OBJ_DIR)/%.o: %.cpp
-	@mkdir -p $(OBJ_DIR)
+	@mkdir -p $(dir $@)
 	@$(CXX) $(CXXFLAGS) -o $@ -c $<
 
 clean:
