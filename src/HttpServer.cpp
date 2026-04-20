@@ -49,7 +49,6 @@ int HttpServer::createSocket( std::vector<Server> &servers ) {
     {
         int _listenSockFd;
 
-        std::cout << GREEN << "bind" << RESET << std::endl;
         if ((rv = getaddrinfo( servers[ i ].getDomain().c_str(), PORT, &hints, &servinfo)) != 0) {
             fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
             return 1;
@@ -83,16 +82,16 @@ int HttpServer::createSocket( std::vector<Server> &servers ) {
             perror( "listen" );
             exit( 1 );
         }
-        std::cout << "Listening socket created" << std::endl;
-
-        sa.sa_handler = sigchld_handler; // reap all dead processes
-        sigemptyset(&sa.sa_mask);
-        sa.sa_flags = SA_RESTART;
-        if (sigaction(SIGCHLD, &sa, NULL) == -1) {
-            perror("sigaction");
-            exit(1);
-        }
         _listenFds.push_back( _listenSockFd );
+        std::cout << "Listening socket "<< servers[ i ].getDomain().c_str()
+        << ":" << PORT << " created" << std::endl;
+    }
+    sa.sa_handler = sigchld_handler; // reap all dead processes
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+    if (sigaction(SIGCHLD, &sa, NULL) == -1) {
+        perror("sigaction");
+        exit(1);
     }
     return 0;
 }
@@ -101,7 +100,7 @@ void HttpServer::closeEvent(struct epoll_event &ev, int epollfd, int &fdCount) {
     // (void)epollfd;
     if (epoll_ctl(epollfd, EPOLL_CTL_DEL, static_cast<Client*>(ev.data.ptr)->getFd(), NULL) == -1) //HTTP 1.0 doesnt add FD with event to epollfds, so we dont have to remove
         std::cerr << "EPOLL_CTL_DEL_ERROR: " << strerror(errno) << '\n';
-    if (close(static_cast<Client*>(ev.data.ptr)->getFd()) == -1)
+    if (close(static_cast<Client*>(ev.data.ptr)->getFd()) == -1) //delete the eventHandler pointer;
         std::cerr << "CLOSE_ERROR: " << strerror(errno) << '\n';
     else
         std::cout << RED << "Closed: fd=" << static_cast<Client*>(ev.data.ptr)->getFd() << RESET << std::endl;
@@ -135,9 +134,8 @@ int HttpServer::eventLoop() {
             perror("set_nonblocking");
             exit(EXIT_FAILURE);
         }
-    
-        ev = {.events = EPOLLIN, .data = {.fd =  i }};
-
+        ev = {.events = EPOLLIN, .data = {.ptr =  new ListenHandler(i) }};
+        std::cout << static_cast<EventHandler*>(ev.data.ptr)->getFd() << std::endl;
         if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, i , &ev ) == -1 ) {
             perror( "epollwait(listening)" );
             exit( EXIT_FAILURE );
@@ -158,11 +156,12 @@ int HttpServer::eventLoop() {
                 continue;
             exit( EXIT_FAILURE );
         }
+
     
         for (int n = 0; n < nfds; ++n) {
-            if ( std::find( _listenFds.begin(), _listenFds.end(), events[ n ].data.ptr ) != _listenFds.end() ) {
+            if ( std::find( _listenFds.begin(), _listenFds.end(), static_cast<EventHandler*>(events[n].data.ptr)->getFd() ) != _listenFds.end() ) {
                 addrlen = sizeof clientAddr;
-                new_fd = accept( events[n].data.fd, (struct sockaddr*)&clientAddr, &addrlen);
+                new_fd = accept( static_cast<EventHandler*>(events[n].data.ptr)->getFd(), (struct sockaddr*)&clientAddr, &addrlen);
                 if (new_fd == -1) {
                     perror("accept");
                     continue;
@@ -180,7 +179,7 @@ int HttpServer::eventLoop() {
                     ev.data.ptr = new Client(new_fd);
                     ev.events = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET;
                     if (epoll_ctl(epollfd, EPOLL_CTL_ADD, new_fd, &ev) == -1) {
-                        delete static_cast<Client*>(ev.data.ptr);
+                        delete static_cast<Client*>(ev.data.ptr); 
                         throw std::runtime_error("EPOLL_CTL_ERROR");
                     } // HTTP 1.0 doesnt add incoming FD to epoll
                     ++fdCount;

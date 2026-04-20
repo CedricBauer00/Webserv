@@ -4,7 +4,7 @@
 #define BUFFER_SIZE 1024
 
 
-Client::Client(int fd) : _fd(fd), _request(""), _sendBuffer( "sent" ), _send_pos(0) 
+Client::Client(int fd) : EventHandler(fd), _request(""), _sendBuffer( "sent" ), _send_pos(0) 
 {
     std::cout << BLUE << "Created client instance" << RESET << std::endl;
 }
@@ -68,7 +68,3 @@ int Client::sendToClient(const char *response) {
 int Client::getSendPos() {
     return _send_pos;
 }
-
-int Client::getFd() {
-    return _fd;
-}   

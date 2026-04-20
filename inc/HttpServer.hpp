@@ -17,6 +17,7 @@
 #include <algorithm>
 #include "../inc/HttpParser.hpp"
 #include "../inc/Client.hpp"
+#include "../inc/ListenHandler.hpp"
 #include "../inc/Configparsing/ConfigParser.hpp"
 
 #define RED  "\033[31m"

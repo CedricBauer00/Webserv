@@ -35,12 +35,12 @@ void    ConfigParser::tokenize() {
         }
     }
     if (!word.empty()) _tokens.push_back(word);
+    for (auto token: _tokens)
+        std::cout << token << std::endl;
 }
 
 void    ConfigParser::parseConfig() {
     tokenize();
-
-    std::cout << "Parsing config file: " << _configFilename << std::endl;
 }
 
 Global ConfigParser::getGlobal() {
