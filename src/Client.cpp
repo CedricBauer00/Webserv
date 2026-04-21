@@ -4,7 +4,7 @@
 #define BUFFER_SIZE 1024
 
 
-Client::Client(int fd) : EventHandler(fd), _request(""), _sendBuffer( "sent" ), _send_pos(0) 
+Client::Client(int fd) : EventHandler(fd), _request(""), _sendBuffer( "sent" ), _send_pos(0), _complHeader(false) 
 {
     std::cout << BLUE << "Created client instance" << RESET << std::endl;
 }

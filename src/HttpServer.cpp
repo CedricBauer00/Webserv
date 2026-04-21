@@ -18,7 +18,7 @@ void sigchld_handler(int s) {
     (void)s; // quiet unused variable warning
     int saved_errno = errno; // waitpid() might overwrite errno, so we save and restore it:
 
-    while(waitpid(-1, NULL, WNOHANG) > 0);
+    while(waitpid(-1, NULL, WNOHANG) > 0); //ends all child processes - zombie processes
     errno = saved_errno;
 }
 
