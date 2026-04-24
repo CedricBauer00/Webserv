@@ -218,7 +218,13 @@ int HttpServer::eventLoop() {
                 {
                     std::cout << RED << "bool = " << client.getComplHeader() << RESET << std::endl;
                     HttpParser result;
-                    result.setHeaders(  client.getRequest() );
+                    
+                    try
+                    {
+                        result.setHeaders(  client.getRequest() );
+
+                    }
+                    catch (const std::exception& e) {}
                     // Response response();
                     // response.create();
 
