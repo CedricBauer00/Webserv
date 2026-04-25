@@ -1,6 +1,8 @@
 #include <cerrno>
 #include <cstdlib>
 #include "../inc/HttpServer.hpp"
+#include "../inc/Exceptions.hpp"
+#include "../inc/ErrorPageHandler.hpp"
 
 #define PORT "3490"
 #define BACKLOG 5
@@ -216,7 +218,6 @@ int HttpServer::eventLoop() {
 
                 if ( client.getComplHeader() )
                 {
-                    std::cout << RED << "bool = " << client.getComplHeader() << RESET << std::endl;
                     HttpParser result;
                     
                     try
@@ -224,7 +225,11 @@ int HttpServer::eventLoop() {
                         result.setHeaders(  client.getRequest() );
 
                     }
-                    catch (const std::exception& e) {}
+                    catch ( const BadRequest& e )
+                    {
+                        ErrorPageHandler ErrorPageHandler( e.getStatusCode(), e.getReasonPhrase() );
+                    }
+                    
                     // Response response();
                     // response.create();
 

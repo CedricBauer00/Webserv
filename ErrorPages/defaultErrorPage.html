@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>{{STATUS_CODE}} {{REASON_PHRASE}}</title>
+	<style>
+		:root {
+			color-scheme: light dark;
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			margin: 0;
+			min-height: 100vh;
+			font-family: Arial, Helvetica, sans-serif;
+			display: grid;
+			place-items: center;
+			background: #0f172a;
+			color: #e2e8f0;
+		}
+
+		.card {
+			width: min(92vw, 640px);
+			background: #111827;
+			border: 1px solid #334155;
+			border-radius: 12px;
+			padding: 28px 24px;
+			text-align: center;
+			box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+		}
+
+		h1 {
+			margin: 0 0 8px;
+			font-size: clamp(2rem, 6vw, 3rem);
+			line-height: 1.1;
+		}
+
+		p {
+			margin: 0;
+			color: #94a3b8;
+			font-size: 1rem;
+		}
+
+		.status {
+			color: #60a5fa;
+			font-weight: 700;
+			letter-spacing: 0.02em;
+		}
+	</style>
+</head>
+<body>
+	<main class="card">
+		<h1><span class="status">{{STATUS_CODE}}</span> {{REASON_PHRASE}}</h1>
+		<p>The server could not process your request.</p>
+	</main>
+</body>
+</html>

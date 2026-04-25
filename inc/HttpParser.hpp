@@ -16,6 +16,10 @@
 #include <vector>
 #include <map>
 #include <sstream>
+#include <algorithm> 
+#include <cctype>
+
+
 
 #define RED  "\033[31m"
 #define ELEC_RED "\033[38;2;255;20;20m"
@@ -27,18 +31,23 @@
 class HttpParser
 {
     private:
-        // std::string                         _request;
         std::vector<std::string>            _startLine;
         std::map<std::string, std::string>  _headers;
-        //bool _contenLength
         std::string _body;
-        void    setStartLine( std::string line );
+        int         _contentLength;
+        int         _bodyLength;
+        bool        _chunked;
+
+
+        void        setStartLine( std::string line );
+        bool        checkStartLine();
+        std::string trim( const std::string& value );
+        bool        isAllDigits( const std::string& word );
         
     public:
         HttpParser();
         
         void    setHeaders( std::string request );
-        void    setStartLine();
         void    setBody();
 
         std::vector<std::string>            getStartLine();

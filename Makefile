@@ -4,7 +4,10 @@ SRC = main.cpp \
 		HttpServer.cpp \
 		HttpParser.cpp \
 		Client.cpp \
-		ConfigParsing.cpp
+		ConfigParsing.cpp \
+		ErrorPageHandler.cpp \
+		HttpException.cpp
+
 
 OBJ_DIR = obj
 

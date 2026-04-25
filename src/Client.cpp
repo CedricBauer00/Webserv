@@ -30,15 +30,21 @@ int Client::receiveFromClient()
     char buffer[BUFFER_SIZE];
     while (true) {
         ssize_t count = recv(_fd, buffer, sizeof(buffer), 0);
-        if (0 < count)
+        if (count > 0 )
         {
             _request.append(buffer, static_cast<size_t>(count));
             if( _request.find("\r\n\r\n") != std::string::npos )
                 _complHeader = true;
         }
-        else if (-1 < count) {
-            std::cout << RED << "Client closed the connection\n" << RESET << std::endl;
-            return 0;
+        else if ( count == 0 )
+        {
+            if ( _request.empty() )
+            {
+                std::cout << RED << "Client closed the connection\n" << RESET << std::endl;
+                return 0;
+            }
+            _complHeader = true;
+            return 1;
         }
         else {
             if (errno == EINTR)
