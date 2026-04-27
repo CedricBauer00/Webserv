@@ -78,7 +78,7 @@ void    HttpParser::setStartLine( std::string line )
 {
     std::istringstream  iss( line );
     std::string         token;
-    std::cout << GREEN << "line = " << line << std::endl;
+    std::cout << GREEN << "line = " << line << RESET << std::endl;
     while ( iss >> token )
         _startLine.push_back( token );
 }
@@ -86,7 +86,10 @@ void    HttpParser::setStartLine( std::string line )
 void    HttpParser::checkStartLine()
 {
     if ( _startLine.size() != 3 )
+    {
+        std::cout << RED << "exit" << RESET << std::endl; 
         throw BadRequest();
+    }
     if ( _startLine[ 0 ][ 0 ] == '/' )
         throw BadRequest();
     if ( _startLine[ 0 ] != "GET" && _startLine[ 0 ] != "POST" && _startLine[ 0 ] != "DELETE" )

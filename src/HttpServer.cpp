@@ -258,6 +258,7 @@ int HttpServer::eventLoop()
                     }
                 }
                 std::cout << client.getComplHeader() << std::endl;
+                std::cout << "Received:\n" << client.getRequest() << std::endl;
                 if ( client.getComplHeader() )
                 {
                     HttpParser result;
@@ -270,6 +271,7 @@ int HttpServer::eventLoop()
                     catch ( const HttpException& e )
                     {
                         ErrorPageHandler errorPage( e.getStatusCode(), e.getReasonPhrase() );
+                        std::cout << e.getStatusCode() << ":" << e.getReasonPhrase() << std::endl;
                         errorPage.createErrorPage();
                     }
 

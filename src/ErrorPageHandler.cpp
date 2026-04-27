@@ -10,12 +10,34 @@ void    ErrorPageHandler::createErrorPage()
 
     // -------- default error page --------
     
-    std::ifstream       ifs( "../ErrorPages/defaultErrorPage.html" );
+    std::cout << _statusCode << " : " << _reasonPhrase << std::endl;
+
+
+    std::ifstream       ifs( "/ErrorPages/defaultErrorPage.html" );
     std::ostringstream  oss;
     std::string         buffer;    
 
+    if ( !ifs.is_open() )
+    {
+        std::cerr << "couldnt open file" << std::endl;
+        return ;
+    }
+
     oss << ifs.rdbuf();
+
+    if ( ifs.bad() )
+    {
+        std::cerr << "Reading failed" << std::endl;
+        return ;
+    }
     buffer = oss.str();
+    if ( buffer.empty() )
+    {
+        std::cerr << "Warning: File is empty" << std::endl;
+        return ; 
+    }
+    
+    std::cout << "ErrorPage:\n" << buffer << std::endl;        
 
     while ( true )
     {
@@ -33,10 +55,10 @@ void    ErrorPageHandler::createErrorPage()
         {
             buffer.replace( PhrasePos, 17, _reasonPhrase );
         }
+        std::cout << buffer << std::endl;        
         if ( CodePos == std::string::npos && PhrasePos == std::string::npos )
             break ;
     }
-    std::cout << "ErrorPage:\n" << buffer << std::endl;
 }
 
 
