@@ -16,3 +16,5 @@ class HttpException : public std::exception
         int         getStatusCode() const;
         std::string getReasonPhrase() const;
 };
+
+
