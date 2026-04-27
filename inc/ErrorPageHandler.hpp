@@ -14,6 +14,6 @@ class ErrorPageHandler
         ErrorPageHandler( int statusCode, std::string reasonPhrase );
         ~ErrorPageHandler();
         
-        void Handler();
+        void createErrorPage();
 
 };

@@ -40,9 +40,11 @@ int Client::receiveFromClient()
         {
             if ( _request.empty() )
             {
+                std::cout << "Received:\n" << _request << std::endl;
                 std::cout << RED << "Client closed the connection\n" << RESET << std::endl;
                 return 0;
             }
+
             _complHeader = true;
             return 1;
         }

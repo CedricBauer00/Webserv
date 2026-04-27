@@ -14,7 +14,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <sstream>
 #include <algorithm> 
 #include <cctype>
@@ -32,7 +32,7 @@ class HttpParser
 {
     private:
         std::vector<std::string>            _startLine;
-        std::map<std::string, std::string>  _headers;
+        std::unordered_map<std::string, std::string>  _headers;
         std::string _body;
         int         _contentLength;
         int         _bodyLength;
@@ -40,7 +40,7 @@ class HttpParser
 
 
         void        setStartLine( std::string line );
-        bool        checkStartLine();
+        void        checkStartLine();
         std::string trim( const std::string& value );
         bool        isAllDigits( const std::string& word );
         
@@ -51,7 +51,7 @@ class HttpParser
         void    setBody();
 
         std::vector<std::string>            getStartLine();
-        std::map<std::string, std::string>  getHeaders();
+        std::unordered_map<std::string, std::string>  getHeaders();
         std::string                         getBody();
 
         ~HttpParser();
