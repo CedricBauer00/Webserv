@@ -56,3 +56,44 @@ typedef struct {
 	unsigned int						flags{0};
 }	t_webserv_srv_conf;
 
+typedef struct s_webserv_loc_tree_node{
+	std::vector<struct s_webserv_loc_tree_node*>	children;
+	struct s_webserv_loc_tree_node*					parent;
+	t_webserv_loc_conf								conf;
+} t_webserv_loc_tree_node;
+
+typedef unsigned int(*t_webserv_handler_pt)(t_webserv_req* r);
+
+typedef struct {
+	std::string name;
+	std::string level; // debug, info, notice, warn, error, crit
+	int	fd;
+} t_webserv_error_log; 
+
+typedef struct {
+	std::string	name;
+	int			matchType; // 0: exact, 1:normal prefix, 2: prefix, 3: regex
+
+	t_webserv_loc_tree_node*			staticLocations;
+	std::vector<t_webserv_loc_conf*>	regexLocations;
+
+	void**	loc_conf;
+
+	unsigned int			allowedMethods; // bitmask of allowed methods
+	t_webserv_handler_pt	handler; // handler for this location
+	std::string				root; // root directory for this location
+	unsigned int			alias; // length of the location prefix to be replaced by root when serving files
+	std::string				postAction; // URI to redirect POST requests to
+
+	long					clientMaxBodySize; // maximum allowed size of client request body in bytes
+	long					clientBodyBufferSize; // size of buffer used for reading client request body in bytes
+
+	t_webserv_msec			clientBodyTimeout; // maximum time to wait for client request body in milliseconds (408 Request Timeout)
+	t_webserv_msec			sendTimeout; // maximum time to wait for sending response to client in milliseconds (504 Gateway Timeout)
+
+	bool					absoluteRedirect{true}; // whether to use absolute URIs in redirects (e.g., Location header in 301/302 responses)
+	bool					logNotFound{true}; // whether to log 404 Not Found errors
+	t_webserv_error_log		errorLog;
+
+	bool					chunkedTransferEncoding{false}; // whether to use chunked transfer encoding for responses with unknown content length
+}	t_webserv_loc_conf;
