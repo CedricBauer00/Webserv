@@ -2,21 +2,24 @@
 
 #include <iostream>
 #include <fstream>
-#include "ConfigParsing.hpp"
+#include <unordered_map>
+#include "configParsing.hpp"
 
 class ConfigParser {
     private:
-        char*   _configFilename;
-        std::vector<std::string> _tokens;
-        Global _global;
+        char*						_configFilename;
+        std::vector<std::string>	_tokens;
+        WebservHttpConf*			_httpConf{nullptr};
 
-        void tokenize();
-
+        void	tokenize();
+        size_t	parseHttpTopConfig(size_t i);
+        size_t	parseHttpSrvConfig(size_t i);
+		void	parseHttpSrvField(WebservSrvConf &srvConf, size_t i);
+        size_t	parseHttpLocConfig(size_t i);
     public:
         ConfigParser() = delete;
         ConfigParser(char* filename);
         ~ConfigParser();
-        void parseConfig();
-        Global getGlobal();
+        void	parseConfig();
 
 };

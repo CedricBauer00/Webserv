@@ -1,9 +1,11 @@
 #include "../../inc/Configparsing/ConfigParser.hpp"
 
-ConfigParser::ConfigParser(char* filename): _configFilename(filename), _global() {
+ConfigParser::ConfigParser(char* filename): _configFilename(filename) {
 }
 
 ConfigParser::~ConfigParser() {
+	if (_httpConf)
+		delete _httpConf;
 }
 
 void    ConfigParser::tokenize() {
@@ -35,14 +37,20 @@ void    ConfigParser::tokenize() {
         }
     }
     if (!word.empty()) _tokens.push_back(word);
+    for (auto token: _tokens)
+        std::cout << token << std::endl;
 }
 
 void    ConfigParser::parseConfig() {
     tokenize();
+    if (_tokens.empty())
+        throw std::runtime_error("Empty config file");
 
-    std::cout << "Parsing config file: " << _configFilename << std::endl;
-}
-
-Global ConfigParser::getGlobal() {
-    return _global;
+    size_t  i = 0;
+    while (i < _tokens.size()) {
+        if (_tokens[i] == "http") {
+            i = parseHttpTopConfig(++i);
+        }
+        i++;
+    }
 }
