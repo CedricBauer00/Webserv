@@ -256,10 +256,7 @@ int HttpServer::eventLoop()
                             continue;
                         }
                     }
-<<<<<<< HEAD
-=======
                     printf("Received:\n%s\n", client.getRequest().c_str());
->>>>>>> df016fd (MERGE: Merge to macbook)
                 }
                 std::cout << client.getComplHeader() << std::endl;
                 std::cout << "Received:\n" << client.getRequest() << std::endl;

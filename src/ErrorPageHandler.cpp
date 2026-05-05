@@ -12,14 +12,15 @@ void    ErrorPageHandler::createErrorPage()
     
     std::cout << _statusCode << " : " << _reasonPhrase << std::endl;
 
-
-    std::ifstream       ifs( "/ErrorPages/defaultErrorPage.html" );
+    std::string         filename = "../ErrorPages/defaultErrorPage.html";
+    std::ifstream       ifs( filename );
     std::ostringstream  oss;
     std::string         buffer;    
 
     if ( !ifs.is_open() )
     {
-        std::cerr << "couldnt open file" << std::endl;
+
+        std::cerr << "couldnt open file" << filename << std::endl;
         return ;
     }
 
