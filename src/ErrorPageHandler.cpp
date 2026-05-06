@@ -12,15 +12,13 @@ void    ErrorPageHandler::createErrorPage()
     
     std::cout << _statusCode << " : " << _reasonPhrase << std::endl;
 
-    std::string         filename = "../ErrorPages/defaultErrorPage.html";
-    std::ifstream       ifs( filename );
+    std::ifstream       ifs( "ErrorPages/defaultErrorPage.html" );
     std::ostringstream  oss;
     std::string         buffer;    
 
     if ( !ifs.is_open() )
     {
-
-        std::cerr << "couldnt open file" << filename << std::endl;
+        std::cerr << "couldnt open file" << std::endl; // not sure if we need error messages here...
         return ;
     }
 
@@ -38,8 +36,6 @@ void    ErrorPageHandler::createErrorPage()
         return ; 
     }
     
-    std::cout << "ErrorPage:\n" << buffer << std::endl;        
-
     while ( true )
     {
         size_t CodePos = buffer.find( "{{STATUS_CODE}}", 0 );
@@ -56,12 +52,11 @@ void    ErrorPageHandler::createErrorPage()
         {
             buffer.replace( PhrasePos, 17, _reasonPhrase );
         }
-        std::cout << buffer << std::endl;        
         if ( CodePos == std::string::npos && PhrasePos == std::string::npos )
             break ;
     }
+    std::cout << buffer << std::endl;
 }
-
 
 ErrorPageHandler::~ErrorPageHandler() {}
 

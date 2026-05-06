@@ -4,12 +4,11 @@
 #include "../inc/HttpException.hpp"
 #include "../inc/Exceptions.hpp"
 #include "../inc/ErrorPageHandler.hpp"
+#include "../inc/Socket.hpp"
 
-#define PORT "3490"
-#define BACKLOG 5
 #define MAX_EVENTS 10
 
-HttpServer::HttpServer() : _listenFds()
+HttpServer::HttpServer()
 {
     std::cout << "Server created" << std::endl;
 }
@@ -17,105 +16,6 @@ HttpServer::HttpServer() : _listenFds()
 HttpServer::~HttpServer()
 {
     std::cout << "Server destroyed" << std::endl;
-}
-
-void sigchld_handler(int s)
-{
-    (void)s; // quiet unused variable warning
-    int saved_errno = errno; // waitpid() might overwrite errno, so we save and restore it:
-
-    while(waitpid(-1, NULL, WNOHANG) > 0); //ends all child processes - zombie processes
-    errno = saved_errno;
-}
-
-void *get_in_addr(struct sockaddr *sa)
-{
-    if (sa->sa_family == AF_INET)
-        return &(((struct sockaddr_in*)sa)->sin_addr);
-    
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
-
-int set_nonblocking(int fd)
-{
-    int flags = fcntl(fd, F_GETFL, 0);
-    
-    if (flags == -1)
-        return -1;
-
-    return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-}
-
-int HttpServer::createSocket( std::vector<Server> &servers )
-{
-    int rv, yes=1;
-    struct sigaction sa;
-    struct addrinfo hints, *servinfo, *p;
-
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE; // use my IP
-
-    for ( size_t i = 0; i < servers.size(); ++i )
-    {
-        int _listenSockFd;
-
-        if ((rv = getaddrinfo( servers[ i ].getDomain().c_str(), PORT, &hints, &servinfo)) != 0)
-        {
-            fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-            return 1;
-        }
-
-        for ( p = servinfo; p != NULL; p = p->ai_next )
-        {
-            if ( ( _listenSockFd = socket( p->ai_family, p->ai_socktype, p->ai_protocol ) ) == -1 )
-            {
-                perror( "server: socket" );
-                continue ;
-            }
-            if ( setsockopt( _listenSockFd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof( int ) ) == -1 )
-            {
-                perror( "setsockopt" );
-                exit( 1 );
-            }
-            if ( bind( _listenSockFd, p->ai_addr, p->ai_addrlen ) == -1 )
-            {
-                close ( _listenSockFd );
-                perror( "server: bind" );
-                continue ;
-            }
-            break ;
-        }
-
-        freeaddrinfo( servinfo );
-
-        if ( p == NULL )
-        {
-            fprintf( stderr, "server: failed to bind\n" );
-            exit( 1 );
-        }
-
-        if ( listen( _listenSockFd, BACKLOG ) == -1 )
-        {
-            perror( "listen" );
-            exit( 1 );
-        }
-        
-        std::cout << "Listening socket created" << std::endl;
-
-        sa.sa_handler = sigchld_handler; // reap all dead processes
-        sigemptyset(&sa.sa_mask);
-        sa.sa_flags = SA_RESTART;
-        
-        if (sigaction(SIGCHLD, &sa, NULL) == -1)
-        {
-            perror("sigaction");
-            exit(1);
-        }
-        _listenFds.push_back( _listenSockFd );
-    }
-    return 0;
 }
 
 void HttpServer::closeEvent(struct epoll_event &ev, int epollfd, int &fdCount)
@@ -130,7 +30,7 @@ void HttpServer::closeEvent(struct epoll_event &ev, int epollfd, int &fdCount)
     --fdCount;
 }
 
-int HttpServer::eventLoop()
+int HttpServer::eventLoop( std::vector<int> listenFds )
 {
     socklen_t addrlen;
     struct sockaddr_storage clientAddr;
@@ -147,7 +47,7 @@ int HttpServer::eventLoop()
         exit( EXIT_FAILURE );
     }
     
-    for ( int i : _listenFds )
+    for ( int i : listenFds )
     {
         if (set_nonblocking( i ) == -1)
         {
@@ -163,14 +63,12 @@ int HttpServer::eventLoop()
             exit( EXIT_FAILURE );
         }
         ++fdCount;
-    
     }
 
     std::cout << "Running webserver" << std::endl;
     while (1)
     {
         printf("Number of open fds: %d\n", fdCount);
-        
         nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
 
         if (nfds == -1)
@@ -182,10 +80,9 @@ int HttpServer::eventLoop()
             exit( EXIT_FAILURE );
         }
 
-    
         for (int n = 0; n < nfds; ++n)
         {
-            if ( std::find( _listenFds.begin(), _listenFds.end(), static_cast<EventHandler*>(events[n].data.ptr)->getFd() ) != _listenFds.end() )
+            if ( std::find( listenFds.begin(), listenFds.end(), static_cast<EventHandler*>(events[n].data.ptr)->getFd() ) != listenFds.end() )
             {
                 addrlen = sizeof clientAddr;
                 new_fd = accept( static_cast<EventHandler*>(events[n].data.ptr)->getFd(), (struct sockaddr*)&clientAddr, &addrlen);
@@ -256,10 +153,8 @@ int HttpServer::eventLoop()
                             continue;
                         }
                     }
-                    printf("Received:\n%s\n", client.getRequest().c_str());
                 }
-                std::cout << client.getComplHeader() << std::endl;
-                std::cout << "Received:\n" << client.getRequest() << std::endl;
+                // std::cout << "Received:\n" << client.getRequest() << std::endl;
                 if ( client.getComplHeader() )
                 {
                     HttpParser result;
@@ -267,7 +162,6 @@ int HttpServer::eventLoop()
                     try
                     {
                         result.setHeaders(  client.getRequest() );
-
                     }
                     catch ( const HttpException& e )
                     {
@@ -275,9 +169,7 @@ int HttpServer::eventLoop()
                         std::cout << e.getStatusCode() << ":" << e.getReasonPhrase() << std::endl;
                         errorPage.createErrorPage();
                     }
-
                 }
-
                 if (events[n].events & EPOLLIN || ((events[n].events & EPOLLOUT) && client.getSendPos()))
                 {
                     if (client.sendToClient(response) == -1)

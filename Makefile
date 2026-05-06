@@ -6,7 +6,8 @@ SRC = main.cpp \
 		Client.cpp \
 		ConfigParsing.cpp \
 		ErrorPageHandler.cpp \
-		HttpException.cpp
+		HttpException.cpp \
+		Socket.cpp
 
 
 OBJ_DIR = obj

@@ -19,8 +19,6 @@
 #include <algorithm> 
 #include <cctype>
 
-
-
 #define RED  "\033[31m"
 #define ELEC_RED "\033[38;2;255;20;20m"
 #define BLUE    "\033[34m"

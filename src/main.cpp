@@ -1,11 +1,13 @@
 #include "HttpServer.hpp"
 #include "../inc/ConfigParsing.hpp"
+#include "../inc/Socket.hpp"
 
 int main( void )
 {
-    HttpServer server;
-    Global AllServers;
-    Server CurServ;
+    Socket      socket;
+    HttpServer  server;
+    Global      AllServers;
+    Server      CurServ;
 
     CurServ.setDomain( "127.0.0.1" );
     AllServers.setServer(CurServ);
@@ -18,12 +20,12 @@ int main( void )
 
     std::vector<Server> servers = AllServers.getServers();
 
-    if ( server.createSocket( servers ) )
+    if ( socket.createSocket( servers ) )
     {
         std::cout << "creating socket failed." << std::endl;
         return -1;
     }
-    if ( server.eventLoop() )
+    if ( server.eventLoop( socket.getListenFds() ) )
     {
         std::cout << "eventloop crashed." << std::endl;
         return -1;

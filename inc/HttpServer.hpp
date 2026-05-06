@@ -29,14 +29,10 @@
 
 class HttpServer
 {
-    private:
-        std::vector<int>    _listenFds;
-        
     public:
         HttpServer();
         ~HttpServer();
-        int createSocket( std::vector<Server> &servers );
-        int eventLoop();
+        int eventLoop( std::vector<int> listenFds );
         void closeEvent(struct epoll_event &ev, int epollfd, int &epollFdCount);
         bool    getComplHeader();
 };
