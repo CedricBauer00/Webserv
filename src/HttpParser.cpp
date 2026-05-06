@@ -6,13 +6,20 @@ HttpParser::HttpParser() : _startLine(), _headers(), _body(), _contentLength( 0 
     std::cout << "HttpParsing BEGIN" << std::endl;
 }
 
+
+
+
 void    HttpParsing( std::string request )
 {
     HttpParser result;
 
+    // setStartline
     result.setHeaders( request );
     result.setBody();
 }
+
+
+
 
 void    HttpParser::setHeaders( std::string request )
 {
@@ -37,16 +44,15 @@ void    HttpParser::setHeaders( std::string request )
             // {
             //     std::cout << GREEN << "_startLine = " << *it << RESET << std::endl;
             // }
-
             checkStartLine();
         }
         else
         {
-            std::string::size_type pos = line.find( ":" ); // vor ":" darf kein Space stehen
+            std::string::size_type pos = line.find( ":" ); 
             if ( pos == std::string::npos || pos == 0 )
-                throw BadRequest();
+                thrr\now BadRequest();
 
-            if ( line[ pos - 1 ] == ' ' )
+            if ( line[ pos - 1 ] == ' ' ) // vor ":" darf kein Space stehen
                 throw BadRequest();
 
             std::string key = line.substr( 0, pos );
@@ -63,8 +69,9 @@ void    HttpParser::setHeaders( std::string request )
             {
                 foundContlen = true;
                 if ( isAllDigits( value ) == false )
-                    throw BadRequest();
-                _contentLength = stoi( value );
+                    throw BadRequest(); // fall back to content length from config
+                _contentLength = std::stoi( value );
+                // check on content length from config file
             }
             else if ( key == "transfer-encoding" && value == "chunked")
                 _chunked = true;// body endet bei \0\r\n

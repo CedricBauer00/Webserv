@@ -154,11 +154,12 @@ int HttpServer::eventLoop( std::vector<int> listenFds )
                         }
                     }
                 }
-                // std::cout << "Received:\n" << client.getRequest() << std::endl;
+
                 if ( client.getComplHeader() )
                 {                    
                     try
                     {
+                        // execution()
                         HttpParsing( client.getRequest() );
                       
                     }
