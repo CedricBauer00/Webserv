@@ -6,6 +6,14 @@ HttpParser::HttpParser() : _startLine(), _headers(), _body(), _contentLength( 0 
     std::cout << "HttpParsing BEGIN" << std::endl;
 }
 
+void    HttpParsing( std::string request )
+{
+    HttpParser result;
+
+    result.setHeaders( request );
+    result.setBody();
+}
+
 void    HttpParser::setHeaders( std::string request )
 {
     std::istringstream  iss( request );
@@ -60,7 +68,7 @@ void    HttpParser::setHeaders( std::string request )
             }
             else if ( key == "transfer-encoding" && value == "chunked")
                 _chunked = true;// body endet bei \0\r\n
-
+            
             if ( _chunked  && foundContlen )
                 throw BadRequest();
 
@@ -78,6 +86,7 @@ void    HttpParser::setStartLine( std::string line )
 {
     std::istringstream  iss( line );
     std::string         token;
+
     std::cout << GREEN << "line = " << line << RESET << std::endl;
     while ( iss >> token )
         _startLine.push_back( token );
@@ -86,10 +95,7 @@ void    HttpParser::setStartLine( std::string line )
 void    HttpParser::checkStartLine()
 {
     if ( _startLine.size() != 3 )
-    {
-        std::cout << RED << "exit" << RESET << std::endl; 
         throw BadRequest();
-    }
     if ( _startLine[ 0 ][ 0 ] == '/' )
         throw BadRequest();
     if ( _startLine[ 0 ] != "GET" && _startLine[ 0 ] != "POST" && _startLine[ 0 ] != "DELETE" )
@@ -124,6 +130,15 @@ bool    HttpParser::isAllDigits( const std::string& word )
 
 void    HttpParser::setBody()
 {
+    if ( _chunked == true )
+    {
+        // chunked encoding
+        // until body lenght == 0; -> End of chunked encoding
+    }
+    else
+    {
+        
+    }
     //check if contentlength and body length are the same
     // read request body into _body variable after headers were parsed correctly
 

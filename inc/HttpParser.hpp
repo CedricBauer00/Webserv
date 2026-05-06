@@ -54,3 +54,5 @@ class HttpParser
 
         ~HttpParser();
 };
+
+void    HttpParsing( std::string request );

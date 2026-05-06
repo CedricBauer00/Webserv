@@ -156,12 +156,11 @@ int HttpServer::eventLoop( std::vector<int> listenFds )
                 }
                 // std::cout << "Received:\n" << client.getRequest() << std::endl;
                 if ( client.getComplHeader() )
-                {
-                    HttpParser result;
-                    
+                {                    
                     try
                     {
-                        result.setHeaders(  client.getRequest() );
+                        HttpParsing( client.getRequest() );
+                      
                     }
                     catch ( const HttpException& e )
                     {
