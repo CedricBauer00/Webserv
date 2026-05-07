@@ -26,12 +26,15 @@
 #define ORANGE  "\033[38;2;255;120;0m"
 #define RESET  "\033[0m"
 
+#define MAX_BODY_SIZE 1024;
+
 class HttpParser
 {
     private:
         std::vector<std::string>            _startLine;
         std::unordered_map<std::string, std::string>  _headers;
         std::string _body;
+        std::istringstream  _iss;
         int         _contentLength;
         int         _bodyLength;
         bool        _chunked;
@@ -41,6 +44,7 @@ class HttpParser
         void        checkStartLine();
         std::string trim( const std::string& value );
         bool        isAllDigits( const std::string& word );
+        void        initIss( std::string request );
         
     public:
         HttpParser();

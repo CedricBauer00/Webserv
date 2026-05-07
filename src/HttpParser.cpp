@@ -1,7 +1,7 @@
 #include "../inc/HttpParser.hpp"
 #include "../inc/Exceptions.hpp"
 
-HttpParser::HttpParser() : _startLine(), _headers(), _body(), _contentLength( 0 ), _bodyLength( 0 ),_chunked( false )
+HttpParser::HttpParser() : _startLine(), _headers(), _body(), _contentLength( 0 ), _bodyLength( 0 ), _chunked( false ), _iss()
 {
     std::cout << "HttpParsing BEGIN" << std::endl;
 }
@@ -19,18 +19,24 @@ void    HttpParsing( std::string request )
 }
 
 
-
+void    HttpParser::initIss( std::string reqeust )
+{
+    _iss( request );
+}
 
 void    HttpParser::setHeaders( std::string request )
 {
-    std::istringstream  iss( request );
+    // std::istringstream  iss( request );
     std::string         line;
     bool                foundContlen = false;
 
-    std::cout << GREEN << "request = " << request << RESET << std::endl;
-
-    while ( std::getline( iss, line ) )
+    initIss( request );
+    // std::cout << GREEN << "request = " << request << RESET << std::endl;
+    int whichline = 0;
+    while ( std::getline( _iss, line ) )
     {
+        whichline++;
+        std::cout << GREEN << line << RESET << std::endl;
         if ( !line.empty() && line.back() == '\r' )
             line.pop_back();
 
@@ -50,7 +56,7 @@ void    HttpParser::setHeaders( std::string request )
         {
             std::string::size_type pos = line.find( ":" ); 
             if ( pos == std::string::npos || pos == 0 )
-                thrr\now BadRequest();
+                throw BadRequest();
 
             if ( line[ pos - 1 ] == ' ' ) // vor ":" darf kein Space stehen
                 throw BadRequest();
@@ -82,11 +88,13 @@ void    HttpParser::setHeaders( std::string request )
             _headers[ key ] = value;
         }
     }
-    std::cout << BLUE << "Map printing" << RESET << std::endl;
+    std::cout << BLUE << whichline << RESET << std::endl;
+    std::cout << BLUE << "Map printing" << std::endl;
     for ( const auto& pair : _headers )
     {
         std::cout << pair.first << " : " << pair.second << std::endl;
     }
+    std::cout << "Map End" << RESET << std::endl;
 }
 
 void    HttpParser::setStartLine( std::string line )
@@ -94,7 +102,6 @@ void    HttpParser::setStartLine( std::string line )
     std::istringstream  iss( line );
     std::string         token;
 
-    std::cout << GREEN << "line = " << line << RESET << std::endl;
     while ( iss >> token )
         _startLine.push_back( token );
 }
@@ -129,7 +136,7 @@ bool    HttpParser::isAllDigits( const std::string& word )
 {
     for ( std::string::const_iterator it = word.begin(); it != word.end(); ++it )
     {
-        if ( !std::isdigit( static_cast<unsigned char>(*it) ) )
+        if ( !std::isdigit( static_cast<unsigned char>( *it ) ) )
             return false;
     }
     return true;
@@ -139,12 +146,13 @@ void    HttpParser::setBody()
 {
     if ( _chunked == true )
     {
+        std::cout << "CHUNKED ENCODING" << std::endl;
         // chunked encoding
         // until body lenght == 0; -> End of chunked encoding
     }
     else
     {
-        
+        // max body size checken
     }
     //check if contentlength and body length are the same
     // read request body into _body variable after headers were parsed correctly
