@@ -48,9 +48,10 @@ int Client::receiveFromClient()
     }
 }
 
-int Client::sendToClient(const char *response) {
-    while (response[_send_pos] != '\0') {
-        ssize_t count = send(_fd, response + _send_pos, strlen(response) - _send_pos, 0);
+int Client::sendToClient( std::string response ) {
+    const std::size_t total = response.size();
+    while ( static_cast<std::size_t>( _send_pos ) < total ) {
+        ssize_t count = send(_fd, response.data() + _send_pos, total - static_cast<std::size_t>( _send_pos ), 0);
         if (count == -1) {
             if (errno == EINTR)
                 continue;

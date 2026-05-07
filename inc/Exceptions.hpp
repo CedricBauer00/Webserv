@@ -20,3 +20,9 @@ class HttpVersionNotSupported : public HttpException
     public:
         HttpVersionNotSupported() : HttpException( 505, "Http Version Not Allowed") {}
 };
+
+class PayloadTooLarge : public HttpException
+{
+    public:
+        PayloadTooLarge() : HttpException( 413, "Payload Too Large") {}
+};

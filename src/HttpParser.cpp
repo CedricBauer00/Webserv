@@ -1,7 +1,7 @@
 #include "../inc/HttpParser.hpp"
 #include "../inc/Exceptions.hpp"
 
-HttpParser::HttpParser() : _startLine(), _headers(), _body(), _contentLength( 0 ), _bodyLength( 0 ), _chunked( false ), _iss()
+HttpParser::HttpParser( std::string reqeust ) : _startLine(), _headers(), _body(), _bodyLength( 0 ), _foundContlen( false ), _contentLength( 0 ), _chunked( false ), _iss( reqeust )
 {
     std::cout << "HttpParsing BEGIN" << std::endl;
 }
@@ -11,26 +11,27 @@ HttpParser::HttpParser() : _startLine(), _headers(), _body(), _contentLength( 0 
 
 void    HttpParsing( std::string request )
 {
-    HttpParser result;
+    HttpParser result( request );
 
     // setStartline
-    result.setHeaders( request );
+    result.setHeaders( );
     result.setBody();
+
+    std::cout << GREEN << result.getBody() << RESET << std::endl;
 }
 
 
-void    HttpParser::initIss( std::string reqeust )
-{
-    _iss( request );
-}
+// void    HttpParser::initIss(  )
+// {
+//     this->_iss( request );
+// }
 
-void    HttpParser::setHeaders( std::string request )
+void    HttpParser::setHeaders( )
 {
     // std::istringstream  iss( request );
     std::string         line;
-    bool                foundContlen = false;
 
-    initIss( request );
+    // initIss( request );
     // std::cout << GREEN << "request = " << request << RESET << std::endl;
     int whichline = 0;
     while ( std::getline( _iss, line ) )
@@ -71,18 +72,18 @@ void    HttpParser::setHeaders( std::string request )
                 x = tolower( static_cast<unsigned char>( x ) );
 
             value = trim( value );
-            if ( key == "content-length" && foundContlen == false ) // need to be checked when there ist post
+            if ( key == "content-length" && _foundContlen == false ) // need to be checked when there ist post
             {
-                foundContlen = true;
+                _foundContlen = true;
                 if ( isAllDigits( value ) == false )
                     throw BadRequest(); // fall back to content length from config
-                _contentLength = std::stoi( value );
+                _contentLength = static_cast<std::size_t>( std::stoi( value ) );
                 // check on content length from config file
             }
             else if ( key == "transfer-encoding" && value == "chunked")
                 _chunked = true;// body endet bei \0\r\n
             
-            if ( _chunked  && foundContlen )
+            if ( _chunked  && _foundContlen )
                 throw BadRequest();
 
             _headers[ key ] = value;
@@ -144,6 +145,8 @@ bool    HttpParser::isAllDigits( const std::string& word )
 
 void    HttpParser::setBody()
 {
+    std::string line;
+
     if ( _chunked == true )
     {
         std::cout << "CHUNKED ENCODING" << std::endl;
@@ -152,11 +155,35 @@ void    HttpParser::setBody()
     }
     else
     {
+        while ( std::getline( _iss, line ) )
+        {
+            _body.append( line + "\n" );
+
+        }
+        
         // max body size checken
+        if ( _foundContlen )
+        {
+            if ( _contentLength > static_cast<std::size_t>( MAX_BODY_SIZE ) )
+                throw PayloadTooLarge();
+            if ( _body.size() != _contentLength )
+                throw BadRequest();
+            // if ( _body.size() < _contentLength )
+            //     throw RequestTimeout();
+            
+        }
+        else if ( _body.size() > static_cast<std::size_t>( MAX_BODY_SIZE ) )
+            throw PayloadTooLarge();
+            
     }
     //check if contentlength and body length are the same
     // read request body into _body variable after headers were parsed correctly
 
+}
+
+std::string    HttpParser::getBody()
+{
+    return _body;
 }
 
 HttpParser::~HttpParser()
@@ -165,3 +192,7 @@ HttpParser::~HttpParser()
 }
 
 // Errorcodes fuer pailed parsing: incorrect syntax 400 Bad Request
+
+// test for carriage return
+// printf 'GET /Something HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
+

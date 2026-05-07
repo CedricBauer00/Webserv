@@ -1,10 +1,8 @@
 #include <cerrno>
 #include <cstdlib>
 #include "../inc/HttpServer.hpp"
-#include "../inc/HttpException.hpp"
-#include "../inc/Exceptions.hpp"
-#include "../inc/ErrorPageHandler.hpp"
 #include "../inc/Socket.hpp"
+#include "../inc/Execution.hpp"
 
 #define MAX_EVENTS 10
 
@@ -32,12 +30,13 @@ void HttpServer::closeEvent(struct epoll_event &ev, int epollfd, int &fdCount)
 
 int HttpServer::eventLoop( std::vector<int> listenFds )
 {
-    socklen_t addrlen;
+    socklen_t               addrlen;
     struct sockaddr_storage clientAddr;
-    char s[INET6_ADDRSTRLEN];
-    int new_fd, epollfd, nfds, ret, fdCount = 0;
-    const char* response = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n<html><body>Hello, World!</body></html>";
-    struct epoll_event ev, events[MAX_EVENTS];
+    char                    s[INET6_ADDRSTRLEN];
+    int                     new_fd, epollfd, nfds, ret, fdCount = 0;
+    struct epoll_event      ev, events[MAX_EVENTS];
+  
+    Response                Res;
 
     epollfd = epoll_create1(O_CLOEXEC);
 
@@ -155,24 +154,16 @@ int HttpServer::eventLoop( std::vector<int> listenFds )
                     }
                 }
 
+                Res.setResponse( "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n<html><body>Hello, World!</body></html>" );
+                // const char* response = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n<html><body>Hello, World!</body></html>";
+
                 if ( client.getComplHeader() )
                 {                    
-                    try
-                    {
-                        // execution()
-                        HttpParsing( client.getRequest() );
-                      
-                    }
-                    catch ( const HttpException& e )
-                    {
-                        ErrorPageHandler errorPage( e.getStatusCode(), e.getReasonPhrase() );
-                        std::cout << e.getStatusCode() << ":" << e.getReasonPhrase() << std::endl;
-                        errorPage.createErrorPage();
-                    }
+                    execution( client.getRequest() );
                 }
                 if (events[n].events & EPOLLIN || ((events[n].events & EPOLLOUT) && client.getSendPos()))
                 {
-                    if (client.sendToClient(response) == -1)
+                    if (client.sendToClient( Res.getResponse() ) == -1)
                     {
                         if (errno == EAGAIN || errno == EWOULDBLOCK)
                             continue;

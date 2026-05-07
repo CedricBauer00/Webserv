@@ -7,7 +7,9 @@ SRC = main.cpp \
 		ConfigParsing.cpp \
 		ErrorPageHandler.cpp \
 		HttpException.cpp \
-		Socket.cpp
+		Socket.cpp \
+		Execution.cpp \
+		Response.cpp
 
 
 OBJ_DIR = obj
