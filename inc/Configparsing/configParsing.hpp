@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <variant>
 #include <chrono>
 
 #define LISTEN (1 << 0)
@@ -21,11 +22,15 @@ struct WebservHttpRequest {
 
 typedef int (*WebservHandler)(WebservHttpRequest* r);
 
-typedef struct {
-	void**	main_conf;
-	void**	srv_conf;
-	void**	loc_conf;
-}	t_webserv_conf_ctx;
+struct WebservHttpConf;
+struct WebservSrvConf;
+struct WebservLocConf;
+
+struct WebservCtx{
+	std::vector<std::variant<WebservHttpConf>> http_conf;
+	std::vector<std::variant<WebservSrvConf>> srv_conf;
+	std::vector<std::variant<WebservLocConf>> loc_conf;
+};
 
 struct WebservAddr {
 	std::string	ip;
@@ -34,17 +39,14 @@ struct WebservAddr {
 
 typedef std::chrono::milliseconds	WebservMsec;
 
-struct WebservHttpConf;
-struct WebservSrvConf;
-struct WebservLocConf;
-
 struct WebservHttpConf{
 	std::vector<WebservSrvConf>   servers; // virtual servers
-	std::vector<std::pair<WebservAddr, t_webserv_phase_engine>> ph;
+	std::vector<std::pair<std::string, std::string>>	lowerDirectives; // directives that can be specified in http block and inherited by all servers and locations, e.g., error_log, client_max_body_size
+	// std::vector<std::pair<WebservAddr, t_webserv_phase_engine>> ph;
 };
 
 struct WebservSrvConf {
-	t_webserv_conf_ctx*					ctx;
+	WebservCtx*					        ctx;
 	std::vector<std::string>			serverNames; // virtual server name entries
 	// std::string							filename, serverName;
 	// unsigned int						lineNum;

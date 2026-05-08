@@ -1,11 +1,12 @@
 #include "../../inc/Configparsing/ConfigParser.hpp"
 
 ConfigParser::ConfigParser(char* filename): _configFilename(filename) {
+    _modules.push_back(new WebservCoreModule());
 }
 
 ConfigParser::~ConfigParser() {
-	if (_httpConf)
-		delete _httpConf;
+	for (IWebservModule* module: _modules)
+        delete module;
 }
 
 void    ConfigParser::tokenize() {
@@ -22,12 +23,12 @@ void    ConfigParser::tokenize() {
     std::string word;
     while (pos != size) {
         if (isspace(str[pos])) {
-            if (!word.empty()) _tokens.push_back(word), word.clear();
+            if (!word.empty()) _tokens.push(word), word.clear();
             pos = str.find_first_not_of(" \t\r\n\f\v", pos);
         }
         else if (str[pos] == ';' || str[pos] == '{' || str[pos] == '}') {
-            if (!word.empty()) _tokens.push_back(word), word.clear();
-            _tokens.push_back(std::string(1, str[pos]));
+            if (!word.empty()) _tokens.push(word), word.clear();
+            _tokens.push(std::string(1, str[pos]));
             ++pos;
         }
         else {
@@ -36,7 +37,7 @@ void    ConfigParser::tokenize() {
             pos += len;
         }
     }
-    if (!word.empty()) _tokens.push_back(word);
+    if (!word.empty()) _tokens.push(word);
     for (auto token: _tokens)
         std::cout << token << std::endl;
 }
@@ -77,7 +78,7 @@ void	ConfigParser::parseHttpSrvField(WebservSrvConf &srvConf, size_t i) {
 			break;
 		case 1: // server_name
 			while (1) {
-				srvConf.serverNames.push_back(_tokens[i]);
+				srvConf.serverNames.push(_tokens[i]);
 				if (_tokens.size() <= i + 1 || _tokens[i + 1] == ";"
 					|| _tokens[i + 1] == "{" || _tokens[i + 1] == "}")
 					break;
@@ -126,19 +127,18 @@ size_t	ConfigParser::parseHttpSrvConfig(size_t i) {
 	throw std::runtime_error("Expected '}' at end of server block");
 }
 
-size_t	ConfigParser::parseHttpTopConfig(size_t i) {
-	if (_tokens.size() <= i || _tokens[i] != "{")
+size_t	ConfigParser::parseHttpTopConfig() {
+	if (_tokens.empty() || _tokens.front() != "{")
 		throw std::runtime_error("Expected '{' after 'http'");
-	_httpConf = new WebservHttpConf();
-	++i;
-    while (i < _tokens.size()) {
-		if (_tokens[i] == "}")
-			return i;
-		else if (_tokens[i] == "server")
-			i = parseHttpSrvConfig(++i);
+    _tokens.pop();
+    while (!_tokens.empty()) {
+		if (_tokens.front() == "}")
+			return;
+		else if (_tokens.front() == "server")
+			parseHttpSrvConfig();
 		else
-
-        ++i;
+            throw std::runtime_error("Unknown element in http block: " + _tokens.front());
+        _tokens.pop();
     }
 	throw std::runtime_error("Expected '}' at end of http block");
 }
@@ -148,11 +148,10 @@ void	ConfigParser::parseConfig() {
     if (_tokens.empty())
         throw std::runtime_error("Empty config file");
 
-    size_t  i = 0;
-    while (i < _tokens.size()) {
-        if (_tokens[i] == "http") {
-            i = parseHttpTopConfig(++i);
+    while (!_tokens.empty()) {
+        if (_tokens.front() == "http") {
+            _tokens.pop();
+            parseHttpTopConfig();
         }
-        i++;
     }
 }
