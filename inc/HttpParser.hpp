@@ -26,31 +26,26 @@
 #define ORANGE  "\033[38;2;255;120;0m"
 #define RESET  "\033[0m"
 
-#define MAX_BODY_SIZE 1024
-
 class HttpParser
 {
     private:
-        std::vector<std::string>                        _startLine;
-        std::unordered_map<std::string, std::string>    _headers;
+        std::vector<std::string>            _startLine;
+        std::unordered_map<std::string, std::string>  _headers;
         std::string _body;
-        std::size_t _bodyLength;
-        bool        _foundContlen;
-        std::size_t _contentLength;
+        int         _contentLength;
+        int         _bodyLength;
         bool        _chunked;
-        std::istringstream  _iss;
 
 
         void        setStartLine( std::string line );
         void        checkStartLine();
         std::string trim( const std::string& value );
         bool        isAllDigits( const std::string& word );
-        void        initIss( std::string request );
         
     public:
-        HttpParser( std::string reqeust );
+        HttpParser();
         
-        void    setHeaders( );
+        void    setHeaders( std::string request );
         void    setBody();
 
         std::vector<std::string>            getStartLine();
@@ -59,8 +54,3 @@ class HttpParser
 
         ~HttpParser();
 };
-
-void    HttpParsing( std::string request );
-
-// JSON POST
-// falls POST method, check ob eine json (Content-Type: /json), dann ignore erste '{' und letzte '}' character
