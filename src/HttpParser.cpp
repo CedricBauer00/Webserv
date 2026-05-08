@@ -7,18 +7,16 @@ HttpParser::HttpParser( std::string reqeust ) : _startLine(), _headers(), _body(
 }
 
 
+// void    HttpParsing( std::string request )
+// {
+//     HttpParser result( request );
 
+//     // setStartline
+//     result.setHeaders();
+//     result.setBody(); // for POST requests - last step of execution
 
-void    HttpParsing( std::string request )
-{
-    HttpParser result( request );
-
-    // setStartline
-    result.setHeaders( );
-    result.setBody();
-
-    std::cout << GREEN << result.getBody() << RESET << std::endl;
-}
+//     std::cout << GREEN << result.getBody() << RESET << std::endl;
+// }
 
 
 // void    HttpParser::initIss(  )
@@ -26,7 +24,7 @@ void    HttpParsing( std::string request )
 //     this->_iss( request );
 // }
 
-void    HttpParser::setHeaders( )
+void    HttpParser::setHeaders()
 {
     // std::istringstream  iss( request );
     std::string         line;
@@ -158,7 +156,6 @@ void    HttpParser::setBody()
         while ( std::getline( _iss, line ) )
         {
             _body.append( line + "\n" );
-
         }
         
         // max body size checken
@@ -178,7 +175,6 @@ void    HttpParser::setBody()
     }
     //check if contentlength and body length are the same
     // read request body into _body variable after headers were parsed correctly
-
 }
 
 std::string    HttpParser::getBody()

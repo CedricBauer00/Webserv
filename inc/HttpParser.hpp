@@ -1,3 +1,60 @@
+// #pragma once
+
+// #include <unistd.h>
+// #include <string>
+// #include <cstring>
+// #include <iostream>
+// #include <sys/types.h>
+// #include <sys/socket.h>
+// #include <netinet/in.h>
+// #include <netdb.h>
+// #include <arpa/inet.h>
+// #include <sys/wait.h>
+// #include <sys/epoll.h>
+// #include <signal.h>
+// #include <fcntl.h>
+// #include <vector>
+// #include <unordered_map>
+// #include <sstream>
+// #include <algorithm> 
+// #include <cctype>
+
+// #define RED  "\033[31m"
+// #define ELEC_RED "\033[38;2;255;20;20m"
+// #define BLUE    "\033[34m"
+// #define GREEN  "\033[32m"
+// #define ORANGE  "\033[38;2;255;120;0m"
+// #define RESET  "\033[0m"
+
+// class HttpParser
+// {
+//     private:
+//         std::vector<std::string>            _startLine;
+//         std::unordered_map<std::string, std::string>  _headers;
+//         std::string _body;
+//         int         _contentLength;
+//         int         _bodyLength;
+//         bool        _chunked;
+
+
+//         void        setStartLine( std::string line );
+//         void        checkStartLine();
+//         std::string trim( const std::string& value );
+//         bool        isAllDigits( const std::string& word );
+        
+//     public:
+//         HttpParser( std::string request );
+        
+//         void    setHeaders( std::string request );
+//         void    setBody();
+
+//         std::vector<std::string>            getStartLine();
+//         std::unordered_map<std::string, std::string>  getHeaders();
+//         std::string                         getBody();
+
+//         ~HttpParser();
+// };
+
 #pragma once
 
 #include <unistd.h>
@@ -26,26 +83,31 @@
 #define ORANGE  "\033[38;2;255;120;0m"
 #define RESET  "\033[0m"
 
+#define MAX_BODY_SIZE 1024
+
 class HttpParser
 {
     private:
-        std::vector<std::string>            _startLine;
-        std::unordered_map<std::string, std::string>  _headers;
+        std::vector<std::string>                        _startLine;
+        std::unordered_map<std::string, std::string>    _headers;
         std::string _body;
-        int         _contentLength;
-        int         _bodyLength;
+        std::size_t _bodyLength;
+        bool        _foundContlen;
+        std::size_t _contentLength;
         bool        _chunked;
+        std::istringstream  _iss;
 
 
         void        setStartLine( std::string line );
         void        checkStartLine();
         std::string trim( const std::string& value );
         bool        isAllDigits( const std::string& word );
+        void        initIss( std::string request );
         
     public:
-        HttpParser();
+        HttpParser( std::string reqeust );
         
-        void    setHeaders( std::string request );
+        void    setHeaders( );
         void    setBody();
 
         std::vector<std::string>            getStartLine();
@@ -54,3 +116,8 @@ class HttpParser
 
         ~HttpParser();
 };
+
+void    HttpParsing( std::string request );
+
+// JSON POST
+// falls POST method, check ob eine json (Content-Type: /json), dann ignore erste '{' und letzte '}' character
