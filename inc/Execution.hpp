@@ -6,4 +6,4 @@
 #include "../inc/ErrorPageHandler.hpp"
 #include "../inc/Response.hpp"
 
-void    execution( std::string request );
+void    execution( std::string request, Response &Res );

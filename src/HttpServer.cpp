@@ -154,12 +154,11 @@ int HttpServer::eventLoop( std::vector<int> listenFds )
                     }
                 }
 
-                Res.setResponse( "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n<html><body>Hello, World!</body></html>" );
                 // const char* response = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n<html><body>Hello, World!</body></html>";
 
                 if ( client.getComplHeader() )
                 {                    
-                    execution( client.getRequest() );
+                    execution( client.getRequest(), Res );
                 }
                 if (events[n].events & EPOLLIN || ((events[n].events & EPOLLOUT) && client.getSendPos()))
                 {

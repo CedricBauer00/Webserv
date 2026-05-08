@@ -2,14 +2,21 @@
 
 ErrorPageHandler::ErrorPageHandler( int statusCode, std::string reasonPhrase ) : _statusCode( statusCode ), _reasonPhrase( reasonPhrase ) {}
 
-void    ErrorPageHandler::createErrorPage()
+void    ErrorPageHandler::createErrorPage( Response &Res )
 {
     // std::string path = getPath(); //get user defined path to error pages
 
+    // if ( errorPages are given by config file )
+    // {
+        
+    // }
+    // else
+    // {
+        
 
-
-    // -------- default error page --------
     
+    
+    // -------- default error page --------
     std::cout << _statusCode << " : " << _reasonPhrase << std::endl;
 
     std::ifstream       ifs( "ErrorPages/defaultErrorPage.html" );
@@ -55,7 +62,9 @@ void    ErrorPageHandler::createErrorPage()
         if ( CodePos == std::string::npos && PhrasePos == std::string::npos )
             break ;
     }
-    std::cout << buffer << std::endl;
+    // std::cout << "Buffer = " << buffer << std::endl;
+    Res.setErrorPage( buffer );
+    // }
 }
 
 ErrorPageHandler::~ErrorPageHandler() {}

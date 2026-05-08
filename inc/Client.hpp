@@ -15,7 +15,7 @@ class Client: public EventHandler
         Client(int fd);
         ~Client();
         int receiveFromClient();
-        int sendToClient( std::string response );
+        int sendToClient( std::string Response );
         std::string getRequest();
         int getSendPos();
         bool getComplHeader();
