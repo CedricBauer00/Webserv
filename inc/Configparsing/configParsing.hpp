@@ -41,7 +41,7 @@ typedef std::chrono::milliseconds	WebservMsec;
 
 struct WebservHttpConf{
 	std::vector<WebservSrvConf>   servers; // virtual servers
-	std::vector<std::pair<std::string, std::string>>	lowerDirectives; // directives that can be specified in http block and inherited by all servers and locations, e.g., error_log, client_max_body_size
+	std::vector<std::pair<std::string, std::string>>	lowerLevelDirectives; // directives that can be specified in http block and inherited by all servers and locations, e.g., error_log, client_max_body_size
 	// std::vector<std::pair<WebservAddr, t_webserv_phase_engine>> ph;
 };
 
@@ -59,8 +59,8 @@ struct WebservSrvConf {
 
 struct WebservLocTreeNode {
 	std::vector<struct WebservLocTreeNode*>	children;
-	struct WebservLocTreeNode*					parent;
-	WebservLocConf								conf;
+	struct WebservLocTreeNode*				parent;
+	WebservLocConf							conf;
 };
 
 struct WebservPhase {

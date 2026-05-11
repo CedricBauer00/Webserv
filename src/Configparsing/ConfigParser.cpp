@@ -9,7 +9,7 @@ ConfigParser::~ConfigParser() {
         delete module;
 }
 
-void    ConfigParser::tokenize() {
+std::deque<std::string>    ConfigParser::tokenize() {
     std::ifstream   file(_configFilename, std::ios::binary);
 
     file.seekg(0, std::ios::end);
@@ -19,16 +19,17 @@ void    ConfigParser::tokenize() {
     std::string str(size, '\0');
     file.read(&str[0], size);
 
+	std::deque<std::string> tokens;
     std::size_t pos = 0;
     std::string word;
     while (pos != size) {
         if (isspace(str[pos])) {
-            if (!word.empty()) _tokens.push(word), word.clear();
+            if (!word.empty()) tokens.push_front(word), word.clear();
             pos = str.find_first_not_of(" \t\r\n\f\v", pos);
         }
         else if (str[pos] == ';' || str[pos] == '{' || str[pos] == '}') {
-            if (!word.empty()) _tokens.push(word), word.clear();
-            _tokens.push(std::string(1, str[pos]));
+            if (!word.empty()) tokens.push_front(word), word.clear();
+            tokens.push_front(std::string(1, str[pos]));
             ++pos;
         }
         else {
@@ -37,15 +38,18 @@ void    ConfigParser::tokenize() {
             pos += len;
         }
     }
-    if (!word.empty()) _tokens.push(word);
-    for (auto token: _tokens)
+    if (!word.empty()) tokens.push_front(word);
+	if (tokens.empty())
+        throw std::runtime_error("Empty config file");
+    for (auto& token: tokens)
         std::cout << token << std::endl;
+    return tokens;
 }
 
 size_t	ConfigParser::parseHttpLocConfig(size_t i) {
 	if (_tokens.size() <= i || _tokens[i] != "{")
 		throw std::runtime_error("Expected '{' after 'location'");
-	_httpConf->servers.back().locations.resize(_httpConf->servers.back().locations.size() + 1);
+	_httpConf.servers.back().locations.resize(_httpConf->servers.back().locations.size() + 1);
 	++i;
     while (i < _tokens.size()) {
 		if (_tokens[i] == "}")
@@ -110,48 +114,44 @@ void	ConfigParser::parseHttpSrvField(WebservSrvConf &srvConf, size_t i) {
 		throw std::runtime_error("Expected ';' after the value of '" + key + "'");
 }
 
-size_t	ConfigParser::parseHttpSrvConfig(size_t i) {
-	if (_tokens.size() <= i || _tokens[i] != "{")
-		throw std::runtime_error("Expected '{' after 'server'");
-	_httpConf->servers.resize(_httpConf->servers.size() + 1);
-	++i;
-    while (i < _tokens.size()) {
-		if (_tokens[i] == "}")
-			return i;
-		else if (_tokens[i] == "location")
-			i = parseHttpLocConfig(++i);
-		else
-			parseHttpSrvField(_httpConf->servers.back(), i);
-        ++i;
-    }
-	throw std::runtime_error("Expected '}' at end of server block");
-}
-
-size_t	ConfigParser::parseHttpTopConfig() {
-	if (_tokens.empty() || _tokens.front() != "{")
-		throw std::runtime_error("Expected '{' after 'http'");
-    _tokens.pop();
-    while (!_tokens.empty()) {
-		if (_tokens.front() == "}")
+void    ConfigParser::parseDirective(WebservConfLevel level) {
+	for (IWebservModule* module: _modules) {
+		if (module->isDirectiveValid(_tokens.front(), level)) {
+			module->parseDirective(*this, level);
 			return;
-		else if (_tokens.front() == "server")
-			parseHttpSrvConfig();
-		else
-            throw std::runtime_error("Unknown element in http block: " + _tokens.front());
-        _tokens.pop();
-    }
-	throw std::runtime_error("Expected '}' at end of http block");
+		}
+	}
+	throw std::runtime_error("Unknown directive '" + _tokens.front() + "' at level " + getLevelName(level));
 }
 
-void	ConfigParser::parseConfig() {
-    tokenize();
-    if (_tokens.empty())
-        throw std::runtime_error("Empty config file");
+void	ConfigParser::parseConfig(WebservConfLevel level) {
+    static std::deque<std::string> _tokens = tokenize();
 
     while (!_tokens.empty()) {
-        if (_tokens.front() == "http") {
-            _tokens.pop();
-            parseHttpTopConfig();
-        }
+		if (_tokens.front() == "}") {
+			if (level == WebservConfLevel::MAIN)
+				throw std::runtime_error("Unexpected '}' at the end of MAIN level");
+			_tokens.pop_front();
+			return;
+		}
+		parseDirective(level);
     }
+	if (level != WebservConfLevel::MAIN)
+		throw std::runtime_error("Expected '}' at end of " + getLevelName(level) + " block");
+}
+
+WebservHttpConf&	ConfigParser::getHttpConf() {
+	return _httpConf;
+}
+
+std::deque<std::string>&	ConfigParser::getTokens() {
+	return _tokens;
+}
+
+const std::string&	ConfigParser::getLevelName(WebservConfLevel level) const {
+	auto it = _levelNames.find(level);
+	if (it != _levelNames.end())
+		return it->second;
+	else
+		throw std::runtime_error("Unknown configuration level");
 }
