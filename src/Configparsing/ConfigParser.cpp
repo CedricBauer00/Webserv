@@ -121,7 +121,8 @@ void    ConfigParser::parseDirective(WebservConfLevel level) {
 			return;
 		}
 	}
-	throw std::runtime_error("Unknown directive '" + _tokens.front() + "' at level " + getLevelName(level));
+	throw std::runtime_error("Unknown directive '"
+		+ _tokens.front() + "' at level " + getLevelName(level));
 }
 
 void	ConfigParser::parseConfig(WebservConfLevel level) {
@@ -130,14 +131,15 @@ void	ConfigParser::parseConfig(WebservConfLevel level) {
     while (!_tokens.empty()) {
 		if (_tokens.front() == "}") {
 			if (level == WebservConfLevel::MAIN)
-				throw std::runtime_error("Unexpected '}' at the end of MAIN level");
+				throw std::runtime_error("Unexpected '}' at the end of MAIN block");
 			_tokens.pop_front();
 			return;
 		}
 		parseDirective(level);
     }
 	if (level != WebservConfLevel::MAIN)
-		throw std::runtime_error("Expected '}' at end of " + getLevelName(level) + " block");
+		throw std::runtime_error("Expected '}' at end of "
+			+ getLevelName(level) + " block");
 }
 
 WebservHttpConf&	ConfigParser::getHttpConf() {

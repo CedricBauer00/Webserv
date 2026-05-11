@@ -55,6 +55,7 @@ struct WebservSrvConf {
 	bool								ignore_invalid_headers{true}, \
 	merge_slashes{true}, underscore_is_valid{false};
 	unsigned int						flags{0};
+	WebservLocConf						locations; // default location
 };
 
 struct WebservLocTreeNode {
@@ -79,7 +80,8 @@ struct WebservLocConf {
 	int			matchType; // 0: exact, 1:normal prefix, 2: prefix, 3: regex
 
 	WebservLocTreeNode*				staticLocations;
-	std::vector<WebservLocConf*>	regexLocations;
+	std::vector<WebservLocConf>	regexLocations;
+	std::vector<WebservLocConf>
 
 	void**	loc_conf;
 

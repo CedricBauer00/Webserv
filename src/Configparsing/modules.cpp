@@ -1,13 +1,18 @@
 #include "../../inc/Configparsing/modules.hpp"
 #include "../../inc/Configparsing/ConfigParser.hpp"
 
-AWebservParser::AWebservParser(const std::unordered_map<std::string, WebservConfLevel> directiveValidLevels) : 
+AWebservParser::AWebservParser(
+	const std::unordered_map<std::string,
+	WebservConfLevel> directiveValidLevels) : 
 	_directiveValidLevels(std::move(directiveValidLevels)) {
 };
 
-int AWebservParser::isDirectiveValid(const std::string& directive, WebservConfLevel level) {
+int AWebservParser::isDirectiveValid(
+	const std::string& directive,
+	WebservConfLevel level) {
 	auto it = _directiveValidLevels.find(directive);
-	return it != _directiveValidLevels.end() && (it->second & level) != static_cast<WebservConfLevel>(0);
+	return (it != _directiveValidLevels.end()
+		&& (it->second & level) != static_cast<WebservConfLevel>(0));
 };
 
 WebservCoreParser::WebservCoreParser() :
@@ -37,7 +42,9 @@ WebservCoreParser::WebservCoreParser() :
 		}) {
 };
 
-void WebservCoreParser::parseDirective(ConfigParser& parser, WebservConfLevel level) {
+void WebservCoreParser::parseDirective(
+	ConfigParser& parser,
+	WebservConfLevel level) {
     static const std::unordered_map<std::string, int> directiveMap = [&]() {
         std::unordered_map<std::string, int> m;
 
@@ -49,44 +56,47 @@ void WebservCoreParser::parseDirective(ConfigParser& parser, WebservConfLevel le
         return m;
     }();
     std::deque<std::string>&	tokens = parser.getTokens();
+	std::string 				directive = tokens.front();
     WebservHttpConf&			httpConf = parser.getHttpConf();
-	const std::string& 			directive = tokens.front();
+	WebservSrvConf*				srvConf = nullptr;
+	
+	if (!httpConf.servers.empty())
+		srvConf = &httpConf.servers.back();
+	tokens.pop_front();
+
     switch (directiveMap.at(directive)) {
 		case 0: // http
-			if ((level & _directiveValidLevels.at(directive)) != static_cast<WebservConfLevel>(0)) {
-				tokens.pop_front();
-				if (tokens.empty() || tokens.front() != "{")
-					throw std::runtime_error("Expected '{' after 'http'");
-				tokens.pop_front();
-				parser.parseConfig(WebservConfLevel::HTTP);
-				break;
-			}
-			else
-				throw std::runtime_error("'http' directive is not allowed in the " + parser.getLevelName(level) + " block");
+			if (tokens.empty() || tokens.front() != "{")
+				throw std::runtime_error("Expected '{' after 'http'");
+			tokens.pop_front();
+			parser.parseConfig(WebservConfLevel::HTTP);
+			break;
         case 1: // server
-			if ((level & _directiveValidLevels.at(directive)) != static_cast<WebservConfLevel>(0)) {
-				tokens.pop_front();
-				if (tokens.empty() || tokens.front() != "{")
-					throw std::runtime_error("Expected '{' after 'server'");
-				tokens.pop_front();
-				httpConf.servers.emplace_back();
-				parser.parseConfig(WebservConfLevel::SERVER);
-				break;
-			}
-			else
-				throw std::runtime_error("'server' directive is not allowed in the " + parser.getLevelName(level) + " block");
+			if (tokens.empty() || tokens.front() != "{")
+				throw std::runtime_error("Expected '{' after 'server'");
+			tokens.pop_front();
+			httpConf.servers.emplace_back();
+			// add server pointer to server context
+			parser.parseConfig(WebservConfLevel::SERVER);
+			break;
         case 2: // listen
-            if ((level & _directiveValidLevels.at(directive)) != static_cast<WebservConfLevel>(0)) {
-				parser.parseHttpSrvField(httpConf.servers.back(), 0);
-				break;
-			}
-			else
-				throw std::runtime_error("'listen' directive is not allowed in the " + parser.getLevelName(level) + " block");
+			parser.parseHttpSrvField(httpConf.servers.back(), 0);
+			break;
         case 3: // server_name
-            break;
+			while (!tokens.empty() && tokens.front() != ";"
+				&& tokens.front() != "{" && tokens.front() != "}") {
+				srvConf->serverNames.push_back(tokens.front());
+				tokens.pop_front();
+			}
         case 4: // num_req_expected
+			srvConf->numReqExpected = std::stoi(tokens.front());
+			if (srvConf->numReqExpected <= 0)
+				throw std::runtime_error(
+					"num_req_expected must be a non-zero positive integer");
+			tokens.pop_front();
             break;
         case 5: // client_header_timeout
+			srvConf->clientHeaderTimeout = std::stoi(tokens.front());
             break;
         case 6: // ignore_invalid_headers
             break;
@@ -120,7 +130,37 @@ void WebservCoreParser::parseDirective(ConfigParser& parser, WebservConfLevel le
             break;
         case 21: // try_files
             break;
-        default:
-            throw std::runtime_error("Parsing of directive: " + tokens.front() + " not implemented yet");
     }
+
+	switch (directiveMap.at(directive)) {
+		case 0:
+		case 1:
+			break;
+		case 2:
+		case 3:
+		case 4:
+		case 5:
+		case 6:
+		case 7:
+		case 8:
+		case 9:
+		case 10:
+		case 11:
+		case 12:
+		case 13:
+		case 14:
+		case 15:
+		case 16:
+		case 17:
+		case 18:
+		case 19:
+		case 20:
+		case 21:
+			if (tokens.empty() || tokens.front() != ";")
+				throw std::runtime_error("Expected ';' after directive '" + directive + "'");
+			tokens.pop_front();
+			break;
+		default:
+			throw std::runtime_error("Parsing of directive: " + directive + " not implemented yet");
+	}
 }
