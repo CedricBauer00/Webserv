@@ -85,11 +85,19 @@
 
 #define MAX_BODY_SIZE 1024
 
+enum Method
+{
+    METHOD_GET,
+    METHOD_POST,
+    METHOD_DELETE
+};
+
 class HttpParser
 {
     private:
         std::vector<std::string>                        _startLine;
         std::unordered_map<std::string, std::string>    _headers;
+        std::string _uri;
         std::string _body;
         std::size_t _bodyLength;
         bool        _foundContlen;
@@ -97,6 +105,7 @@ class HttpParser
         bool        _chunked;
         std::istringstream  _iss;
 
+        Method  _method;
 
         void        setStartLine( std::string line );
         void        checkStartLine();
@@ -105,15 +114,21 @@ class HttpParser
         void        initIss( std::string request );
         
     public:
+        HttpParser();
         HttpParser( std::string reqeust );
         
         void    setHeaders( );
         void    setBody();
+        void    setMethod();
+        void    setUri();
 
         std::vector<std::string>            getStartLine();
         std::unordered_map<std::string, std::string>  getHeaders();
-        std::string                         getBody();
+        std::string                         getBody() const;
+        std::string                         getUri();
 
+        Method  getMethod() const;
+        
         ~HttpParser();
 };
 

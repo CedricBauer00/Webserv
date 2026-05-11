@@ -6,4 +6,15 @@
 #include "../inc/ErrorPageHandler.hpp"
 #include "../inc/Response.hpp"
 
-void    execution( std::string request, Response &Res );
+class Execution
+{
+    private:
+        std::string _uri;
+    public:
+        Execution();
+        ~Execution();
+
+        void    serverRewrite( std::string uri );
+        std::string getUri();
+        void    execution( std::string request, Response &Res );
+};

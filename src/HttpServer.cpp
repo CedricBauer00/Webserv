@@ -158,7 +158,8 @@ int HttpServer::eventLoop( std::vector<int> listenFds )
 
                 if ( client.getComplHeader() )
                 {                    
-                    execution( client.getRequest(), Res );
+                    Execution exec;
+                    exec.execution( client.getRequest(), Res );
                 }
                 if (events[n].events & EPOLLIN || ((events[n].events & EPOLLOUT) && client.getSendPos()))
                 {

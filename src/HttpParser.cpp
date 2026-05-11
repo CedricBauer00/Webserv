@@ -1,28 +1,12 @@
 #include "../inc/HttpParser.hpp"
 #include "../inc/Exceptions.hpp"
 
-HttpParser::HttpParser( std::string reqeust ) : _startLine(), _headers(), _body(), _bodyLength( 0 ), _foundContlen( false ), _contentLength( 0 ), _chunked( false ), _iss( reqeust )
+HttpParser::HttpParser() {}
+
+HttpParser::HttpParser( std::string reqeust ) : _startLine(), _headers(), _body(), _bodyLength( 0 ), _foundContlen( false ), _contentLength( 0 ), _chunked( false ), _iss( reqeust ), _method( METHOD_GET )
 {
     std::cout << "HttpParsing BEGIN" << std::endl;
 }
-
-
-// void    HttpParsing( std::string request )
-// {
-//     HttpParser result( request );
-
-//     // setStartline
-//     result.setHeaders();
-//     result.setBody(); // for POST requests - last step of execution
-
-//     std::cout << GREEN << result.getBody() << RESET << std::endl;
-// }
-
-
-// void    HttpParser::initIss(  )
-// {
-//     this->_iss( request );
-// }
 
 void    HttpParser::setHeaders()
 {
@@ -50,6 +34,8 @@ void    HttpParser::setHeaders()
             //     std::cout << GREEN << "_startLine = " << *it << RESET << std::endl;
             // }
             checkStartLine();
+            setMethod();
+            setUri();
         }
         else
         {
@@ -105,18 +91,34 @@ void    HttpParser::setStartLine( std::string line )
         _startLine.push_back( token );
 }
 
-void    HttpParser::checkStartLine()
+void    HttpParser::checkStartLine() // eventuell direkt Execution instance createn, die URI speichert
 {
     if ( _startLine.size() != 3 )
         throw BadRequest();
     if ( _startLine[ 0 ][ 0 ] == '/' )
         throw BadRequest();
     if ( _startLine[ 0 ] != "GET" && _startLine[ 0 ] != "POST" && _startLine[ 0 ] != "DELETE" )
-        throw MethodNotAllowed();
+        throw MethodNotAllowed();    
     if ( _startLine[ 2 ].substr( 0, 4 ) != "HTTP" )
         throw BadRequest();
     if ( _startLine[ 2 ] != "HTTP/1.0" && _startLine[ 2 ] != "HTTP/1.1" )
         throw HttpVersionNotSupported();
+}
+
+void    HttpParser::setUri()
+{
+    _uri = _startLine[ 1 ];
+}
+
+
+void    HttpParser::setMethod() // eventuell hier Execution class instance createn, die die Method selbst speichert
+{
+    if ( _startLine[ 0 ] == "GET" )
+        _method = METHOD_GET;
+    else if ( _startLine[ 0 ] == "POST" )
+        _method = METHOD_POST;
+    else if ( _startLine[ 0 ] == "DELETE" )
+        _method = METHOD_DELETE;
 }
 
 std::string HttpParser::trim( const std::string& value )
@@ -177,7 +179,17 @@ void    HttpParser::setBody()
     // read request body into _body variable after headers were parsed correctly
 }
 
-std::string    HttpParser::getBody()
+Method HttpParser::getMethod() const
+{
+    return _method;
+}
+
+std::string     HttpParser::getUri()
+{
+    return _uri;
+}
+
+std::string    HttpParser::getBody() const
 {
     return _body;
 }
