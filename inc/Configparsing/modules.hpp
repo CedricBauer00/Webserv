@@ -23,7 +23,7 @@ class ConfigParser;
 class IWebservModule {
 	public:
 		virtual ~IWebservModule() = default;
-        int isDirectiveValid(const std::string& directive, WebservConfLevel level) = 0;
+        virtual int isDirectiveValid(const std::string& directive, WebservConfLevel level) = 0;
 		virtual void parseDirective(ConfigParser& parser, WebservConfLevel level) = 0;
 };
 
