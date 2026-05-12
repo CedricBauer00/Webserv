@@ -39,3 +39,15 @@ class Forbidden : public HttpException
         Forbidden() : HttpException( 403, "Forbidden") {}
 };
 
+// redirects
+class MovedPermanently : public HttpException
+{
+    public:
+        MovedPermanently( std::string& location ) : HttpException( 301, "Moved Permanently", location ) {}
+};
+
+class Found : public HttpException
+{
+    public:
+        Found( std::string& location ) : HttpException( 302, "Found", location ) {}
+};

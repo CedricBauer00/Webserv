@@ -64,26 +64,26 @@ std::string getFileType( std::string path )
     if ( pos == std::string::npos )
         return "application/octet-stream";
     
-    std::string type = path.substr( pos + 1 );
+    std::string type = path.substr( pos );
 
     for ( auto& x : type )
         x = tolower( static_cast<unsigned char>( x ) );
 
-    if ( type == "html" )
+    if ( type == ".html" )
         return "text/html";
-    else if ( type == "css" )
+    else if ( type == ".css" )
         return "text/css";
-    else if ( type == "text" )
+    else if ( type == ".text" )
         return "text/plain";
-    else if ( type == "js" )
+    else if ( type == ".js" )
         return "application/javascript";
-    else if ( type == "json" )
+    else if ( type == ".json" )
         return "application/json";
-    else if ( type == "xml" )
+    else if ( type == ".xml" )
         return "application/xml";
-    else if ( type == "png" )
+    else if ( type == ".png" )
         return "image/png";
-    else if ( type == "jpeg" )
+    else if ( type == ".jpeg" )
         return "image/jpeg";
     else
         return "application/octet-stream";

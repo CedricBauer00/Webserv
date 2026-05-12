@@ -3,7 +3,7 @@
 #include "HttpParser.hpp"
 #include "../inc/HttpException.hpp"
 #include "../inc/Exceptions.hpp"
-#include "../inc/ErrorPageHandler.hpp"
+#include "../inc/PageHandler.hpp"
 #include "../inc/Response.hpp"
 
 class Execution

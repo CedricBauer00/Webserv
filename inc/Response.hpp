@@ -4,6 +4,9 @@
 #include <sstream>
 #include <unordered_map>
 #include <iostream>
+#include <fstream>
+#include "Utils.hpp"
+
 
 class Response
 {
@@ -24,6 +27,7 @@ class Response
         void        setCodeAndPhrase( std::string statusCode, std::string reasonPhrase );
         void        setHeaders( std::string key, std::string content );
         std::string getResponse() const;
+
 };
 
-std::string setStatus(int code);
+// std::string setStatus(int code);

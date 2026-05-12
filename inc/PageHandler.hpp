@@ -7,18 +7,18 @@
 
 #include "Response.hpp"
 
-class ErrorPageHandler
+class PageHandler
 {
     private:
         int         _statusCode;
         std::string _reasonPhrase;
         std::string _errorPage;
     public:
-        ErrorPageHandler( int statusCode, std::string reasonPhrase );
-        ~ErrorPageHandler();
+        PageHandler( int statusCode, std::string reasonPhrase );
+        ~PageHandler();
         
-        void        createErrorPage( Response &Res );
-        void        setErrorPage();
+        void        setErrorPage( Response &Res );
+        void        setRedirectPage( Response &Res, std::string uri );
         std::string getErrorPage() const;
 
 };

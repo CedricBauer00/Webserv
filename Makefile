@@ -5,7 +5,7 @@ SRC = main.cpp \
 		HttpParser.cpp \
 		Client.cpp \
 		ConfigParsing.cpp \
-		ErrorPageHandler.cpp \
+		PageHandler.cpp \
 		HttpException.cpp \
 		Socket.cpp \
 		Execution.cpp \

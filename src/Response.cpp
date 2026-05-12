@@ -16,7 +16,6 @@ void    Response::build()
         oss << x.first << ": " << x.second << "\r\n";
     }
 
-    
     oss << "Connection: close\r\n\r\n";
     oss << _body;
     _response = oss.str();
@@ -38,7 +37,6 @@ void    Response::setHeaders( std::string key, std::string content )
 {
     _headers[ key ] = content;
 }
-
 
 std::string Response::getResponse() const
 {
