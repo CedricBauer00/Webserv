@@ -20,6 +20,12 @@ void    Execution::execution( std::string request, Response &Res )
         
         serverRewrite( parser.getUri() );
 
+        if ( m == METHOD_GET )
+            getLogic();
+        else if ( m == METHOD_DELETE )
+            deleteLogic();
+        else if ( m == METHOD_POST)
+            postLogic();
         // SERVER_REWRITE
         // server{} rw
 
@@ -66,7 +72,7 @@ void    Execution::execution( std::string request, Response &Res )
         ErrorPageHandler errorPage( e.getStatusCode(), e.getReasonPhrase() );
         std::cout << e.getStatusCode() << ":" << e.getReasonPhrase() << std::endl;
         errorPage.createErrorPage( Res );
-        // Res.setErrorPage()
+        Res.build();
     }
 }
 

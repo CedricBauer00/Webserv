@@ -10,11 +10,8 @@ HttpParser::HttpParser( std::string reqeust ) : _startLine(), _headers(), _body(
 
 void    HttpParser::setHeaders()
 {
-    // std::istringstream  iss( request );
     std::string         line;
 
-    // initIss( request );
-    // std::cout << GREEN << "request = " << request << RESET << std::endl;
     int whichline = 0;
     while ( std::getline( _iss, line ) )
     {
@@ -29,13 +26,8 @@ void    HttpParser::setHeaders()
         if ( _startLine.empty() )
         {
             setStartLine( line );
-            // for ( std::vector<std::string>::const_iterator it = _startLine.begin(); it != _startLine.end(); ++it )
-            // {
-            //     std::cout << GREEN << "_startLine = " << *it << RESET << std::endl;
-            // }
             checkStartLine();
             setMethod();
-            // setHttpVersion();
             setUri();
         }
         else

@@ -9,7 +9,8 @@ SRC = main.cpp \
 		HttpException.cpp \
 		Socket.cpp \
 		Execution.cpp \
-		Response.cpp 
+		Response.cpp \
+		Utils.cpp
 
 
 OBJ_DIR = obj

@@ -22,3 +22,5 @@ class ErrorPageHandler
         std::string getErrorPage() const;
 
 };
+
+std::string getFileType( std::string path );

@@ -4,22 +4,23 @@ ErrorPageHandler::ErrorPageHandler( int statusCode, std::string reasonPhrase ) :
 
 void    ErrorPageHandler::createErrorPage( Response &Res )
 {
-    // std::string path = getPath(); //get user defined path to error pages
-
+    std::string path = "ErrorPages/defaultErrorPage.html"; //get user defined path to error pages
+    
     // if ( errorPages are given by config file )
     // {
+        // std::string path = getPath(); //get user defined path to error pages
         
     // }
     // else
-    // {
         
+    // {
 
     
     
     // -------- default error page --------
     std::cout << _statusCode << " : " << _reasonPhrase << std::endl;
 
-    std::ifstream       ifs( "ErrorPages/defaultErrorPage.html" );
+    std::ifstream       ifs( path );
     std::ostringstream  oss;
     std::string         buffer;    
 
@@ -63,8 +64,11 @@ void    ErrorPageHandler::createErrorPage( Response &Res )
             break ;
     }
     // std::cout << "Buffer = " << buffer << std::endl;
+    Res.setCodeAndPhrase( std::to_string( _statusCode), _reasonPhrase );
+    Res.setHeaders( "Content-Length", std::to_string( buffer.size() ) );
+
+    Res.setHeaders( "Content-Type", getFileType( path ) );
     Res.setBody( buffer );
-    // }
 }
 
 ErrorPageHandler::~ErrorPageHandler() {}
