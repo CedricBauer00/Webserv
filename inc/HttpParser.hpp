@@ -97,6 +97,7 @@ class HttpParser
     private:
         std::vector<std::string>                        _startLine;
         std::unordered_map<std::string, std::string>    _headers;
+        std::string _httpVersion;
         std::string _uri;
         std::string _body;
         std::size_t _bodyLength;
@@ -121,11 +122,13 @@ class HttpParser
         void    setBody();
         void    setMethod();
         void    setUri();
+        // void    setHttpVersion();
 
         std::vector<std::string>            getStartLine();
         std::unordered_map<std::string, std::string>  getHeaders();
         std::string                         getBody() const;
         std::string                         getUri();
+        // std::string                         getHttpVersion() const;
 
         Method  getMethod() const;
         

@@ -63,7 +63,7 @@ void    ErrorPageHandler::createErrorPage( Response &Res )
             break ;
     }
     // std::cout << "Buffer = " << buffer << std::endl;
-    Res.setErrorPage( buffer );
+    Res.setBody( buffer );
     // }
 }
 

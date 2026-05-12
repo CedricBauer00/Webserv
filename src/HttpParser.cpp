@@ -35,6 +35,7 @@ void    HttpParser::setHeaders()
             // }
             checkStartLine();
             setMethod();
+            // setHttpVersion();
             setUri();
         }
         else
@@ -178,6 +179,11 @@ void    HttpParser::setBody()
     //check if contentlength and body length are the same
     // read request body into _body variable after headers were parsed correctly
 }
+
+// std::string HttpParser::getHttpVersion() const
+// {
+//     return _httpVersion;
+// }
 
 Method HttpParser::getMethod() const
 {

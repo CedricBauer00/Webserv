@@ -59,7 +59,7 @@ void    Execution::execution( std::string request, Response &Res )
 
         /// Response Buidling 
         // (impliziert)
-        Res.setResponse( "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n<html><body>Hello, World!</body></html>" );
+        Res.build();
     }
     catch ( const HttpException& e )
     {
@@ -70,14 +70,14 @@ void    Execution::execution( std::string request, Response &Res )
     }
 }
 
-// printf 'GET /Something HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
-
 void    Execution::serverRewrite( std::string uri ) //rewriting URI based on rules in config??
 {
     _uri = uri;
-    std::cout << "_uri = " << _uri << std::endl;
-
+    
+    
 }
+
+// printf 'GET /Something HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
 
 // Example
 // server {
