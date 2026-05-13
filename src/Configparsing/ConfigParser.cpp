@@ -1,12 +1,10 @@
 #include "../../inc/Configparsing/ConfigParser.hpp"
 
 ConfigParser::ConfigParser(char* filename): _configFilename(filename) {
-    _modules.push_back(new WebservCoreModule());
+    _modules.push_back(std::make_unique<WebservCoreModule>());
 }
 
 ConfigParser::~ConfigParser() {
-	for (IWebservModule* module: _modules)
-        delete module;
 }
 
 std::deque<std::string>    ConfigParser::tokenize() {
@@ -115,7 +113,7 @@ void	ConfigParser::parseHttpSrvField(WebservSrvConf &srvConf, size_t i) {
 }
 
 void    ConfigParser::parseDirective(WebservConfLevel level) {
-	for (IWebservModule* module: _modules) {
+	for (const auto& module: _modules) {
 		if (module->isDirectiveValid(_tokens.front(), level)) {
 			module->parseDirective(*this, level);
 			return;
@@ -132,7 +130,6 @@ void	ConfigParser::parseConfig(WebservConfLevel level) {
 		if (_tokens.front() == "}") {
 			if (level == WebservConfLevel::MAIN)
 				throw std::runtime_error("Unexpected '}' at the end of MAIN block");
-			_tokens.pop_front();
 			return;
 		}
 		parseDirective(level);

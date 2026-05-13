@@ -22,14 +22,14 @@ struct WebservHttpRequest {
 
 typedef int (*WebservHandler)(WebservHttpRequest* r);
 
-struct WebservHttpConf;
-struct WebservSrvConf;
-struct WebservLocConf;
+struct WebservHttpCoreConf;
+struct WebservSrvCoreConf;
+struct WebservLocCoreConf;
 
 struct WebservCtx{
-	std::vector<std::variant<WebservHttpConf>> http_conf;
-	std::vector<std::variant<WebservSrvConf>> srv_conf;
-	std::vector<std::variant<WebservLocConf>> loc_conf;
+	std::vector<std::variant<WebservHttpCoreConf>> http_conf;
+	std::vector<std::variant<WebservSrvCoreConf>> srv_conf;
+	std::vector<std::variant<WebservLocCoreConf>> loc_conf;
 };
 
 struct WebservAddr {
@@ -39,13 +39,21 @@ struct WebservAddr {
 
 typedef std::chrono::milliseconds	WebservMsec;
 
-struct WebservHttpConf{
-	std::vector<WebservSrvConf>   servers; // virtual servers
+struct	WebservHttpConf {
+	virtual ~WebservHttpConf() = default;
+};
+
+struct WebservHttpCoreConf : WebservHttpConf {
+	std::vector<WebservSrvCoreConf>   servers; // virtual servers
 	std::vector<std::pair<std::string, std::string>>	lowerLevelDirectives; // directives that can be specified in http block and inherited by all servers and locations, e.g., error_log, client_max_body_size
 	// std::vector<std::pair<WebservAddr, t_webserv_phase_engine>> ph;
 };
 
-struct WebservSrvConf {
+struct	WebservSrvConf {
+	virtual ~WebservSrvConf() = default;
+};
+
+struct WebservSrvCoreConf : WebservSrvConf {
 	WebservCtx*					        ctx;
 	std::vector<std::string>			serverNames; // virtual server name entries
 	// std::string							filename, serverName;
@@ -55,13 +63,13 @@ struct WebservSrvConf {
 	bool								ignore_invalid_headers{true}, \
 	merge_slashes{true}, underscore_is_valid{false};
 	unsigned int						flags{0};
-	WebservLocConf						locations; // default location
+	WebservLocCoreConf					location; // builtin location
 };
 
 struct WebservLocTreeNode {
 	std::vector<struct WebservLocTreeNode*>	children;
 	struct WebservLocTreeNode*				parent;
-	WebservLocConf							conf;
+	WebservLocCoreConf							conf;
 };
 
 struct WebservPhase {
@@ -75,13 +83,17 @@ struct WebservErrorLog {
 	int	fd;
 }; 
 
-struct WebservLocConf {
+struct	WebservLocConf {
+	virtual ~WebservLocConf() = default;
+};
+
+struct WebservLocCoreConf : WebservLocConf {
 	std::string	name;
 	int			matchType; // 0: exact, 1:normal prefix, 2: prefix, 3: regex
 
+	std::vector<WebservLocCoreConf> 	rawlocations;
 	WebservLocTreeNode*				staticLocations;
-	std::vector<WebservLocConf>	regexLocations;
-	std::vector<WebservLocConf>
+	std::vector<WebservLocCoreConf*>	regexLocations;
 
 	void**	loc_conf;
 
