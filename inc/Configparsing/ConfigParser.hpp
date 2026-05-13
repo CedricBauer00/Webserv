@@ -16,18 +16,26 @@ class ConfigParser {
 			{WebservConfLevel::SERVER, "server"},
 			{WebservConfLevel::LOCATION, "location"},
 		};
-        char*							_configFilename;
-        std::deque<std::string>			_tokens;
-        WebservHttpConf					_httpConf;
-		std::vector<IWebservModule*>	_modules;
+        char*											_configFilename;
+        std::deque<std::string>							_tokens;
+		std::vector<std::unique_ptr<IWebservModule>>	_modules;
+		std::vector<std::unique_ptr<WebservHttpConf>>	_httpConfs;
+        struct  SrvLocConfs {
+            std::vector<std::unique_ptr<WebservSrvConf>>	srvConfs;
+            std::vector<std::unique_ptr<WebservLocConf>>	LocConfs;
+        };
+        std::vector<SrvLocConfs>						_servers;
 
         std::deque<std::string>	tokenize();
 		void					parseDirective(WebservConfLevel level);
-        size_t					parseHttpSrvConfig();
-		void					parseHttpSrvField(WebservSrvConf &srvConf, size_t i);
-        size_t					parseHttpLocConfig();
 
     public:
+		struct	WebservHttpConfCtx {
+			std::vector<std::unique_ptr<WebservHttpConf>>* httpConfs;
+			std::vector<std::unique_ptr<WebservSrvConf>>* srvConfs;
+			std::vector<std::unique_ptr<WebservLocConf>>* locConfs;
+		};
+
         ConfigParser() = delete;
         ConfigParser(char* filename);
         ~ConfigParser();

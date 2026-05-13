@@ -2,9 +2,10 @@
 #include "../../inc/Configparsing/ConfigParser.hpp"
 
 AWebservParser::AWebservParser(
-	const std::unordered_map<std::string,
-	WebservConfLevel> directiveValidLevels) : 
-	_directiveValidLevels(std::move(directiveValidLevels)) {
+    const int ctxIndex,
+	const std::unordered_map<std::string, WebservConfLevel> directiveValidLevels) : 
+	_ctxIndex(ctxIndex),
+    _directiveValidLevels(std::move(directiveValidLevels)) {
 };
 
 int AWebservParser::isDirectiveValid(
@@ -15,30 +16,31 @@ int AWebservParser::isDirectiveValid(
 		&& (it->second & level) != static_cast<WebservConfLevel>(0));
 };
 
-WebservCoreParser::WebservCoreParser() :
-	AWebservParser({
-            {"http", WebservConfLevel::MAIN},
-			{"server", WebservConfLevel::HTTP},
-			{"listen", WebservConfLevel::SERVER},
-			{"server_name", WebservConfLevel::SERVER},
-			{"num_req_expected", WebservConfLevel::HTTP | WebservConfLevel::SERVER},
-			{"client_header_timeout", WebservConfLevel::HTTP | WebservConfLevel::SERVER},
-			{"ignore_invalid_headers", WebservConfLevel::HTTP | WebservConfLevel::SERVER},
-			{"merge_slashes", WebservConfLevel::HTTP | WebservConfLevel::SERVER},
-			{"underscore_in_headers", WebservConfLevel::HTTP | WebservConfLevel::SERVER},
-			{"root", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-			{"allow", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-			{"alias", WebservConfLevel::LOCATION},
-			{"client_body_buffer_size", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-			{"client_body_timeout", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-			{"client_max_body_size", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-			{"send_timeout", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-			{"absolute_redirect", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-			{"log_not_found", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-			{"error_page", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-			{"index", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-			{"autoindex", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-			{"try_files", WebservConfLevel::LOCATION},
+WebservCoreParser::WebservCoreParser(const int ctxIndex) :
+	AWebservParser(
+        ctxIndex,
+        {{"http", WebservConfLevel::MAIN},
+        {"server", WebservConfLevel::HTTP},
+        {"listen", WebservConfLevel::SERVER},
+        {"server_name", WebservConfLevel::SERVER},
+        {"num_req_expected", WebservConfLevel::HTTP | WebservConfLevel::SERVER},
+        {"client_header_timeout", WebservConfLevel::HTTP | WebservConfLevel::SERVER},
+        {"ignore_invalid_headers", WebservConfLevel::HTTP | WebservConfLevel::SERVER},
+        {"merge_slashes", WebservConfLevel::HTTP | WebservConfLevel::SERVER},
+        {"underscore_in_headers", WebservConfLevel::HTTP | WebservConfLevel::SERVER},
+        {"root", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
+        {"allow", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
+        {"alias", WebservConfLevel::LOCATION},
+        {"client_body_buffer_size", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
+        {"client_body_timeout", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
+        {"client_max_body_size", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
+        {"send_timeout", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
+        {"absolute_redirect", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
+        {"log_not_found", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
+        {"error_page", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
+        {"index", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
+        {"autoindex", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
+        {"try_files", WebservConfLevel::LOCATION},
 		}) {
 };
 
@@ -135,6 +137,7 @@ void WebservCoreParser::parseDirective(
 	switch (directiveMap.at(directive)) {
 		case 0:
 		case 1:
+            tokens.pop_front(); // pop '{'
 			break;
 		case 2:
 		case 3:
@@ -163,4 +166,7 @@ void WebservCoreParser::parseDirective(
 		default:
 			throw std::runtime_error("Parsing of directive: " + directive + " not implemented yet");
 	}
+}
+
+WebservCoreModule::WebservCoreModule(const int ctxIndex) : WebservCoreParser(ctxIndex) {
 }
