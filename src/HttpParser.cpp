@@ -180,6 +180,25 @@ void    HttpParser::setBody()
     // read request body into _body variable after headers were parsed correctly
 }
 
+void    HttpParser::validatePort( std::string portStr )
+{
+    // if ( portStr.empty() || !isAllDigits( portStr ) )
+    //     throw BadRequest();
+    // int _hostPort = std::atoi( portStr.c_str() );
+    // if ( !isInRange( _hostPort, 1, 65535 ) )
+    //     throw BadRequest();
+    if ( portStr.empty() || !isAllDigits( portStr ) )
+        throw BadRequest();
+    int _hostPort = static_cast<std::size_t>( std::stoi( portStr ) );
+    if ( !isInRange( _hostPort, 1, 65535 ) ) // 65534 because 65535 is not permitted! // 65535 ist valid TCP/UDP port range
+        throw BadRequest();
+}
+
+bool    isIpv6Char( char c )
+{
+    return ( c == ':' || std::isxdigit( static_cast<unsigned char>( c ) ) );
+}
+
 void    HttpParser::checkHostHeader( std::string value )
 {
     
@@ -193,52 +212,68 @@ void    HttpParser::checkHostHeader( std::string value )
 
     if ( value[ 0 ] != '[' )
     {
+        if ( value.find( '[' ) != std::string::npos || value.find( ']' ) != std::string::npos )
+            throw BadRequest();
+
         std::string::size_type first = value.find( ':' );
         std::string::size_type last = value.rfind( ':' );
-        if ( first != last ) // warum soll ich hier auch auf first != std::string::npos checken?
+    
+        if ( first == std::string::npos || last == std::string::npos )
+            (void)1;
+        else if ( first != last ) // muss man hier auch first != std::string::npos checken? // warum soll ich hier auch auf first != std::string::npos checken?
             throw BadRequest();
+        else        
+        {
+            std::string portStr = value.substr( first + 1 );
+            validatePort( portStr );
+        }
     }
     else if ( value[ 0 ] == '[' )
     {
         std::string::size_type secBrace = value.find( ']' );
-        if ( secBrace == std::string::npos ) //sagt diese condition: wenn die position der zweiten klammer die letzte Stelle ist, dann bad Request? aber in dem Case: Host: [::1] ist die zweite brace die letzte Stelle und es ist Valid?? erklaere mir bitte
+        if ( secBrace == std::string::npos )
             throw BadRequest();
         if ( secBrace == 1 )
             throw BadRequest();
 
-        if ( secBrace + 1 < value.size() )
+        std::string inBetween = value.substr( 1, secBrace - 1 );
+        if ( inBetween.empty() )
+            throw BadRequest();
+
+        for ( size_t i = 0; i < inBetween.size(); ++i )
+        {
+            if ( !isIpv6Char( inBetween[ i ] ) )
+                throw BadRequest();
+        }
+
+        size_t colPos = inBetween.find( "::" );
+        if ( colPos != std::string::npos )
+        {
+            if ( inBetween.find( "::", colPos + 2 ) != std::string::npos )
+                throw BadRequest();
+        }
+
+        if ( secBrace + 1 < value.size() ) // es gibt noch port/zeichen danach
         {
             if ( value[ secBrace + 1 ] != ':' )
                 throw BadRequest();
-            std::string portStr = value.substr( secBrace + 2 );
-            if ( portStr.empty() || !isAllDigits( portStr ) )
-                throw BadRequest();
-            int _hostPort = std::atoi( portStr.c_str() );
-            if ( !isInRange( _hostPort, 1, 65535 ) )
-                throw BadRequest();
+            std::string portStr = value.substr( secBrace + 2 ); // weil "]:"
+            validatePort( portStr );    
         }
     }
-    else
-    {
-        std::string::size_type pos = value.find( ":" ); 
-        if ( pos == 0 )
-            throw BadRequest();
-    
-        std::string portStr = value.substr( pos + 1 );
-        if ( !isAllDigits( portStr ) )
-            throw BadRequest(); // fall back to content length from config
-        int _hostPort = static_cast<std::size_t>( std::stoi( portStr ) );
-        if ( isInRange( _hostPort, 1, 65535 ) == false ) // 65534 because 65535 is not permitted! // 65535 ist valid TCP/UDP port range
-            throw BadRequest();
-    }
+
 
     _foundHost = true;
 }
-// :example.com         faield: wird gepassed!
-// example.com:         faield: wird gepassed!
 // [:::::example.com]   faield: wird gepassed!
 // [example.com]        faield: wird gepassed!
 // example.com]
+// printf 'GET /legacy/location/ HTTP/1.1\r\nHOST: ccc[]cc\r\nHEAEDER1: A A \r\n\r\n' | nc 127.0.0.2 3490   
+// ~$ printf 'GET /legacy/location/ HTTP/1.1\r\nHOST: [ccc]\r\nHEAEDER1: A A \r\n\r\n' | nc 127.0.0.2 3490
+// ~$ printf 'GET /legacy/location/ HTTP/1.1\r\nHOST: [:ccc]\r\nHEAEDER1: A A \r\n\r\n' | nc 127.0.0.2 3490
+// ~$ printf 'GET /legacy/location/ HTTP/1.1\r\nHOST: [::ccc]\r\nHEAEDER1: A A \r\n\r\n' | nc 127.0.0.2 3490
+// ~$ printf 'GET /legacy/location/ HTTP/1.1\r\nHOST: [::]:6553\r\nHEAEDER1: A A \r\n\r\n' | nc 127.0.0.2 3490
+
 
 
 bool    isInRange( int num, int min, int max )
@@ -270,4 +305,3 @@ HttpParser::~HttpParser()
 
 // test for carriage return
 // printf 'GET /Something HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
-

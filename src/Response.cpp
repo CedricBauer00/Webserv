@@ -16,7 +16,7 @@ void    Response::build()
         oss << x.first << ": " << x.second << "\r\n";
     }
 
-    oss << "Connection: close\r\n\r\n";
+    oss << "Connection: Closed\r\n\r\n";
     oss << _body;
     _response = oss.str();
 }

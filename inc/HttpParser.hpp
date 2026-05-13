@@ -50,34 +50,32 @@ class HttpParser
         bool        _chunked;
         std::istringstream  _iss;
         int         _hostPort;
+        Method      _method;
 
-        Method  _method;
-
+    public:
+        HttpParser();
+        HttpParser( std::string reqeust );
+        
+        void        setHeaders( );
+        void        setBody();
+        void        setMethod();
+        void        setUri();
         void        setStartLine( std::string line );
         void        checkStartLine();
         std::string trim( const std::string& value );
         bool        isAllDigits( const std::string& word );
         void        initIss( std::string request );
         void        checkHostHeader( std::string value );
+        void        validatePort( std::string portStr );
         
-    public:
-        HttpParser();
-        HttpParser( std::string reqeust );
-        
-        void    setHeaders( );
-        void    setBody();
-        void    setMethod();
-        void    setUri();
         // void    setHttpVersion();
-
-        std::vector<std::string>            getStartLine();
-        std::unordered_map<std::string, std::string>  getHeaders();
-        std::string                         getBody() const;
-        std::string                         getUri();
-        // std::string                         getHttpVersion() const;
-
-        Method  getMethod() const;
         
+        std::vector<std::string>    getStartLine();
+        std::unordered_map<std::string, std::string>  getHeaders();
+        std::string                 getBody() const;
+        std::string                 getUri();
+        Method                      getMethod() const;
+
         ~HttpParser();
 };
 

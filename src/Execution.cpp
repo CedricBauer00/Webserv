@@ -26,19 +26,17 @@ void    Execution::execution( std::string request, Response &res, std::vector<Se
         // 3)   FIND_CONFIG
         //      location{}
         //      korrekten Server & Location finden anhand von HOST/PORT/URI
+        //      location matching with new URI 
 
+        
         // 4)   REWRITE
         //      location{} rw
-
-        // 5)   POST_REWRITE -> rewrite last / URI changed
-
-        // 6)   PRE_ACCESS
-        //      limit_req
+        //      POST_REWRITE -> rewrite last / URI changed
+        
 
         // 7)   ACCESS
         //      auth/allow
-
-        // 8)   POST_ACCESS -> access denied -> [SEND 401/403]
+        //      -> access denied -> [SEND 401/403]
 
         // 9)   PRE_CONTENT
         //      try_files
@@ -46,7 +44,6 @@ void    Execution::execution( std::string request, Response &res, std::vector<Se
         // 10)  CONTENT
         //      proxy/static
 
-        // 11)  LOGGING (acces-/error-log)
 
         // if ( m == METHOD_GET )
         //     getLogic();
@@ -86,11 +83,13 @@ struct ServerConfig
 void    initRules( std::vector<RewriteRule>& rewriteRules )
 {
     rewriteRules.push_back({"/old/", "/new/", false, 0 });
-    //  printf 'GET /old/location/ HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
+    //  printf 'GET /old/location/ HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nhOST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
     rewriteRules.push_back({"/legacy", "/new", true, 301 });
-    //  printf 'GET /legacy/location/ HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
+    //  printf 'GET /legacy/location/ HTTP/1.1\r\nHOST: EXAMPLE.COM\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
     rewriteRules.push_back({"/beta", "/new", true, 302 });
-    //  printf 'GET /beta/location/ HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
+    //  printf 'GET /beta/location/ HTTP/1.1\r\nHEAEDER1: A A A A\r\nHoST: example.com\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
+    //  printf 'GET /beta/location/ HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
+
 }
 
 void    Execution::serverRewrite( std::string uri, std::vector<Server> servers ) // wird vorher gecheckt, welcher Serverblock die Request verarbeitet?
@@ -129,11 +128,19 @@ void    Execution::serverRewrite( std::string uri, std::vector<Server> servers )
         }
     }
     std::cout << "URI after = " << _uri << std::endl;
-    // 6)   location matching with new URI 
 }
 
 // server {
 //     listen 3490;
+///    server_name home.com;
+//      ...
+//      ...
+//
+// }
+
+// server {
+//     listen 3490 default;
+//     listen 127.0.0.1:443;
 //     server_name example.com;
 
 //         # Internes Rewrite (kein Redirect)
@@ -149,10 +156,32 @@ void    Execution::serverRewrite( std::string uri, std::vector<Server> servers )
 //     rewrite ^/beta$ /new redirect; - 302
 
 //     location /new/ {
+//         rewrite ^/beta$ /new redirect; - 302
 //         root /var/www/site;
 //     }
 
 //     location / {
 //         root /var/www/default;
+        //     location /api {
+        //         root....
+        //         location /api/42 {
+        //             root ...
+        //             locat
+        //         }
+        //     }
+        // location /api {
+        //     root...;
+        // }
 //     }
 // }
+
+// server {
+//      listen 3490;
+//         server_name webserv.com;
+// }
+
+// location ^/n
+
+// location *[.png]
+
+// localhost/api/
