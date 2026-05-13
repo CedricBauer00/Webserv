@@ -44,7 +44,6 @@ struct	WebservHttpConf {
 };
 
 struct WebservHttpCoreConf : WebservHttpConf {
-	std::vector<WebservSrvCoreConf>   servers; // virtual servers
 	std::vector<std::pair<std::string, std::string>>	lowerLevelDirectives; // directives that can be specified in http block and inherited by all servers and locations, e.g., error_log, client_max_body_size
 	// std::vector<std::pair<WebservAddr, t_webserv_phase_engine>> ph;
 };
@@ -63,7 +62,6 @@ struct WebservSrvCoreConf : WebservSrvConf {
 	bool								ignore_invalid_headers{true}, \
 	merge_slashes{true}, underscore_is_valid{false};
 	unsigned int						flags{0};
-	WebservLocCoreConf					location; // builtin location
 };
 
 struct WebservLocTreeNode {
@@ -92,7 +90,7 @@ struct WebservLocCoreConf : WebservLocConf {
 	int			matchType; // 0: exact, 1:normal prefix, 2: prefix, 3: regex
 
 	std::vector<WebservLocCoreConf> 	rawlocations;
-	WebservLocTreeNode*				staticLocations;
+	WebservLocTreeNode*					staticLocations;
 	std::vector<WebservLocCoreConf*>	regexLocations;
 
 	void**	loc_conf;

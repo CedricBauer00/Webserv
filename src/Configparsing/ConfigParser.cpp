@@ -1,7 +1,8 @@
 #include "../../inc/Configparsing/ConfigParser.hpp"
 
 ConfigParser::ConfigParser(char* filename): _configFilename(filename) {
-    _modules.push_back(std::make_unique<WebservCoreModule>());
+	int ctxIndex = 0;
+    _modules.push_back(std::make_unique<WebservCoreModule>(ctxIndex));
 }
 
 ConfigParser::~ConfigParser() {
@@ -137,10 +138,6 @@ void	ConfigParser::parseConfig(WebservConfLevel level) {
 	if (level != WebservConfLevel::MAIN)
 		throw std::runtime_error("Expected '}' at end of "
 			+ getLevelName(level) + " block");
-}
-
-WebservHttpConf&	ConfigParser::getHttpConf() {
-	return _httpConf;
 }
 
 std::deque<std::string>&	ConfigParser::getTokens() {

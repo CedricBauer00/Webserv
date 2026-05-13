@@ -34,7 +34,7 @@ class AWebservParser : virtual public IWebservModule {
     public:
         AWebservParser() = delete;
         AWebservParser(
-			const int ctxIndex,
+			int& ctxIndex,
 			const std::unordered_map<std::string, WebservConfLevel> directiveValidLevels);
         virtual ~AWebservParser() = default;
         int isDirectiveValid(const std::string& directive, WebservConfLevel level) override;
@@ -43,7 +43,7 @@ class AWebservParser : virtual public IWebservModule {
 class WebservCoreParser : public AWebservParser {
     public:
         WebservCoreParser() = delete;
-		WebservCoreParser(const int ctxIndex);
+		WebservCoreParser(int& ctxIndex);
         virtual ~WebservCoreParser() = default;
         void parseDirective(ConfigParser& parser, WebservConfLevel level) override;
 };
@@ -51,6 +51,6 @@ class WebservCoreParser : public AWebservParser {
 class WebservCoreModule : public WebservCoreParser {
 	public:
         WebservCoreModule() = delete;
-		WebservCoreModule(const int ctxIndex);
+		WebservCoreModule(int& ctxIndex);
         virtual ~WebservCoreModule() = default;
 };
