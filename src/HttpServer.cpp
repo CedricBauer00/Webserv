@@ -28,7 +28,7 @@ void HttpServer::closeEvent(struct epoll_event &ev, int epollfd, int &fdCount)
     --fdCount;
 }
 
-int HttpServer::eventLoop( std::vector<int> listenFds )
+int HttpServer::eventLoop( std::vector<int> listenFds, std::vector<Server> servers )
 {
     socklen_t               addrlen;
     struct sockaddr_storage clientAddr;
@@ -36,7 +36,7 @@ int HttpServer::eventLoop( std::vector<int> listenFds )
     int                     new_fd, epollfd, nfds, ret, fdCount = 0;
     struct epoll_event      ev, events[MAX_EVENTS];
   
-    Response                Res;
+    Response                res;
 
     epollfd = epoll_create1(O_CLOEXEC);
 
@@ -81,12 +81,12 @@ int HttpServer::eventLoop( std::vector<int> listenFds )
 
         for (int n = 0; n < nfds; ++n)
         {
-            if ( std::find( listenFds.begin(), listenFds.end(), static_cast<EventHandler*>(events[n].data.ptr)->getFd() ) != listenFds.end() )
+            if ( std::find( listenFds.begin(), listenFds.end(), static_cast<EventHandler*>( events[ n ].data.ptr )->getFd() ) != listenFds.end() )
             {
                 addrlen = sizeof clientAddr;
-                new_fd = accept( static_cast<EventHandler*>(events[n].data.ptr)->getFd(), (struct sockaddr*)&clientAddr, &addrlen);
+                new_fd = accept( static_cast<EventHandler*>( events[ n ].data.ptr )->getFd(), ( struct sockaddr* )&clientAddr, &addrlen );
             
-                if (new_fd == -1)
+                if ( new_fd == -1 )
                 {
                     perror("accept");
                     continue;
@@ -159,11 +159,11 @@ int HttpServer::eventLoop( std::vector<int> listenFds )
                 if ( client.getComplHeader() )
                 {                    
                     Execution exec;
-                    exec.execution( client.getRequest(), Res );
+                    exec.execution( client.getRequest(), res, servers );
                 }
                 if (events[n].events & EPOLLIN || ((events[n].events & EPOLLOUT) && client.getSendPos()))
                 {
-                    if (client.sendToClient( Res.getResponse() ) == -1)
+                    if (client.sendToClient( res.getResponse() ) == -1)
                     {
                         if (errno == EAGAIN || errno == EWOULDBLOCK)
                             continue;

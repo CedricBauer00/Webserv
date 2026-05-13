@@ -25,7 +25,7 @@ int main( void )
         std::cout << "creating socket failed." << std::endl;
         return -1;
     }
-    if ( server.eventLoop( socket.getListenFds() ) )
+    if ( server.eventLoop( socket.getListenFds(), servers ) )
     {
         std::cout << "eventloop crashed." << std::endl;
         return -1;

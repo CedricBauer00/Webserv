@@ -3,7 +3,7 @@
 
 HttpParser::HttpParser() {}
 
-HttpParser::HttpParser( std::string reqeust ) : _startLine(), _headers(), _body(), _bodyLength( 0 ), _foundContlen( false ), _contentLength( 0 ), _chunked( false ), _iss( reqeust ), _method( METHOD_GET )
+HttpParser::HttpParser( std::string reqeust ) : _startLine(), _headers(), _body(), _bodyLength( 0 ), _foundContlen( false ), _foundHost( false ), _contentLength( 0 ), _chunked( false ), _iss( reqeust ), _method( METHOD_GET )
 {
     std::cout << "HttpParsing BEGIN" << std::endl;
 }
@@ -49,6 +49,7 @@ void    HttpParser::setHeaders()
                 x = tolower( static_cast<unsigned char>( x ) );
 
             value = trim( value );
+            key = trim( key );
             if ( key == "content-length" && _foundContlen == false ) // need to be checked when there ist post
             {
                 _foundContlen = true;
@@ -62,10 +63,17 @@ void    HttpParser::setHeaders()
             
             if ( _chunked  && _foundContlen )
                 throw BadRequest();
-
+            
+            if ( key == "host" )
+                checkHostHeader( value );
+            
             _headers[ key ] = value;
         }
     }
+    if ( _foundHost == false ) // oder default server - meist erster Serverblock
+        throw BadRequest(); // anscheinend muss! dann default server; keine Bad Request!
+    std::cout << "found Host Header:" << _foundHost << std::endl;
+    
     std::cout << BLUE << whichline << RESET << std::endl;
     std::cout << BLUE << "Map printing" << std::endl;
     for ( const auto& pair : _headers )
@@ -123,7 +131,7 @@ std::string HttpParser::trim( const std::string& value )
     std::string::size_type end = value.size();
     while ( end > start && std::isspace( static_cast<unsigned char>( value[ end - 1 ] ) ) )
         --end;
-    return value.substr( start, end - start );
+    return ( value.substr( start, end - start ) );
 }
 
 bool    HttpParser::isAllDigits( const std::string& word )
@@ -131,9 +139,9 @@ bool    HttpParser::isAllDigits( const std::string& word )
     for ( std::string::const_iterator it = word.begin(); it != word.end(); ++it )
     {
         if ( !std::isdigit( static_cast<unsigned char>( *it ) ) )
-            return false;
+            return ( false );
     }
-    return true;
+    return ( true );
 }
 
 void    HttpParser::setBody()
@@ -172,12 +180,73 @@ void    HttpParser::setBody()
     // read request body into _body variable after headers were parsed correctly
 }
 
-// std::string HttpParser::getHttpVersion() const
-// {
-//     return _httpVersion;
-// }
+void    HttpParser::checkHostHeader( std::string value )
+{
+    
+    if ( value.empty() )
+        throw BadRequest();
 
-Method HttpParser::getMethod() const
+    if ( value.find( ' ' ) != std::string::npos )
+        throw BadRequest();
+    if ( value.find( "http://" ) == 0 )
+        throw BadRequest();
+
+    if ( value[ 0 ] != '[' )
+    {
+        std::string::size_type first = value.find( ':' );
+        std::string::size_type last = value.rfind( ':' );
+        if ( first != last ) // warum soll ich hier auch auf first != std::string::npos checken?
+            throw BadRequest();
+    }
+    else if ( value[ 0 ] == '[' )
+    {
+        std::string::size_type secBrace = value.find( ']' );
+        if ( secBrace == std::string::npos ) //sagt diese condition: wenn die position der zweiten klammer die letzte Stelle ist, dann bad Request? aber in dem Case: Host: [::1] ist die zweite brace die letzte Stelle und es ist Valid?? erklaere mir bitte
+            throw BadRequest();
+        if ( secBrace == 1 )
+            throw BadRequest();
+
+        if ( secBrace + 1 < value.size() )
+        {
+            if ( value[ secBrace + 1 ] != ':' )
+                throw BadRequest();
+            std::string portStr = value.substr( secBrace + 2 );
+            if ( portStr.empty() || !isAllDigits( portStr ) )
+                throw BadRequest();
+            int _hostPort = std::atoi( portStr.c_str() );
+            if ( !isInRange( _hostPort, 1, 65535 ) )
+                throw BadRequest();
+        }
+    }
+    else
+    {
+        std::string::size_type pos = value.find( ":" ); 
+        if ( pos == 0 )
+            throw BadRequest();
+    
+        std::string portStr = value.substr( pos + 1 );
+        if ( !isAllDigits( portStr ) )
+            throw BadRequest(); // fall back to content length from config
+        int _hostPort = static_cast<std::size_t>( std::stoi( portStr ) );
+        if ( isInRange( _hostPort, 1, 65535 ) == false ) // 65534 because 65535 is not permitted! // 65535 ist valid TCP/UDP port range
+            throw BadRequest();
+    }
+
+    _foundHost = true;
+}
+// :example.com         faield: wird gepassed!
+// example.com:         faield: wird gepassed!
+// [:::::example.com]   faield: wird gepassed!
+// [example.com]        faield: wird gepassed!
+// example.com]
+
+
+bool    isInRange( int num, int min, int max )
+{
+    return ( num >= min && num <= max );
+}
+
+Method  HttpParser::getMethod() const
 {
     return _method;
 }

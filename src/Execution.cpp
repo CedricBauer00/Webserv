@@ -6,7 +6,7 @@ Execution::~Execution() {}
 
 // This function is ment to contain all relevant steps for the execution - ich bin mir noch nicht sicher ob das hier Sinn macht...
 // Hier kannst du gerne deine execution Logic skizzieren
-void    Execution::execution( std::string request, Response &Res )
+void    Execution::execution( std::string request, Response &res, std::vector<Server> servers )
 {
     try
     {
@@ -21,7 +21,7 @@ void    Execution::execution( std::string request, Response &Res )
         // 2)   SERVER_REWRITE
         //      server{} rw
 
-        serverRewrite( parser.getUri() );
+        serverRewrite( parser.getUri(), servers );
 
         // 3)   FIND_CONFIG
         //      location{}
@@ -61,65 +61,76 @@ void    Execution::execution( std::string request, Response &Res )
         std::cout << ORANGE << parser.getBody() << RESET << std::endl;
 
         /// Response Buidling 
-        Res.build();
+        res.build();
     }
     catch ( const HttpException& e )
     {
         PageHandler pageHandler( e.getStatusCode(), e.getReasonPhrase() );
         if ( e.getStatusCode() == 301 || e.getStatusCode() == 302 )
         {
-            pageHandler.setRedirectPage( Res, e.getLocation() );
+            pageHandler.setRedirectPage( res, e.getLocation() );
         }
         else
-            pageHandler.setErrorPage( Res );
-        Res.build();
+            pageHandler.setErrorPage( res );
+        res.build();
     }
 }
 
-struct RewriteRule {
-    std::string pattern;      // z.B. "^/old/(.*)$"
-    std::string replacement;  // z.B. "/new/$1"
-    bool redirect;            // true = 301/302
-    int code;                 // 301 oder 302
+struct ServerConfig
+{
+    int         listenPort;
+    std::string serverName;
+    std::vector<RewriteRule> rewriteRules;
 };
 
-void    Execution::serverRewrite( std::string uri ) //rewriting URI based on rules in config??
+void    initRules( std::vector<RewriteRule>& rewriteRules )
 {
-    _uri = uri; // 1)   copy URI from request 
-    
-    // 2)   choosing server based on Host/Port
-    //      Server rewrite rules
-    RewriteRule rule;
-    rule.pattern = "/old/";
-    rule.replacement = "/new/";
-    rule.redirect = true;
-    rule.code = 301; //depending on server block
-    
-    // 3)   Reading rules
-    //      checking if rules can be applied
-    if ( _uri.compare( 0, rule.pattern.size(), rule.pattern ) == 0 )
-    {
-        // 4)   modifying new URI 
-        //      if rule is redirect - build response (301/302) - exit
-        //      if only internally - modify URI - continue
-        std::string newUri = rule.replacement + _uri.substr( rule.pattern.size() );
-        std::cout << "newUri=" << newUri << std::endl;
-        if ( rule.redirect )
-        {
-            if ( rule.code == 301 )
-                throw MovedPermanently( newUri );
-            else if ( rule.code == 302 )
-                throw Found( newUri );
-            // "request should not be handled here!"
-            // Client has to request different URL
-        }
-        else
-            _uri = newUri; // 5)   continue with new URI
-    }
-    // 6)   location matching with new URI 
+    rewriteRules.push_back({"/old/", "/new/", false, 0 });
+    //  printf 'GET /old/location/ HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
+    rewriteRules.push_back({"/legacy", "/new", true, 301 });
+    //  printf 'GET /legacy/location/ HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
+    rewriteRules.push_back({"/beta", "/new", true, 302 });
+    //  printf 'GET /beta/location/ HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
 }
 
-// printf 'GET /Something HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
+void    Execution::serverRewrite( std::string uri, std::vector<Server> servers ) // wird vorher gecheckt, welcher Serverblock die Request verarbeitet?
+{
+    _uri = uri;
+    ServerConfig srv;
+    initRules( srv.rewriteRules );
+
+
+    // 2)   choosing server based on Host/Port 
+    //      Server rewrite rules
+    (void)servers;
+
+    std::cout << "URI before = " << _uri << std::endl;
+    // 3)   Reading rules
+    //      checking if rules can be applied
+    for ( size_t i = 0; i < srv.rewriteRules.size(); ++i )
+    {
+        const RewriteRule& rule = srv.rewriteRules[ i ];
+        if ( _uri.compare( 0, rule.pattern.size(), rule.pattern ) == 0 )
+        {
+            std::string newUri = rule.replacement + _uri.substr( rule.pattern.size() ); // 4) modifying new URI 
+            std::cout << "newUri=" << newUri << std::endl;
+            if ( rule.redirect ) // if rule is redirect - build response (301/302) - exit
+            {
+                if ( rule.code == 301 )
+                    throw MovedPermanently( newUri );
+                else if ( rule.code == 302 )
+                    throw Found( newUri );
+                // "request should not be handled here!"
+                // Client has to request different URL
+            }
+            else // if only internally - modify URI - continue
+                _uri = newUri; // 5) continue with new URI
+            break;    
+        }
+    }
+    std::cout << "URI after = " << _uri << std::endl;
+    // 6)   location matching with new URI 
+}
 
 // server {
 //     listen 3490;

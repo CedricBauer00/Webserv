@@ -32,7 +32,7 @@ class HttpServer
     public:
         HttpServer();
         ~HttpServer();
-        int eventLoop( std::vector<int> listenFds );
+        int eventLoop( std::vector<int> listenFds, std::vector<Server> servers );
         void closeEvent(struct epoll_event &ev, int epollfd, int &epollFdCount);
         bool    getComplHeader();
 };

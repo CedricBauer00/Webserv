@@ -3,6 +3,15 @@
 #include <vector>
 #include <string>
 
+// ADDED: rewrite rule model for server-level rules
+struct RewriteRule
+{
+    std::string pattern;
+    std::string replacement;
+    bool        redirect;
+    int         code;
+};
+
 class Location
 {
     private:
@@ -19,12 +28,19 @@ class Server
         std::string _domain;
         unsigned int _port;
         std::vector<Location> locations;
+        
+        // ADDED: server-level rewrite rules
+        std::vector<RewriteRule> _rewriteRules;
     public:
         Server();
         ~Server();
         std::string getDomain();
         unsigned int getPort();
         void setDomain( std::string domain );
+
+        // ADDED: rewrite rules accessors
+        std::vector<RewriteRule> getRewriteRules();
+        void setRewriteRule( RewriteRule rule );
 };
 
 class Global

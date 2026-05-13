@@ -5,6 +5,7 @@
 #include "../inc/Exceptions.hpp"
 #include "../inc/PageHandler.hpp"
 #include "../inc/Response.hpp"
+#include "../inc/ConfigParsing.hpp"
 
 class Execution
 {
@@ -14,7 +15,7 @@ class Execution
         Execution();
         ~Execution();
 
-        void    serverRewrite( std::string uri );
+        void    serverRewrite( std::string uri, std::vector<Server> servers );
         std::string getUri();
-        void    execution( std::string request, Response &Res );
+        void    execution( std::string request, Response &Res, std::vector<Server> servers );
 };
