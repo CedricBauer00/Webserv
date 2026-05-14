@@ -1,5 +1,4 @@
 #include "../../inc/Configparsing/modules.hpp"
-#include "../../inc/Configparsing/ConfigParser.hpp"
 
 AWebservParser::AWebservParser(
     int& ctxIndex,
@@ -14,6 +13,27 @@ int AWebservParser::isDirectiveValid(
 	auto it = _directiveValidLevels.find(directive);
 	return (it != _directiveValidLevels.end()
 		&& (it->second & level) != static_cast<WebservConfLevel>(0));
+};
+
+void AWebservParser::_insertHttpConf(
+    VecOfPtr<WebservHttpConf>& httpConfs, std::unique_ptr<WebservHttpConf> conf) {
+    if (httpConfs.size() <= _ctxIndex)
+        httpConfs.resize(_ctxIndex + 1);
+    httpConfs[_ctxIndex] = std::move(conf);
+};
+
+void AWebservParser::_insertSrvConf(
+    VecOfPtr<WebservSrvConf>& srvConfs, std::unique_ptr<WebservSrvConf> conf) {
+    if (srvConfs.size() <= _ctxIndex)
+        srvConfs.resize(_ctxIndex + 1);
+    srvConfs[_ctxIndex] = std::move(conf);
+};
+
+void AWebservParser::_insertLocConf(
+    VecOfPtr<WebservLocConf>& locConfs, std::unique_ptr<WebservLocConf> conf) {
+    if (locConfs.size() <= _ctxIndex)
+        locConfs.resize(_ctxIndex + 1);
+    locConfs[_ctxIndex] = std::move(conf);
 };
 
 WebservCoreParser::WebservCoreParser(int& ctxIndex) :
@@ -58,9 +78,9 @@ void WebservCoreParser::parseDirective(
 
         return m;
     }();
-	static ConfigParser::LocConf*	curLocConf = nullptr;
-    std::deque<std::string>&		tokens = parser.getTokens();
-	std::string 					directive = tokens.front();
+	static LocConf*	            curLocConf = nullptr;
+    std::deque<std::string>&	tokens = parser.getTokens();
+	std::string 				directive = tokens.front();
 	tokens.pop_front();
 
     switch (directiveMap.at(directive)) {
@@ -69,8 +89,9 @@ void WebservCoreParser::parseDirective(
 				throw std::runtime_error("Expected '{' after 'http'");
 			tokens.pop_front();
 			parser.httpConfCtx.httpConfs = &parser.httpConfs;
-			parser.httpConfs.resize(_ctxIndex + 1);
-			parser.httpConfs[_ctxIndex] = std::make_unique<WebservHttpCoreConf>();
+            _insertHttpConf(parser.httpConfs, std::make_unique<WebservHttpCoreConf>());
+			// parser.httpConfs.resize(_ctxIndex + 1);
+			// parser.httpConfs[_ctxIndex] = std::make_unique<WebservHttpCoreConf>();
 			parser.parseConfig(WebservConfLevel::HTTP);
 			break;
         case 1: // server
@@ -78,15 +99,18 @@ void WebservCoreParser::parseDirective(
 				throw std::runtime_error("Expected '{' after 'server'");
 			tokens.pop_front();
 			parser.servers.emplace_back();
-			ConfigParser::VecOfPtrs<WebservSrvConf>& srvConfs =\
-				parser.servers.back().srvConfs;
-			parser.httpConfCtx.srvConfs = &srvConfs;
-			srvConfs.resize(_ctxIndex + 1);
-			srvConfs[_ctxIndex] = std::make_unique<WebservSrvCoreConf>();
-			curLocConf = &parser.servers.back().location;
+            parser.httpConfCtx.srvConfs = &parser.servers.back().srvConfs;
+            _insertSrvConf(parser.servers.back().srvConfs, std::make_unique<WebservSrvCoreConf>());
+			// VecOfPtrs<WebservSrvConf>& srvConfs =\
+			// 	parser.servers.back().srvConfs;
+			// parser.httpConfCtx.srvConfs = &srvConfs;
+			// srvConfs.resize(_ctxIndex + 1);
+			// srvConfs[_ctxIndex] = std::make_unique<WebservSrvCoreConf>();
+            curLocConf = &parser.servers.back().location;
 			parser.httpConfCtx.locConfs = &curLocConf->locConfs;
-			curLocConf->locConfs.resize(_ctxIndex + 1);
-			curLocConf->locConfs[_ctxIndex] = std::make_unique<WebservLocCoreConf>();
+            _insertLocConf(curLocConf->locConfs, std::make_unique<WebservLocCoreConf>());
+			// curLocConf->locConfs.resize(_ctxIndex + 1);
+			// curLocConf->locConfs[_ctxIndex] = std::make_unique<WebservLocCoreConf>();
 			parser.parseConfig(WebservConfLevel::SERVER);
 			break;
         case 2: // listen
@@ -122,8 +146,9 @@ void WebservCoreParser::parseDirective(
 			curLocConf->locations.back().parent = curLocConf;
 			curLocConf = &curLocConf->locations.back();
 			parser.httpConfCtx.locConfs = &curLocConf->locConfs;
-			curLocConf->locConfs.resize(_ctxIndex + 1);
-			curLocConf->locConfs[_ctxIndex] = std::make_unique<WebservLocCoreConf>();
+            _insertLocConf(curLocConf->locConfs, std::make_unique<WebservLocCoreConf>());
+			// curLocConf->locConfs.resize(_ctxIndex + 1);
+			// curLocConf->locConfs[_ctxIndex] = std::make_unique<WebservLocCoreConf>();
 			parser.parseConfig(WebservConfLevel::LOCATION);
 			break;
         case 9: // root

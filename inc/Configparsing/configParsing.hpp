@@ -22,16 +22,6 @@ struct WebservHttpRequest {
 
 typedef int (*WebservHandler)(WebservHttpRequest* r);
 
-struct WebservHttpCoreConf;
-struct WebservSrvCoreConf;
-struct WebservLocCoreConf;
-
-struct WebservCtx{
-	std::vector<std::variant<WebservHttpCoreConf>> http_conf;
-	std::vector<std::variant<WebservSrvCoreConf>> srv_conf;
-	std::vector<std::variant<WebservLocCoreConf>> loc_conf;
-};
-
 struct WebservAddr {
 	std::string	ip;
 	std::string	port;
@@ -43,17 +33,40 @@ struct	WebservHttpConf {
 	virtual ~WebservHttpConf() = default;
 };
 
+struct	WebservSrvConf {
+	virtual ~WebservSrvConf() = default;
+};
+
+struct	WebservLocConf {
+	virtual ~WebservLocConf() = default;
+};
+
+template<typename T>
+using VecOfPtrs = std::vector<std::unique_ptr<T>>;
+
+struct	WebservHttpConfCtx {
+    VecOfPtrs<WebservHttpConf>*	httpConfs = nullptr;
+    VecOfPtrs<WebservSrvConf>*	srvConfs = nullptr;
+    VecOfPtrs<WebservLocConf>*	locConfs = nullptr;
+};
+
+struct  LocConf {
+    LocConf*					parent = nullptr;
+    VecOfPtrs<WebservLocConf>	locConfs;
+    std::vector<LocConf>		locations;
+};
+
+struct  SrvLocConf {
+    VecOfPtrs<WebservSrvConf>	srvConfs;
+    LocConf						location;
+};
+
 struct WebservHttpCoreConf : WebservHttpConf {
 	std::vector<std::pair<std::string, std::string>>	lowerLevelDirectives; // directives that can be specified in http block and inherited by all servers and locations, e.g., error_log, client_max_body_size
 	// std::vector<std::pair<WebservAddr, t_webserv_phase_engine>> ph;
 };
 
-struct	WebservSrvConf {
-	virtual ~WebservSrvConf() = default;
-};
-
 struct WebservSrvCoreConf : WebservSrvConf {
-	WebservCtx*					        ctx;
 	std::vector<std::string>			serverNames; // virtual server name entries
 	// std::string							filename, serverName;
 	// unsigned int						lineNum;
@@ -64,36 +77,13 @@ struct WebservSrvCoreConf : WebservSrvConf {
 	unsigned int						flags{0};
 };
 
-struct WebservLocTreeNode {
-	std::vector<struct WebservLocTreeNode*>	children;
-	struct WebservLocTreeNode*				parent;
-	WebservLocCoreConf							conf;
-};
-
-struct WebservPhase {
-	// t_webserv_loc_conf*					loc_conf;
-	std::vector<WebservHandler>		handlers;
-};
-
-struct WebservErrorLog {
-	std::string name;
-	std::string level; // debug, info, notice, warn, error, crit
-	int	fd;
-}; 
-
-struct	WebservLocConf {
-	virtual ~WebservLocConf() = default;
-};
-
 struct WebservLocCoreConf : WebservLocConf {
 	std::string	name;
 	int			matchType; // 0: exact, 1:normal prefix, 2: prefix, 3: regex
 
-	std::vector<WebservLocCoreConf> 	rawlocations;
-	WebservLocTreeNode*					staticLocations;
-	std::vector<WebservLocCoreConf*>	regexLocations;
-
-	void**	loc_conf;
+	// std::vector<WebservLocCoreConf> 	rawlocations;
+	// WebservLocTreeNode*					staticLocations;
+	// std::vector<WebservLocCoreConf*>	regexLocations;
 
 	WebservPhase			phases[10];
 	unsigned int			allowedMethods; // bitmask of allowed methods
@@ -113,4 +103,21 @@ struct WebservLocCoreConf : WebservLocConf {
 	WebservErrorLog			errorLog;
 
 	bool					chunkedTransferEncoding{false}; // whether to use chunked transfer encoding for responses with unknown content length
+};
+
+struct WebservLocTreeNode {
+	std::vector<struct WebservLocTreeNode*>	children;
+	struct WebservLocTreeNode*				parent;
+	WebservLocCoreConf						conf;
+};
+
+struct WebservPhase {
+	// t_webserv_loc_conf*					loc_conf;
+	std::vector<WebservHandler>		handlers;
+};
+
+struct WebservErrorLog {
+	std::string name;
+	std::string level; // debug, info, notice, warn, error, crit
+	int	fd;
 };
