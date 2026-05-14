@@ -28,6 +28,7 @@ class Server
         std::string _domain;
         unsigned int _port;
         std::vector<Location> locations;
+        std::string _serverName;
         
         // ADDED: server-level rewrite rules
         std::vector<RewriteRule> _rewriteRules;
@@ -35,8 +36,12 @@ class Server
         Server();
         ~Server();
         std::string getDomain();
-        unsigned int getPort();
+        size_t getPort();
         void setDomain( std::string domain );
+        void    setPort( size_t port );
+        void    setServerName( std::string sName );
+        std::string getServerName();
+
 
         // ADDED: rewrite rules accessors
         std::vector<RewriteRule> getRewriteRules();

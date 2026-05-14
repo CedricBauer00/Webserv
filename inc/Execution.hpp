@@ -15,7 +15,7 @@ class Execution
         Execution();
         ~Execution();
 
-        void    serverRewrite( std::string uri, std::vector<Server> servers );
+        void    serverRewrite( std::string uri, std::vector<Server> servers, std::string hostName, std::string hostPort );
         std::string getUri();
         void    execution( std::string request, Response &Res, std::vector<Server> servers );
 };

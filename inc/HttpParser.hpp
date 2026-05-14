@@ -49,7 +49,8 @@ class HttpParser
         std::size_t _contentLength;
         bool        _chunked;
         std::istringstream  _iss;
-        int         _hostPort;
+        std::string _hostPort;
+        std::string _hostName;
         Method      _method;
 
     public:
@@ -75,6 +76,8 @@ class HttpParser
         std::string                 getBody() const;
         std::string                 getUri();
         Method                      getMethod() const;
+        std::string                 getHostName();
+        std::string                 getHostPort();
 
         ~HttpParser();
 };

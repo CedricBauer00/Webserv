@@ -27,6 +27,7 @@ class Response
         void        setCodeAndPhrase( std::string statusCode, std::string reasonPhrase );
         void        setHeaders( std::string key, std::string content );
         std::string getResponse() const;
+        void        clear();
 
 };
 

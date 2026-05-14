@@ -21,7 +21,7 @@ void    Execution::execution( std::string request, Response &res, std::vector<Se
         // 2)   SERVER_REWRITE
         //      server{} rw
 
-        serverRewrite( parser.getUri(), servers );
+        serverRewrite( parser.getUri(), servers, parser.getHostName(), parser.getHostPort() );
 
         // 3)   FIND_CONFIG
         //      location{}
@@ -92,18 +92,40 @@ void    initRules( std::vector<RewriteRule>& rewriteRules )
 
 }
 
-void    Execution::serverRewrite( std::string uri, std::vector<Server> servers ) // wird vorher gecheckt, welcher Serverblock die Request verarbeitet?
+void    Execution::serverRewrite( std::string uri, std::vector<Server> servers, std::string hostName, std::string hostPort ) // wird vorher gecheckt, welcher Serverblock die Request verarbeitet?
 {
     _uri = uri;
     ServerConfig srv;
     initRules( srv.rewriteRules );
 
 
-    // 2)   choosing server based on Host/Port 
+    size_t matchFound = 0;
+
+    for ( auto x : servers )
+    {
+        // vorher socket port checken. Also auf welchem Port die Verbindung reinkam
+        if ( hostPort && hostPort == std::to_string( x.getPort() ) )
+        {
+            std::cout << "\n" << x.getServerName() << "\n" << x.getDomain() << "\n" << x.getPort() << std::endl;
+            if ( x.getServerName() == hostName )
+            {
+                std::cout << "Server_name matched:\nserver_name: " << x.getServerName() << "\nHostName: " << hostName << std::endl; 
+                matchFound++;
+    
+            }
+            else
+            {
+                // use default server
+            }
+
+        }
+    
+    }
+    // 2)   choosing server based on Host/Port !!! HIER WUERDE ICH CHECKEN 
     //      Server rewrite rules
     (void)servers;
 
-    std::cout << "URI before = " << _uri << std::endl;
+    std::cout << "\nURI before = " << _uri << std::endl;
     // 3)   Reading rules
     //      checking if rules can be applied
     for ( size_t i = 0; i < srv.rewriteRules.size(); ++i )

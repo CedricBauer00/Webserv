@@ -3,6 +3,10 @@
 
 HttpParser::HttpParser() {}
 
+
+HttpParser::~HttpParser() { std::cout << "HttpParsing END" << std::endl; }
+
+
 HttpParser::HttpParser( std::string reqeust ) : _startLine(), _headers(), _body(), _bodyLength( 0 ), _foundContlen( false ), _foundHost( false ), _contentLength( 0 ), _chunked( false ), _iss( reqeust ), _method( METHOD_GET )
 {
     std::cout << "HttpParsing BEGIN" << std::endl;
@@ -180,16 +184,11 @@ void    HttpParser::setBody()
     // read request body into _body variable after headers were parsed correctly
 }
 
-void    HttpParser::validatePort( std::string portStr )
+void    HttpParser::validatePort( std::string port )
 {
-    // if ( portStr.empty() || !isAllDigits( portStr ) )
-    //     throw BadRequest();
-    // int _hostPort = std::atoi( portStr.c_str() );
-    // if ( !isInRange( _hostPort, 1, 65535 ) )
-    //     throw BadRequest();
-    if ( portStr.empty() || !isAllDigits( portStr ) )
+    if ( port.empty() || !isAllDigits( port ) )
         throw BadRequest();
-    int _hostPort = static_cast<std::size_t>( std::stoi( portStr ) );
+    int _hostPort = static_cast<std::size_t>( std::stoi( port ) );
     if ( !isInRange( _hostPort, 1, 65535 ) ) // 65534 because 65535 is not permitted! // 65535 ist valid TCP/UDP port range
         throw BadRequest();
 }
@@ -199,9 +198,23 @@ bool    isIpv6Char( char c )
     return ( c == ':' || std::isxdigit( static_cast<unsigned char>( c ) ) );
 }
 
+std::string validateHostName( const std::string &hostName )
+{
+    if ( hostName.front() == '.' ||
+            hostName.front() == '-' ||
+            hostName.back() == '.' ||
+            hostName.back() == '-')
+        throw BadRequest();
+    for ( auto x : hostName )
+    {
+        if ( !( std::isalnum( static_cast<unsigned char>( x ) ) || x == '.' || x == '-' ) )
+            throw BadRequest();
+    }
+    return hostName;
+}
+
 void    HttpParser::checkHostHeader( std::string value )
 {
-    
     if ( value.empty() )
         throw BadRequest();
 
@@ -218,14 +231,15 @@ void    HttpParser::checkHostHeader( std::string value )
         std::string::size_type first = value.find( ':' );
         std::string::size_type last = value.rfind( ':' );
     
-        if ( first == std::string::npos || last == std::string::npos )
-            (void)1;
+        if ( first == std::string::npos )
+            _hostName = validateHostName( value );
         else if ( first != last ) // muss man hier auch first != std::string::npos checken? // warum soll ich hier auch auf first != std::string::npos checken?
             throw BadRequest();
         else        
         {
-            std::string portStr = value.substr( first + 1 );
-            validatePort( portStr );
+            _hostName = validateHostName( value.substr( 0, first ) );
+            _hostPort = value.substr( first + 1 );
+            validatePort( _hostPort );
         }
     }
     else if ( value[ 0 ] == '[' )
@@ -261,7 +275,7 @@ void    HttpParser::checkHostHeader( std::string value )
             validatePort( portStr );    
         }
     }
-
+                // NOT DONE YET!!!! muss fixen und auch noch Port und HostName korrekt abspeichern 
 
     _foundHost = true;
 }
@@ -296,12 +310,15 @@ std::string    HttpParser::getBody() const
     return _body;
 }
 
-HttpParser::~HttpParser()
+std::string     HttpParser::getHostName()
 {
-    std::cout << "HttpParsing END" << std::endl;
+    return _hostName;
 }
 
-// Errorcodes fuer pailed parsing: incorrect syntax 400 Bad Request
+std::string     HttpParser::getHostPort()
+{
+    return _hostPort;
+}
 
 // test for carriage return
 // printf 'GET /Something HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490

@@ -42,3 +42,13 @@ std::string Response::getResponse() const
 {
     return _response;
 }
+
+void    Response::clear()
+{
+    _response.clear();
+    _httpVersion.clear();
+    _statusCode.clear();
+    _reasonPhrase.clear();
+    _headers.clear();
+    _body.clear();
+}

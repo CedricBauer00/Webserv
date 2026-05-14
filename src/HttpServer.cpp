@@ -171,7 +171,7 @@ int HttpServer::eventLoop( std::vector<int> listenFds, std::vector<Server> serve
                     closeEvent(events[n], epollfd, fdCount);
                 }
                 printf("---------------\n\n");
-                res.clear()
+                res.clear();
             }
         }
     }
