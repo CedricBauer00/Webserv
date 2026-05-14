@@ -99,28 +99,37 @@ void    Execution::serverRewrite( std::string uri, std::vector<Server> servers, 
     initRules( srv.rewriteRules );
 
 
-    size_t matchFound = 0;
+    // bool    portFound = false;
+    // bool    nameFound = false;
+        
+    // for ( auto x : servers )
+    // {
+    //     // vorher socket port checken. Also auf welchem Port die Verbindung reinkam
+    //     if ( hostPort && hostPort == std::to_string( x.getPort() ) ) //Schritt 1: Port bestimmen. Wenn im Host‑Header ein Port steht (Host: example.com:8080) → nutze 8080. Schritt 2: Server‑Blöcke nach Port filtern. Du schaust nur die Server an, die auf diesem Port lauschen.
+    //     {
+    //         portForund = true;
+    //         for (  )
+    //         {
+    //             std::cout << "\n" << x.getServerName() << "\n" << x.getDomain() << "\n" << x.getPort() << std::endl;
+    //             if ( x.getServerName() == hostName ) // Schritt 3: Host‑Header gegen server_name. 
+    //             {
+    //                 std::cout << "Server_name matched:\nserver_name: " << x.getServerName() << "\nHostName: " << hostName << std::endl; 
+    //                 matchFound = true;
+        
+    //             }
+    //         }
+    //         if ( matchFound == false ) //Schritt 4: Kein Match → Default‑Server
+    //         {
+    //             // use default server
+    //         }
+            
+    //     }
+    // }
+    // if ( portFound == false ) // Sonst → nimm den Socket‑Port, also den Port, auf dem die Verbindung angekommen ist. Verbindung kommt auf Port 3490 an. Host‑Header ist example.com (ohne Port)→ Port = 3490
+    // {
+    //     // use socket port
+    // }
 
-    for ( auto x : servers )
-    {
-        // vorher socket port checken. Also auf welchem Port die Verbindung reinkam
-        if ( hostPort && hostPort == std::to_string( x.getPort() ) )
-        {
-            std::cout << "\n" << x.getServerName() << "\n" << x.getDomain() << "\n" << x.getPort() << std::endl;
-            if ( x.getServerName() == hostName )
-            {
-                std::cout << "Server_name matched:\nserver_name: " << x.getServerName() << "\nHostName: " << hostName << std::endl; 
-                matchFound++;
-    
-            }
-            else
-            {
-                // use default server
-            }
-
-        }
-    
-    }
     // 2)   choosing server based on Host/Port !!! HIER WUERDE ICH CHECKEN 
     //      Server rewrite rules
     (void)servers;
