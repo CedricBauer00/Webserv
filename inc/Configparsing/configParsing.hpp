@@ -2,7 +2,7 @@
 
 #include <string>
 #include <vector>
-#include <variant>
+#include <memory>
 #include <chrono>
 
 #define LISTEN (1 << 0)
@@ -25,6 +25,12 @@ typedef int (*WebservHandler)(WebservHttpRequest* r);
 struct WebservAddr {
 	std::string	ip;
 	std::string	port;
+};
+
+struct WebservErrorLog {
+	std::string name;
+	std::string level; // debug, info, notice, warn, error, crit
+	int	fd;
 };
 
 typedef std::chrono::milliseconds	WebservMsec;
@@ -85,7 +91,7 @@ struct WebservLocCoreConf : WebservLocConf {
 	// WebservLocTreeNode*					staticLocations;
 	// std::vector<WebservLocCoreConf*>	regexLocations;
 
-	WebservPhase			phases[10];
+	// WebservPhase			phases[10];
 	unsigned int			allowedMethods; // bitmask of allowed methods
 	WebservHandler			handler; // handler for this location
 	std::string				root; // root directory for this location
@@ -114,10 +120,4 @@ struct WebservLocTreeNode {
 struct WebservPhase {
 	// t_webserv_loc_conf*					loc_conf;
 	std::vector<WebservHandler>		handlers;
-};
-
-struct WebservErrorLog {
-	std::string name;
-	std::string level; // debug, info, notice, warn, error, crit
-	int	fd;
 };

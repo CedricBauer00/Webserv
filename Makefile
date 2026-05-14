@@ -4,8 +4,9 @@ SRC = main.cpp \
 		HttpServer.cpp \
 		HttpParser.cpp \
 		Client.cpp \
-		Configparsing/ConfigParsing.cpp \
-		Configparsing/ConfigParser.cpp
+		Configparsing/ConfigParser.cpp \
+		Configparsing/modules.cpp \
+		Servers.cpp
 
 OBJ_DIR = obj
 
@@ -14,7 +15,7 @@ OBJ := $(SRC:%.cpp=$(OBJ_DIR)/%.o)
 vpath %.cpp src
 
 CXX = c++
-CXXFLAGS = -Wall -Wextra -Werror -std=c++17 -Iinc
+CXXFLAGS = -g -Wall -Wextra -Werror -std=c++17 -Iinc
 
 all: $(NAME)
 

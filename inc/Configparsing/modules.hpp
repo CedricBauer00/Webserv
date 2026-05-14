@@ -1,6 +1,5 @@
 #pragma once
 
-#include <queue>
 #include <unordered_map>
 #include "configParsing.hpp"
 
@@ -12,11 +11,13 @@ enum class WebservConfLevel : uint8_t {
 };
 
 constexpr WebservConfLevel operator|(WebservConfLevel a, WebservConfLevel b) {
-	return static_cast<WebservConfLevel>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
+	return static_cast<WebservConfLevel>(static_cast<uint8_t>(a)
+	| static_cast<uint8_t>(b));
 }
 
 constexpr WebservConfLevel operator&(WebservConfLevel a, WebservConfLevel b) {
-	return static_cast<WebservConfLevel>(static_cast<uint8_t>(a) & static_cast<uint8_t>(b));
+	return static_cast<WebservConfLevel>(static_cast<uint8_t>(a)
+	& static_cast<uint8_t>(b));
 }
 
 class ConfigParser;
@@ -24,8 +25,10 @@ class ConfigParser;
 class IWebservModule {
 	public:
 		virtual ~IWebservModule() = default;
-        virtual int isDirectiveValid(const std::string& directive, WebservConfLevel level) = 0;
-		virtual void parseDirective(ConfigParser& parser, WebservConfLevel level) = 0;
+        virtual int isDirectiveValid(const std::string& directive,
+			WebservConfLevel level) = 0;
+		virtual void parseDirective(ConfigParser& parser,
+			WebservConfLevel level) = 0;
 };
 
 class AWebservParser : virtual public IWebservModule {
@@ -33,19 +36,20 @@ class AWebservParser : virtual public IWebservModule {
         const int												_ctxIndex;
         const std::unordered_map<std::string, WebservConfLevel>	_directiveValidLevels;
 
-		void	_insertHttpConf(
-			VecOfPtr<WebservHttpConf>& httpConfs, std::unique_ptr<WebservHttpConf> conf);
-		void	_insertSrvConf(
-			VecOfPtr<WebservSrvConf>& srvConfs, std::unique_ptr<WebservSrvConf> conf);
-		void	_insertLocConf(
-			VecOfPtr<WebservLocConf>& locConfs, std::unique_ptr<WebservLocConf> conf);
+		void	_insertHttpConf(VecOfPtrs<WebservHttpConf>& httpConfs,
+			std::unique_ptr<WebservHttpConf> conf);
+		void	_insertSrvConf(VecOfPtrs<WebservSrvConf>& srvConfs,
+			std::unique_ptr<WebservSrvConf> conf);
+		void	_insertLocConf(VecOfPtrs<WebservLocConf>& locConfs,
+			std::unique_ptr<WebservLocConf> conf);
     public:
         AWebservParser() = delete;
         AWebservParser(
 			int& ctxIndex,
 			const std::unordered_map<std::string, WebservConfLevel> directiveValidLevels);
         virtual ~AWebservParser() = default;
-        int isDirectiveValid(const std::string& directive, WebservConfLevel level) override;
+        int isDirectiveValid(const std::string& directive,
+			WebservConfLevel level) override;
 };
 
 class WebservCoreParser : public AWebservParser {
@@ -53,7 +57,8 @@ class WebservCoreParser : public AWebservParser {
         WebservCoreParser() = delete;
 		WebservCoreParser(int& ctxIndex);
         virtual ~WebservCoreParser() = default;
-        void parseDirective(ConfigParser& parser, WebservConfLevel level) override;
+        void parseDirective(ConfigParser& parser,
+			WebservConfLevel level) override;
 };
 
 class WebservCoreModule : public WebservCoreParser {
