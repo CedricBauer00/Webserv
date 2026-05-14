@@ -2,6 +2,7 @@
 
 #include <queue>
 #include <unordered_map>
+#include "configParsing.hpp"
 
 enum class WebservConfLevel : uint8_t {
     MAIN = 1 << 0,
@@ -31,6 +32,13 @@ class AWebservParser : virtual public IWebservModule {
     protected:
         const int												_ctxIndex;
         const std::unordered_map<std::string, WebservConfLevel>	_directiveValidLevels;
+
+		void	_insertHttpConf(
+			VecOfPtr<WebservHttpConf>& httpConfs, std::unique_ptr<WebservHttpConf> conf);
+		void	_insertSrvConf(
+			VecOfPtr<WebservSrvConf>& srvConfs, std::unique_ptr<WebservSrvConf> conf);
+		void	_insertLocConf(
+			VecOfPtr<WebservLocConf>& locConfs, std::unique_ptr<WebservLocConf> conf);
     public:
         AWebservParser() = delete;
         AWebservParser(
