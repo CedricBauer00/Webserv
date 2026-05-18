@@ -3,13 +3,13 @@
 ConfigParser::ConfigParser(char* filename): _configFilename(filename) {
 	int ctxIndex = 0;
     _modules.push_back(std::make_unique<WebservCoreModule>(ctxIndex));
-    _tokens = tokenize();
+    _tokens = _tokenize();
 }
 
 ConfigParser::~ConfigParser() {
 }
 
-std::deque<std::string>    ConfigParser::tokenize() {
+std::deque<std::string>    ConfigParser::_tokenize() {
     std::ifstream   file(_configFilename, std::ios::binary);
 
     file.seekg(0, std::ios::end);
@@ -117,7 +117,7 @@ std::deque<std::string>    ConfigParser::tokenize() {
 // 		throw std::runtime_error("Expected ';' after the value of '" + key + "'");
 // }
 
-void    ConfigParser::parseDirective(WebservConfLevel level) {
+void    ConfigParser::_parseModuleDirective(WebservConfLevel level) {
 	for (const auto& module: _modules) {
 		if (module->isDirectiveValid(_tokens.front(), level)) {
 			module->parseDirective(*this, level);
@@ -128,14 +128,61 @@ void    ConfigParser::parseDirective(WebservConfLevel level) {
 		+ _tokens.front() + "' at level " + getLevelName(level));
 }
 
+int    ConfigParser::_isDirectiveNotInValidLevel(
+	const std::string& directive, WebservConfLevel level) {
+    return ((_directiveValLevelMap.at(directive) & level)
+		== static_cast<WebservConfLevel>(0));
+}
+
 void	ConfigParser::parseConfig(WebservConfLevel level) {
+	std::string		directive;
+	static LocConf*	curLocConf = nullptr;
+
+	if (level != WebservConfLevel::MAIN && level != WebservConfLevel::HTTP
+	&& level != WebservConfLevel::SERVER && level != WebservConfLevel::LOCATION) {
+		throw std::runtime_error("Invalid configuration level");
+	}
     while (!_tokens.empty()) {
 		if (_tokens.front() == "}") {
 			if (level == WebservConfLevel::MAIN)
 				throw std::runtime_error("Unexpected '}' at the end of MAIN block");
+			_tokens.pop_front();
+			if (level == WebservConfLevel::LOCATION)
+				curLocConf = curLocConf->parent;
 			return;
 		}
-		parseDirective(level);
+        else if (_tokens.front() == "http" || _tokens.front() == "server"
+		|| _tokens.front() == "location") {
+			directive = _tokens.front();
+			_tokens.pop_front();
+            if (_isDirectiveNotInValidLevel(directive, level))
+                throw std::runtime_error("Unexpected '" + directive
+					+ "' at level " + getLevelName(level));
+            if (_tokens.empty() || _tokens.front() != "{")
+                throw std::runtime_error("Expected '{' at the beginning of a " 
+					+ directive + " block");
+            _tokens.pop_front();
+			if (directive == "http") {
+				if (!httpConfs.empty() || 0 < servers.size())
+					throw std::runtime_error("Multiple 'http' blocks are not allowed");
+				httpConfCtx.httpConfs = &httpConfs;
+			}
+			else if (directive == "server") {
+				servers.emplace_back();
+				httpConfCtx.srvConfs = &servers.back().srvConfs;
+				curLocConf = &servers.back().location;
+				httpConfCtx.locConfs = &curLocConf->locConfs;
+			}
+			else if (directive == "location") {
+				curLocConf->locations.resize(curLocConf->locations.size() + 1);
+				curLocConf->locations.back().parent = curLocConf;
+				curLocConf = &curLocConf->locations.back();
+				httpConfCtx.locConfs = &curLocConf->locConfs;
+			}
+            parseConfig(level << 1);
+        }
+        else
+			_parseModuleDirective(level);
     }
 	if (level != WebservConfLevel::MAIN)
 		throw std::runtime_error("Expected '}' at end of "

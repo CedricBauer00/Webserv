@@ -3,54 +3,37 @@
 
 AWebservParser::AWebservParser(
     int& ctxIndex,
-	const std::unordered_map<std::string, WebservConfLevel> directiveValidLevels) :
+	const std::unordered_map<std::string, WebservConfLevel> directiveValLevelMap) :
 	_ctxIndex(ctxIndex++),
-    _directiveValidLevels(std::move(directiveValidLevels)) {
+    _directiveValLevelMap(std::move(directiveValLevelMap)) {
 };
 
 int AWebservParser::isDirectiveValid(
 	const std::string& directive,
 	WebservConfLevel level) {
-	auto it = _directiveValidLevels.find(directive);
-	return (it != _directiveValidLevels.end()
+	auto it = _directiveValLevelMap.find(directive);
+	return (it != _directiveValLevelMap.end()
 		&& (it->second & level) != static_cast<WebservConfLevel>(0));
 };
 
-void AWebservParser::_insertHttpConf(
-    VecOfPtrs<WebservHttpConf>& httpConfs,
-	std::unique_ptr<WebservHttpConf> conf) {
-    if (httpConfs.size() <= static_cast<size_t>(_ctxIndex))
-        httpConfs.resize(_ctxIndex + 1);
-    httpConfs[_ctxIndex] = std::move(conf);
-};
-
-void AWebservParser::_insertSrvConf(
-    VecOfPtrs<WebservSrvConf>& srvConfs, std::unique_ptr<WebservSrvConf> conf) {
-    if (srvConfs.size() <= static_cast<size_t>(_ctxIndex))
-        srvConfs.resize(_ctxIndex + 1);
-    srvConfs[_ctxIndex] = std::move(conf);
-};
-
-void AWebservParser::_insertLocConf(
-    VecOfPtrs<WebservLocConf>& locConfs, std::unique_ptr<WebservLocConf> conf) {
-    if (locConfs.size() <= static_cast<size_t>(_ctxIndex))
-        locConfs.resize(_ctxIndex + 1);
-    locConfs[_ctxIndex] = std::move(conf);
+template<typename T>
+void AWebservParser::_insertConf(
+    VecOfPtrs<T>* confs,
+	std::unique_ptr<T> conf) {
+    confs->resize(_ctxIndex + 1);
+    (*confs)[_ctxIndex] = std::move(conf);
 };
 
 WebservCoreParser::WebservCoreParser(int& ctxIndex) :
 	AWebservParser(
         ctxIndex,
-        {{"http", WebservConfLevel::MAIN},
-        {"server", WebservConfLevel::HTTP},
-        {"listen", WebservConfLevel::SERVER},
+        {{"listen", WebservConfLevel::SERVER},
         {"server_name", WebservConfLevel::SERVER},
         {"num_req_expected", WebservConfLevel::HTTP | WebservConfLevel::SERVER},
         {"client_header_timeout", WebservConfLevel::HTTP | WebservConfLevel::SERVER},
         {"ignore_invalid_headers", WebservConfLevel::HTTP | WebservConfLevel::SERVER},
         {"merge_slashes", WebservConfLevel::HTTP | WebservConfLevel::SERVER},
         {"underscore_in_headers", WebservConfLevel::HTTP | WebservConfLevel::SERVER},
-		{"location", WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
         {"root", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
         {"allow", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
         {"alias", WebservConfLevel::LOCATION},
@@ -72,165 +55,105 @@ void WebservCoreParser::parseDirective(
 	WebservConfLevel level) {
     static const std::unordered_map<std::string, int> directiveMap = [&]() {
         std::unordered_map<std::string, int> m;
-
+        std::array<std::string, 23> directives = {
+            "listen", "server_name", "num_req_expected",
+            "client_header_timeout", "ignore_invalid_headers", "merge_slashes",
+            "underscore_in_headers", "root", "allow", "alias",
+            "client_body_buffer_size", "client_body_timeout", "client_max_body_size",
+            "send_timeout", "absolute_redirect", "log_not_found",
+            "error_page", "index", "autoindex", "try_files"
+        };
         int i = 0;
-        for (const auto& pair : _directiveValidLevels) {
-            m[pair.first] = i++;
+        for (const auto& directive : directives) {
+            std::cout << directive << i << std::endl;
+            m[directive] = i++;
         }
-
         return m;
     }();
-	static LocConf*	            curLocConf = nullptr;
 	WebservSrvCoreConf* 		srvConf = nullptr;
     std::deque<std::string>&	tokens = parser.getTokens();
 	std::string 				directive = tokens.front();
 	tokens.pop_front();
 
-	
+	if (level == WebservConfLevel::HTTP
+    && parser.httpConfCtx.httpConfs->size() <= static_cast<size_t>(_ctxIndex)) {
+		_insertConf<WebservHttpConf>(parser.httpConfCtx.httpConfs, std::make_unique<WebservHttpCoreConf>());
+    }
+	else if (level == WebservConfLevel::SERVER
+	&& parser.httpConfCtx.srvConfs->size() <= static_cast<size_t>(_ctxIndex)) {
+		_insertConf<WebservSrvConf>(parser.httpConfCtx.srvConfs, std::make_unique<WebservSrvCoreConf>());
+	}
+	else if (level == WebservConfLevel::LOCATION
+	&& parser.httpConfCtx.locConfs->size() <= static_cast<size_t>(_ctxIndex)) {
+		_insertConf<WebservLocConf>(parser.httpConfCtx.locConfs, std::make_unique<WebservLocCoreConf>());
+	}
 	std::cout << directive << "---" << directiveMap.at(directive) << std::endl;
     switch (directiveMap.at(directive)) {
-		case 0: // http
-			if (tokens.empty() || tokens.front() != "{")
-				throw std::runtime_error("Expected '{' after 'http'");
-			tokens.pop_front();
-			parser.httpConfCtx.httpConfs = &parser.httpConfs;
-            _insertHttpConf(parser.httpConfs,
-				std::make_unique<WebservHttpCoreConf>());
-			// parser.httpConfs.resize(_ctxIndex + 1);
-			// parser.httpConfs[_ctxIndex] = std::make_unique<WebservHttpCoreConf>();
-			parser.parseConfig(WebservConfLevel::HTTP);
-			break;
-        case 1: // server
-			if (tokens.empty() || tokens.front() != "{")
-				throw std::runtime_error("Expected '{' after 'server'");
-			tokens.pop_front();
-			parser.servers.emplace_back();
-            parser.httpConfCtx.srvConfs = &parser.servers.back().srvConfs;
-            _insertSrvConf(parser.servers.back().srvConfs,
-				std::make_unique<WebservSrvCoreConf>());
-			// VecOfPtrs<WebservSrvConf>& srvConfs =\
-			// 	parser.servers.back().srvConfs;
-			// parser.httpConfCtx.srvConfs = &srvConfs;
-			// srvConfs.resize(_ctxIndex + 1);
-			// srvConfs[_ctxIndex] = std::make_unique<WebservSrvCoreConf>();
-            curLocConf = &parser.servers.back().location;
-			parser.httpConfCtx.locConfs = &curLocConf->locConfs;
-            _insertLocConf(curLocConf->locConfs,
-				std::make_unique<WebservLocCoreConf>());
-			// curLocConf->locConfs.resize(_ctxIndex + 1);
-			// curLocConf->locConfs[_ctxIndex] = std::make_unique<WebservLocCoreConf>();
-			parser.parseConfig(WebservConfLevel::SERVER);
-			break;
-        case 2: // listen
+        case 0: // listen
 			// parser.parseHttpSrvField(httpConf.servers.back(), 0);
 			break;
-        case 3: // server_name
+        case 1: // server_name
 			srvConf = dynamic_cast<WebservSrvCoreConf*>(
-					parser.servers.back().srvConfs[_ctxIndex].get());
+					(*parser.httpConfCtx.srvConfs)[_ctxIndex].get());
 			while (!tokens.empty() && tokens.front() != ";"
 				&& tokens.front() != "{" && tokens.front() != "}") {
 				srvConf->serverNames.push_back(tokens.front());
 				tokens.pop_front();
 			}
-        case 4: // num_req_expected
+            break;
+        case 2: // num_req_expected
 			(void)level;
 			srvConf = dynamic_cast<WebservSrvCoreConf*>(
-					parser.servers.back().srvConfs[_ctxIndex].get());
+					(*parser.httpConfCtx.srvConfs)[_ctxIndex].get());
 			srvConf->numReqExpected = std::stoi(tokens.front());
 			if (srvConf->numReqExpected <= 0)
 				throw std::runtime_error(
 					"num_req_expected must be a non-zero positive integer");
 			tokens.pop_front();
             break;
-        case 5: // client_header_timeout
+        case 3: // client_header_timeout
 			(void)level;
 			srvConf = dynamic_cast<WebservSrvCoreConf*>(
-					parser.servers.back().srvConfs[_ctxIndex].get());
+					(*parser.httpConfCtx.srvConfs)[_ctxIndex].get());
 			srvConf->clientHeaderTimeout = WebservMsec(std::stoi(tokens.front()));
-            break;
-        case 6: // ignore_invalid_headers
-            break;
-        case 7: // merge_slashes
-            break;
-        case 8: // underscore_in_headers
-            break;
-		case 9: // location
-			if (tokens.empty() || tokens.front() != "{")
-				throw std::runtime_error("Expected '{' after 'location'");
 			tokens.pop_front();
-			curLocConf->locations.resize(curLocConf->locations.size() + 1);
-			curLocConf->locations.back().parent = curLocConf;
-			curLocConf = &curLocConf->locations.back();
-			parser.httpConfCtx.locConfs = &curLocConf->locConfs;
-            _insertLocConf(curLocConf->locConfs, std::make_unique<WebservLocCoreConf>());
-			// curLocConf->locConfs.resize(_ctxIndex + 1);
-			// curLocConf->locConfs[_ctxIndex] = std::make_unique<WebservLocCoreConf>();
-			parser.parseConfig(WebservConfLevel::LOCATION);
-			break;
-        case 10: // root
             break;
-        case 11: // allow
+        case 4: // ignore_invalid_headers
             break;
-        case 12: // alias
+        case 5: // merge_slashes
             break;
-        case 13: // client_body_buffer_size
+        case 6: // underscore_in_headers
             break;
-        case 14: // client_body_timeout
+        case 7: // root
             break;
-        case 15: // client_max_body_size
+        case 8: // allow
             break;
-        case 16: // send_timeout
+        case 9: // alias
             break;
-        case 17: // absolute_redirect
+        case 10: // client_body_buffer_size
             break;
-        case 18: // log_not_found
+        case 11: // client_body_timeout
             break;
-        case 19: // error_page
+        case 12: // client_max_body_size
             break;
-        case 20: // index
+        case 13: // send_timeout
             break;
-        case 21: // autoindex
+        case 14: // absolute_redirect
             break;
-        case 22: // try_files
+        case 15: // log_not_found
+            break;
+        case 16: // error_page
+            break;
+        case 17: // index
+            break;
+        case 18: // autoindex
+            break;
+        case 19: // try_files
             break;
     }
-
-	switch (directiveMap.at(directive)) {
-		case 0: // empty the tokens thereby ignoring the rest after http block
-			tokens.clear();
-			break;
-		case 1:
-            tokens.pop_front(); // pop '{'
-			break;
-		case 2:
-		case 3:
-		case 4:
-		case 5:
-		case 6:
-		case 7:
-		case 8:
-		case 9:
-		case 10:
-		case 11:
-		case 12:
-		case 13:
-		case 14:
-		case 15:
-		case 16:
-		case 17:
-		case 18:
-		case 19:
-		case 20:
-		case 21:
-			if (tokens.empty() || tokens.front() != ";")
-				throw std::runtime_error(
-					"Expected ';' after directive '" + directive + "'");
-			tokens.pop_front();
-			break;
-		default:
-			throw std::runtime_error(
-				"Parsing of directive: " + directive + " not implemented yet");
-	}
+	if (tokens.empty() || tokens.front() != ";")
+	throw std::runtime_error("Expected ';' after directive '" + directive + "'");
+	tokens.pop_front();
 }
 
 WebservCoreModule::WebservCoreModule(int& ctxIndex) :

@@ -20,6 +20,12 @@ constexpr WebservConfLevel operator&(WebservConfLevel a, WebservConfLevel b) {
 	& static_cast<uint8_t>(b));
 }
 
+constexpr WebservConfLevel operator<<(WebservConfLevel a, int shift) {
+    if (a == WebservConfLevel::LOCATION)
+        return WebservConfLevel::LOCATION; // prevent overflow
+    return static_cast<WebservConfLevel>(static_cast<uint8_t>(a) << shift);
+}
+
 class ConfigParser;
 
 class IWebservModule {
@@ -34,19 +40,15 @@ class IWebservModule {
 class AWebservParser : virtual public IWebservModule {
     protected:
         const int												_ctxIndex;
-        const std::unordered_map<std::string, WebservConfLevel>	_directiveValidLevels;
+        const std::unordered_map<std::string, WebservConfLevel>	_directiveValLevelMap;
 
-		void	_insertHttpConf(VecOfPtrs<WebservHttpConf>& httpConfs,
-			std::unique_ptr<WebservHttpConf> conf);
-		void	_insertSrvConf(VecOfPtrs<WebservSrvConf>& srvConfs,
-			std::unique_ptr<WebservSrvConf> conf);
-		void	_insertLocConf(VecOfPtrs<WebservLocConf>& locConfs,
-			std::unique_ptr<WebservLocConf> conf);
+        template<typename T>
+		void	_insertConf(VecOfPtrs<T>* confs, std::unique_ptr<T> conf);
     public:
         AWebservParser() = delete;
         AWebservParser(
 			int& ctxIndex,
-			const std::unordered_map<std::string, WebservConfLevel> directiveValidLevels);
+			const std::unordered_map<std::string, WebservConfLevel> directiveValLevelMap);
         virtual ~AWebservParser() = default;
         int isDirectiveValid(const std::string& directive,
 			WebservConfLevel level) override;
