@@ -15,12 +15,20 @@ class ConfigParser {
 			{WebservConfLevel::SERVER, "server"},
 			{WebservConfLevel::LOCATION, "location"},
 		};
+        const std::unordered_map<std::string, WebservConfLevel> _directiveValLevelMap {
+            {"http", WebservConfLevel::MAIN},
+            {"server", WebservConfLevel::HTTP},
+            {"location", WebservConfLevel::SERVER | WebservConfLevel::LOCATION}
+        };
         char*						_configFilename;
         std::deque<std::string>		_tokens;
 		VecOfPtrs<IWebservModule>	_modules;
 
-        std::deque<std::string>	tokenize();
-		void					parseDirective(WebservConfLevel level);
+        std::deque<std::string>	_tokenize();
+		void					_parseModuleDirective(WebservConfLevel level);
+        int                     _isDirectiveNotInValidLevel(
+                                    const std::string& directive,
+                                    WebservConfLevel level);
 
     public:
 		WebservHttpConfCtx				httpConfCtx;
