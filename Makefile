@@ -1,11 +1,13 @@
 NAME = server
 
-SRC = main.cpp \
+SRC	=	main.cpp \
 		HttpServer.cpp \
 		HttpParser.cpp \
 		Client.cpp \
+		Configparsing/AWebservParser.cpp \
+		Configparsing/WebservCoreParser.cpp \
+		Configparsing/WebservCoreModule.cpp \
 		Configparsing/ConfigParser.cpp \
-		Configparsing/modules.cpp \
 		Servers.cpp
 
 OBJ_DIR = obj

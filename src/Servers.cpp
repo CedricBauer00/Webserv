@@ -45,6 +45,11 @@ std::string Server::getDomain()
     return _domain;
 }
 
+int Server::getPort()
+{
+    return _port;
+}
+
 Location::Location() : _root("")
 {
     

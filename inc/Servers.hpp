@@ -24,6 +24,7 @@ class Server
         void    setDomain( std::string domain );
         void    setPort( int port );
         std::string getDomain();
+        int         getPort();
 };
 
 class Global
