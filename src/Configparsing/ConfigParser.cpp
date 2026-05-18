@@ -1,4 +1,5 @@
 #include "../../inc/Configparsing/ConfigParser.hpp"
+#include "../../inc/Configparsing/WebservCoreModule.hpp"
 
 ConfigParser::ConfigParser(char* filename): _configFilename(filename) {
 	int ctxIndex = 0;
@@ -135,20 +136,20 @@ int    ConfigParser::_isDirectiveNotInValidLevel(
 }
 
 void	ConfigParser::parseConfig(WebservConfLevel level) {
-	std::string		directive;
-	static LocConf*	curLocConf = nullptr;
+	std::string						directive;
+	static IWebservModule::LocNode*	curLocNode = nullptr;
 
 	if (level != WebservConfLevel::MAIN && level != WebservConfLevel::HTTP
-	&& level != WebservConfLevel::SERVER && level != WebservConfLevel::LOCATION) {
+	&& level != WebservConfLevel::SERVER && level != WebservConfLevel::LOCATION)
 		throw std::runtime_error("Invalid configuration level");
-	}
     while (!_tokens.empty()) {
 		if (_tokens.front() == "}") {
 			if (level == WebservConfLevel::MAIN)
-				throw std::runtime_error("Unexpected '}' at the end of MAIN block");
+				throw std::runtime_error(
+					"Unexpected '}' at the end of MAIN block");
 			_tokens.pop_front();
 			if (level == WebservConfLevel::LOCATION)
-				curLocConf = curLocConf->parent;
+				curLocNode = curLocNode->parent;
 			return;
 		}
         else if (_tokens.front() == "http" || _tokens.front() == "server"
@@ -164,20 +165,21 @@ void	ConfigParser::parseConfig(WebservConfLevel level) {
             _tokens.pop_front();
 			if (directive == "http") {
 				if (!httpConfs.empty() || 0 < servers.size())
-					throw std::runtime_error("Multiple 'http' blocks are not allowed");
-				httpConfCtx.httpConfs = &httpConfs;
+					throw std::runtime_error(
+						"Multiple 'http' blocks are not allowed");
+				confCtx.httpConfs = &httpConfs;
 			}
 			else if (directive == "server") {
 				servers.emplace_back();
-				httpConfCtx.srvConfs = &servers.back().srvConfs;
-				curLocConf = &servers.back().location;
-				httpConfCtx.locConfs = &curLocConf->locConfs;
+				confCtx.srvConfs = &servers.back().srvConfs;
+				curLocNode = &servers.back().location;
+				confCtx.locConfs = &curLocNode->locConfs;
 			}
 			else if (directive == "location") {
-				curLocConf->locations.resize(curLocConf->locations.size() + 1);
-				curLocConf->locations.back().parent = curLocConf;
-				curLocConf = &curLocConf->locations.back();
-				httpConfCtx.locConfs = &curLocConf->locConfs;
+				curLocNode->locations.resize(curLocNode->locations.size() + 1);
+				curLocNode->locations.back().parent = curLocNode;
+				curLocNode = &curLocNode->locations.back();
+				confCtx.locConfs = &curLocNode->locConfs;
 			}
             parseConfig(level << 1);
         }

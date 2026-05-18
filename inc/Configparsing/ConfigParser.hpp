@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <memory>
 #include "modules.hpp"
+#include "IWebservModule.hpp"
 
 class ConfigParser {
 	private:
@@ -15,10 +16,12 @@ class ConfigParser {
 			{WebservConfLevel::SERVER, "server"},
 			{WebservConfLevel::LOCATION, "location"},
 		};
-        const std::unordered_map<std::string, WebservConfLevel> _directiveValLevelMap {
-            {"http", WebservConfLevel::MAIN},
-            {"server", WebservConfLevel::HTTP},
-            {"location", WebservConfLevel::SERVER | WebservConfLevel::LOCATION}
+        const std::unordered_map<std::string, WebservConfLevel>
+			_directiveValLevelMap {
+				{"http", WebservConfLevel::MAIN},
+				{"server", WebservConfLevel::HTTP},
+				{"location", WebservConfLevel::SERVER
+					| WebservConfLevel::LOCATION}
         };
         char*						_configFilename;
         std::deque<std::string>		_tokens;
@@ -31,9 +34,11 @@ class ConfigParser {
                                     WebservConfLevel level);
 
     public:
-		WebservHttpConfCtx				httpConfCtx;
-		VecOfPtrs<WebservHttpConf>		httpConfs;
-		std::vector<SrvLocConf>			servers;
+		IWebservModule::ConfCtx					confCtx;
+		VecOfPtrs<IWebservModule::HttpConf>		httpConfs;
+		std::vector<IWebservModule::SrvNode>	servers;
+        std::unordered_map<std::string, std::vector<IWebservModule::SrvNode*>>
+			addrToServerMap;
 
         ConfigParser() = delete;
         ConfigParser(char* filename);

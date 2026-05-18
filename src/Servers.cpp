@@ -50,7 +50,16 @@ std::string Server::getDomain()
     return _domain;
 }
 
+<<<<<<< HEAD
 size_t Server::getPort()
+=======
+int Server::getPort()
+{
+    return _port;
+}
+
+Location::Location() : _root("")
+>>>>>>> 361fde6 (FIX[configParsing]: module classes put into separate files)
 {
 <<<<<<< HEAD:src/Configparsing/ConfigParsing.cpp
     return _port;

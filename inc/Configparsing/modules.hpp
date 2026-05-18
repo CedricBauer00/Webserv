@@ -1,7 +1,12 @@
 #pragma once
 
-#include <unordered_map>
-#include "configParsing.hpp"
+#include <vector>
+#include <memory>
+#include <chrono>
+#include <string>
+
+#define LISTEN (1 << 0)
+#define DEFAULT_SERVER (1 << 1)
 
 enum class WebservConfLevel : uint8_t {
     MAIN = 1 << 0,
@@ -26,46 +31,31 @@ constexpr WebservConfLevel operator<<(WebservConfLevel a, int shift) {
     return static_cast<WebservConfLevel>(static_cast<uint8_t>(a) << shift);
 }
 
-class ConfigParser;
+template<typename T>
+using VecOfPtrs = std::vector<std::unique_ptr<T>>;
 
-class IWebservModule {
-	public:
-		virtual ~IWebservModule() = default;
-        virtual int isDirectiveValid(const std::string& directive,
-			WebservConfLevel level) = 0;
-		virtual void parseDirective(ConfigParser& parser,
-			WebservConfLevel level) = 0;
+typedef std::chrono::milliseconds	WebservMsec;
+
+struct WebservAddr {
+	std::string	ip;
+	std::string	port;
 };
 
-class AWebservParser : virtual public IWebservModule {
-    protected:
-        const int												_ctxIndex;
-        const std::unordered_map<std::string, WebservConfLevel>	_directiveValLevelMap;
-
-        template<typename T>
-		void	_insertConf(VecOfPtrs<T>* confs, std::unique_ptr<T> conf);
-    public:
-        AWebservParser() = delete;
-        AWebservParser(
-			int& ctxIndex,
-			const std::unordered_map<std::string, WebservConfLevel> directiveValLevelMap);
-        virtual ~AWebservParser() = default;
-        int isDirectiveValid(const std::string& directive,
-			WebservConfLevel level) override;
+struct WebservConnection {
+	int			fd{-1};
+	WebservAddr	addr;
 };
 
-class WebservCoreParser : public AWebservParser {
-    public:
-        WebservCoreParser() = delete;
-		WebservCoreParser(int& ctxIndex);
-        virtual ~WebservCoreParser() = default;
-        void parseDirective(ConfigParser& parser,
-			WebservConfLevel level) override;
+struct WebservHttpRequest {
+	WebservConnection*									conn;
+	std::string											method, uri, httpVersion;
+	std::vector<std::pair<std::string, std::string>>	headers;
 };
 
-class WebservCoreModule : public WebservCoreParser {
-	public:
-        WebservCoreModule() = delete;
-		WebservCoreModule(int& ctxIndex);
-        virtual ~WebservCoreModule() = default;
+typedef int (*WebservHandler)(WebservHttpRequest* r);
+
+struct WebservErrorLog {
+	std::string name;
+	std::string level; // debug, info, notice, warn, error, crit
+	int	fd;
 };
