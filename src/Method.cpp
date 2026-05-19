@@ -25,12 +25,30 @@ void    Method::getMethod() // status codes 200, 402, 404
         }
     }
 
-    for ( size_t i = 0; path.size(); ++i )
+    std::vector<std::string> wholePath;
+    std::istringstream iss(path);
+    std::string partStr;
+    while ( getline( iss, partStr, '/' ) )
     {
-        if ( path[ i ] == '/' )
+        if ( partStr.empty() || partStr == "." ) // "." heisst dieses Verzeichnis
+            continue ;
+        if ( partStr == ".." )
         {
-            if ( )
+            if ( wholePath.empty() )
+                throw BadRequest();
+            wholePath.pop_back( ); // one directory out  
         }
+        else
+        {
+            wholePath.push_back( partStr );
+        }
+    }
+
+    std::string newPath;
+    newPath = "/";
+    for ( size_t i = 0; i < wholePath.size(); ++i )
+    {
+        
     }
     // 1) Method permissions pruefen passiert in execution func - check ob syntax korrekt?
     //  wenn ein body bei GET method - ignoreiren
