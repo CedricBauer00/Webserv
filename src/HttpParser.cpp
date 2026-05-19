@@ -1,5 +1,4 @@
 #include "../inc/HttpParser.hpp"
-#include "../inc/Exceptions.hpp"
 
 HttpParser::HttpParser() {}
 
@@ -295,7 +294,7 @@ bool    isInRange( int num, int min, int max )
     return ( num >= min && num <= max );
 }
 
-Method  HttpParser::getMethod() const
+whichMethod  HttpParser::getMethod() const
 {
     return _method;
 }

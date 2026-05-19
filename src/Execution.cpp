@@ -15,7 +15,7 @@ void    Execution::execution( std::string request, Response &res, std::vector<Se
         // 1) parse request
         parser.setHeaders();
 
-        Method m = parser.getMethod();
+        whichMethod whichMeth = parser.getMethod();
         
         
         // 2)   SERVER_REWRITE
@@ -44,16 +44,16 @@ void    Execution::execution( std::string request, Response &res, std::vector<Se
         // 10)  CONTENT
         //      proxy/static
 
-
-        // if ( m == METHOD_GET )
-        //     getLogic();
-        // else if ( m == METHOD_DELETE )
-        //     deleteLogic();
-        // else if ( m == METHOD_POST )
-        if ( m == METHOD_POST )
+        Method  m;
+        if ( whichMeth == METHOD_GET )
+            m.getMethod();
+        else if ( whichMeth == METHOD_DELETE )
+            m.deleteMethod();
+        else if ( whichMeth == METHOD_POST )
+        if ( whichMeth == METHOD_POST )
         {
             parser.setBody(); // for POST requests - last step of execution
-            // postLogic();
+            m.postMethod();
         }
         std::cout << ORANGE << parser.getBody() << RESET << std::endl;
 
@@ -98,7 +98,10 @@ void    Execution::serverRewrite( std::string uri, std::vector<Server> servers, 
     ServerConfig srv;
     initRules( srv.rewriteRules );
 
-
+    (void)servers;
+    (void)hostName;
+    (void)hostPort;
+    
     // bool    portFound = false;
     // bool    nameFound = false;
         
@@ -132,7 +135,7 @@ void    Execution::serverRewrite( std::string uri, std::vector<Server> servers, 
 
     // 2)   choosing server based on Host/Port !!! HIER WUERDE ICH CHECKEN 
     //      Server rewrite rules
-    (void)servers;
+    
 
     std::cout << "\nURI before = " << _uri << std::endl;
     // 3)   Reading rules

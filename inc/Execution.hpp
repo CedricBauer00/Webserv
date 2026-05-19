@@ -6,6 +6,7 @@
 #include "../inc/PageHandler.hpp"
 #include "../inc/Response.hpp"
 #include "../inc/ConfigParsing.hpp"
+#include "../inc/Method.hpp"
 
 class Execution
 {

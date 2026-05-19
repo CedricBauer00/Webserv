@@ -19,6 +19,8 @@
 #include <algorithm> 
 #include <cctype>
 
+#include "Execution.hpp"
+
 #define RED  "\033[31m"
 #define ELEC_RED "\033[38;2;255;20;20m"
 #define BLUE    "\033[34m"
@@ -28,7 +30,7 @@
 
 #define MAX_BODY_SIZE 1024
 
-enum Method
+enum whichMethod
 {
     METHOD_GET,
     METHOD_POST,
@@ -51,7 +53,7 @@ class HttpParser
         std::istringstream  _iss;
         std::string _hostPort;
         std::string _hostName;
-        Method      _method;
+        whichMethod _method;
 
     public:
         HttpParser();
@@ -75,7 +77,7 @@ class HttpParser
         std::unordered_map<std::string, std::string>  getHeaders();
         std::string                 getBody() const;
         std::string                 getUri();
-        Method                      getMethod() const;
+        whichMethod                      getMethod() const;
         std::string                 getHostName();
         std::string                 getHostPort();
 
