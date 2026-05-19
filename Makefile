@@ -10,7 +10,8 @@ SRC = main.cpp \
 		Socket.cpp \
 		Execution.cpp \
 		Response.cpp \
-		Utils.cpp
+		Utils.cpp \
+		Method.cpp
 
 
 OBJ_DIR = obj

@@ -48,8 +48,13 @@ void    Method::getMethod() // status codes 200, 402, 404
     newPath = "/";
     for ( size_t i = 0; i < wholePath.size(); ++i )
     {
-        
+        newPath += wholePath[ i ];
+        if ( i + 1 < wholePath.size() )
+            newPath += "/";
     }
+    
+    std::cout << "newPath == " << newPath << std::endl; 
+
     // 1) Method permissions pruefen passiert in execution func - check ob syntax korrekt?
     //  wenn ein body bei GET method - ignoreiren
 
