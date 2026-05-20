@@ -4,18 +4,18 @@ Method::Method() {}
 
 Method::~Method() {}
 
-void    Method::getMethod( Response& res) // status codes 200, 402, 404
+std::string    modifyPath( Response &res, std::string uri, whichMethod whichMethod )
 {
-    std::string mockUri = "/images/cat%20pics/../dog.png?size=large&debug=1";
+        // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
 
-    std::string::size_type pos = mockUri.find( '?' );
-    std::string path;
+    std::string::size_type pos = uri.find( '?' );
+    std::string path = uri;
     std::string query;
     
     if ( pos != std::string::npos )
     {
-        path = mockUri.substr( 0, pos );
-        query = mockUri.substr( pos + 1 );
+        path = uri.substr( 0, pos );
+        query = uri.substr( pos + 1 );
     }
 
     for ( size_t i = 0; i < path.size(); ++i )
@@ -63,12 +63,13 @@ void    Method::getMethod( Response& res) // status codes 200, 402, 404
     std::cout << "newPath == " << newPath << std::endl; 
 
     std::string mockLocation = "/images";
-    std::string mockRoot = "/root";
-    std::vector<std::string> stack;
-    stack.push_back("index1.html");
-    stack.push_back("index2.html");
-    stack.push_back("index3.html");
+    std::string mockRoot = getRootPath();
 
+    if ( whichMethod == METHOD_POST && getUploadEnabled() )
+    {
+        if( !( path.empty() ) )
+            mockRoot = getUploadPath();   
+    }
     newPath = newPath.substr( mockLocation.size() );
     
     // /DO.PNG
@@ -79,30 +80,73 @@ void    Method::getMethod( Response& res) // status codes 200, 402, 404
     newPath = mockRoot + newPath;
 
     std::cout << "newPath:" << newPath << std::endl;
+    
+    return newPath;
+}
 
-    if ( !( std::filesystem::exists( newPath ) ) )
+
+void    Method::getMethod( std::string newPath, Response &res, std::string uri ) // status codes 200, 402, 404
+{
+    // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
+    
+    std::vector<std::string> stack;
+    stack.push_back("index1.html");
+    stack.push_back("index2.html");
+    stack.push_back("index3.html");
+
+    std::cout << "newPath:" << newPath << std::endl;
+
+    std::error_code ec;
+    if ( !( std::filesystem::exists( newPath, ec ) ) )
+    {
+        std::cout << "here1" << std::endl; 
         throw NotFound();
+    }
 
-    if ( std::filesystem::is_directory( newPath ) )
+    if ( std::filesystem::is_regular_file( newPath ) )
+    {
+        std::ifstream ifs( newPath ); 
+    
+        if ( !( ifs.is_open() ) ) // permissions check
+            throw NotFound();
+        
+        std::string line;
+        std::string content;
+        while ( getline( ifs, line ) )
+        {
+            content += line;
+        }
+        res.setBody( content );
+        res.setCodeAndPhrase( "200", "OK" );
+        res.setHeaders( "Content-Length", std::to_string( content.size() ) );
+        res.setHeaders( "Content-Type", getFileType( newPath ) );
+        return ;
+    }
+    else //    if ( std::filesystem::is_directory( newPath ) )
     {
         if ( newPath.back() != '/' )
         {
             std::string newStr = newPath + "/";
             throw MovedPermanently( newStr );
         }
-        for ( auto x : stack )
+        for ( auto x : stack ) // replace stack with all files in directory - indexes from location 
         {
+            std::cout << "here3" << std::endl; 
+
             std::string joinedPath = newPath + x;
-            if ( std::filesystem::exists( joinedPath ) )
+            if ( std::filesystem::exists( joinedPath, ec ) )
             {
-                std::ifstream ifs( newPath ); 
-                if ( !( ifs.is_open() ) ) 
+                std::ifstream ifs( joinedPath ); 
+                std::cout  << joinedPath << std::endl;
+
+                if ( !( ifs.is_open() ) ) // permissions check
                     throw NotFound();
                 std::string line;
                 std::string content;
                 while ( getline( ifs, line ) )
                 {
                     content += line;
+                    std::cout  << "here" << std::endl;
                 }
                 res.setBody( content );
                 res.setCodeAndPhrase( "200", "OK" );
@@ -111,17 +155,16 @@ void    Method::getMethod( Response& res) // status codes 200, 402, 404
                 return ;
             }
         }
-        if ( autoIndexActive() )   
-            createAutoIndex();
+
+        if ( autoIndexActive() ) // not implemented yet   
+        {
+            createAutoIndex( newPath, res ); // not implemented yet
+            return ;
+        }
         else
             throw NotFound();
-    }
-    // if ( std::filesystem::is_regular_file( newPath ) )
-    // {
-    //     if ( std::filesystem::permissions())
-    // }
-    // else
 
+    }
 
     // 1) Method permissions pruefen passiert in execution func - check ob syntax korrekt?
     //  wenn ein body bei GET method - ignoreiren
@@ -144,20 +187,28 @@ void    Method::getMethod( Response& res) // status codes 200, 402, 404
 
 }
 
-void    Method::postMethod( Response& res ) // status Codes 200/201, 400, 413
+void    Method::postMethod( Response &res ) // status Codes 200/201, 400, 413
 {
 
+    (void)res;
 }
 
-void    Method::deleteMethod( Response& res ) // status Codes 200/204, 403, 404
+void    Method::deleteMethod( Response &res ) // status Codes 200/204, 403, 404
 {
-    
+    (void)res;
 }
 
-int autoIndexActive()
+bool    getUploadEnabled()
 {
-
-    return 0;
+    return true;
 }
 
-void    createAutoIndex() {}
+std::string getUploadPath()
+{
+    return "/uploads/";
+}
+
+std::string getRootPath()
+{
+    return "./servers/server1/data";
+}

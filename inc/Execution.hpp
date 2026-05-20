@@ -1,12 +1,12 @@
 #pragma once
 
 #include "HttpParser.hpp"
-#include "../inc/HttpException.hpp"
-#include "../inc/Exceptions.hpp"
-#include "../inc/PageHandler.hpp"
-#include "../inc/Response.hpp"
-#include "../inc/ConfigParsing.hpp"
-#include "../inc/Method.hpp"
+#include "HttpException.hpp"
+#include "Exceptions.hpp"
+#include "PageHandler.hpp"
+#include "Response.hpp"
+#include "ConfigParsing.hpp"
+#include "Method.hpp"
 
 class Execution
 {

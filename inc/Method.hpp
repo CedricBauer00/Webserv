@@ -8,6 +8,7 @@
 #include <fstream>
 #include "Response.hpp"
 
+
 class Method
 {
     private:
@@ -15,7 +16,11 @@ class Method
     public:
         Method();
         ~Method();
-        void    getMethod( Response& res);
-        void    postMethod( Response& res);
-        void    deleteMethod( Response& res);
+        std::string    modifyPath( Response &res, std::string uri, whichMethod whichMethod );
+        void    getMethod( std::string newPath, Response &res, std::string uri );
+        void    postMethod( std::string newPath, Response &res);
+        void    deleteMethod( std::string newPath, Response &res);
 };
+
+// bool        autoIndexActive();
+// void        createAutoIndex( std::string mockUri, Response &res );

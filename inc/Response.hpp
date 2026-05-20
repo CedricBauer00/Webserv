@@ -7,7 +7,6 @@
 #include <fstream>
 #include "Utils.hpp"
 
-
 class Response
 {
     private:   

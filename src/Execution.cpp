@@ -15,7 +15,7 @@ void    Execution::execution( std::string request, Response &res, std::vector<Se
         // 1) parse request
         parser.setHeaders();
 
-        whichMethod whichMeth = parser.getMethod();
+        whichMethod whichMethod = parser.getMethod();
         
         
         // 2)   SERVER_REWRITE
@@ -45,24 +45,25 @@ void    Execution::execution( std::string request, Response &res, std::vector<Se
         //      proxy/static
 
         //validate path
-
+        
+        
         Method  m;
-        std::cout << "whichmethod:" << whichMeth << std::endl;
-        if ( whichMeth == METHOD_GET )
-            m.getMethod( res );
-        else if ( whichMeth == METHOD_DELETE )
-            m.deleteMethod( res );
-        else if ( whichMeth == METHOD_POST )
-            m.deleteMethod( res );
-        if ( whichMeth == METHOD_POST )
+        // m.checkMethodAllowed()/
+        std::string newPath = m.modifyPath( res, parser.getUri(), whichMethod );
+        std::cout << "whichmethodod:" << whichMethod << std::endl;
+        if ( whichMethod == METHOD_GET )
+            m.getMethod( newPath, res, parser.getUri() );
+        else if ( whichMethod == METHOD_DELETE )
+            m.deleteMethod( newPath, res );
+        if ( whichMethod == METHOD_POST )
         {
             parser.setBody(); // for POST requests - last step of execution
-            m.postMethod();
+            m.postMethod( newPath, res );
+            std::cout << ORANGE << parser.getBody() << RESET << std::endl;
         }
-        std::cout << ORANGE << parser.getBody() << RESET << std::endl;
-
         /// Response Buidling 
         res.build();
+        std::cout << ORANGE << res.getResponse() << RESET << std::endl;
     }
     catch ( const HttpException& e )
     {

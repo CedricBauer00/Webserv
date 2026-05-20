@@ -1,6 +1,5 @@
-#include <map>
-#include <string>
-
+#include <Utils.hpp>
+#include "Response.hpp"
 
 std::string setStatus(int code)
 {
@@ -87,4 +86,41 @@ std::string getFileType( std::string path )
         return "image/jpeg";
     else
         return "application/octet-stream";
+}
+
+bool autoIndexActive() // still to implement: return bool for autoindex
+{
+    return true;
+}
+
+void createAutoIndex( std::string mockUri, Response &res )
+{
+    std::vector<std::string> all;
+    std::string buffer;
+
+    buffer += "<!DOCTYPE html>\n";
+    buffer += "<html>\n";
+    buffer += "<head>\n";
+    buffer += "<title>index of " + mockUri + "/<title>\n";
+    buffer += "<hr>\n";
+    buffer += "<pre>\n";
+
+    for ( auto x : std::filesystem::directory_iterator( mockUri ) )
+    {
+        std::filesystem::path path = x.path();    
+        if ( std::filesystem::is_regular_file( path ) )
+            buffer += "<a href=\"" + mockUri +  path.filename().string() + "\">" + path.filename().string() + "</a>\n";
+        else if ( std::filesystem::is_directory( path ) )
+            buffer += "<a href=\"" + mockUri +  path.filename().string() + "/\">" + path.filename().string() + "</a>\n";
+    }
+
+    buffer += "</pre>\n";
+    buffer += "</hr>\n";
+    buffer += "</body>\n";
+    buffer += "</html>\n";
+    res.setBody( buffer );
+    res.setCodeAndPhrase( "200", "OK" );
+    res.setHeaders( "Content-Length", std::to_string( buffer.size() ) );
+    res.setHeaders( "Content-Type", "txt/html" );
+    res.build();
 }
