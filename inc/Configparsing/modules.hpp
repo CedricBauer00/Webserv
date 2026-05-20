@@ -4,6 +4,7 @@
 #include <memory>
 #include <chrono>
 #include <string>
+#include <deque>
 
 #define LISTEN (1 << 0)
 #define DEFAULT_SERVER (1 << 1)
@@ -34,7 +35,9 @@ constexpr WebservConfLevel operator<<(WebservConfLevel a, int shift) {
 template<typename T>
 using VecOfPtrs = std::vector<std::unique_ptr<T>>;
 
-typedef std::chrono::milliseconds	WebservMsec;
+using Tokens = std::deque<std::string>;
+
+using WebservMsec = std::chrono::milliseconds;
 
 struct WebservAddr {
 	std::string	ip;
@@ -59,3 +62,7 @@ struct WebservErrorLog {
 	std::string level; // debug, info, notice, warn, error, crit
 	int	fd;
 };
+
+bool	isDigits(const std::string& str);
+bool	isValidPort(const std::string& str);
+bool 	isValidIpv4(const std::string& address);

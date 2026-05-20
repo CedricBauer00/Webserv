@@ -14,3 +14,15 @@ int AWebservParser::isDirectiveValid(
 	return (it != _directiveValLevelMap.end()
 		&& (it->second & level) != static_cast<WebservConfLevel>(0));
 };
+
+IWebservModule::HttpConf*	AWebservParser::getHttpConfPtr(const ConfCtx& confCtx) {
+	return (*confCtx.httpConfs)[_ctxIndex].get();
+}
+
+IWebservModule::SrvConf*	AWebservParser::getSrvConfPtr(const ConfCtx& confCtx) {
+	return (*confCtx.srvConfs)[_ctxIndex].get();
+}
+
+IWebservModule::LocConf*	AWebservParser::getLocConfPtr(const ConfCtx& confCtx) {
+	return (*confCtx.locConfs)[_ctxIndex].get();
+}
