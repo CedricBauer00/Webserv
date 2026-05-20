@@ -9,17 +9,20 @@ void    Method::getMethod() // status codes 200, 402, 404
     std::string mockUri = "/images/cat%20pics/../dog.png?size=large&debug=1";
 
     std::string::size_type pos = mockUri.find( '?' );
+    std::string path;
+    std::string query;
+    
     if ( pos != std::string::npos )
     {
-        std::string path = mockUri.substr( 0, pos );
-        std::string query = mockUri.substr( pos + 1 );
+        path = mockUri.substr( 0, pos );
+        query = mockUri.substr( pos + 1 );
     }
 
     for ( size_t i = 0; i < path.size(); ++i )
     {
         if ( path[ i ] == '%' && i + 2 < path.size() )
         {
-            std::string hex = path.substr( pos + 1, 2 );
+            std::string hex = path.substr( i + 1, 2 );
             char c = static_cast<char>( std::strtol( hex.c_str(), 0, 16 ) ); // 
             path.replace( i, 3, 1, c );
         }
@@ -28,20 +31,24 @@ void    Method::getMethod() // status codes 200, 402, 404
     std::vector<std::string> wholePath;
     std::istringstream iss(path);
     std::string partStr;
+    // int i = 0;
     while ( getline( iss, partStr, '/' ) )
     {
+        std::cout << "partStr:" << partStr << std::endl;
+
         if ( partStr.empty() || partStr == "." ) // "." heisst dieses Verzeichnis
             continue ;
         if ( partStr == ".." )
         {
             if ( wholePath.empty() )
                 throw BadRequest();
-            wholePath.pop_back( ); // one directory out  
+                
+            wholePath.pop_back(); // one directory out  
         }
         else
-        {
             wholePath.push_back( partStr );
-        }
+        // std::cout << "wholePath:" << wholePath[ i ] << std::endl;
+        // i++;
     }
 
     std::string newPath;
@@ -54,6 +61,58 @@ void    Method::getMethod() // status codes 200, 402, 404
     }
     
     std::cout << "newPath == " << newPath << std::endl; 
+
+    std::string mockLocation = "/images";
+    std::string mockRoot = "/root";
+    std::vector<std::string> stack;
+    stack.push_back("index1.html");
+    stack.push_back("index2.html");
+    stack.push_back("index3.html");
+
+    newPath = newPath.substr( mockLocation.size() );
+    
+    // /DO.PNG
+    if ( !( newPath.empty() ) && newPath[ 0 ] == '/' )
+        newPath = newPath.substr( 1 );
+    if ( mockRoot.back() != '/' )
+        mockRoot += '/';
+    newPath = mockRoot + newPath;
+
+    std::cout << "newPath:" << newPath << std::endl;
+
+    if ( !( std::filesystem::exists( newPath ) ) )
+        throw NotFound();
+
+    if ( std::filesystem::is_directory( newPath ) )
+    {
+        if ( newPath.back() != '/' )
+        {
+            std::string newStr = newPath + "/";
+            throw MovedPermanently( newStr );
+        }
+        for ( auto x : stack )
+        {
+            std::string joinedPath = newPath + x;
+            if ( std::filesystem::exists( joinedPath ) )
+            {
+                std::ifstream ifs( newPath ); 
+                if ( !( ifs.is_open() ) ) 
+                    throw NotFound();
+                std::string line;
+                std::string content;
+                while ( getline( ifs, line ) )
+                {
+                    content += line;
+                }
+            }
+        }       
+    }
+    // if ( std::filesystem::is_regular_file( newPath ) )
+    // {
+    //     if ( std::filesystem::permissions())
+    // }
+    // else
+
 
     // 1) Method permissions pruefen passiert in execution func - check ob syntax korrekt?
     //  wenn ein body bei GET method - ignoreiren

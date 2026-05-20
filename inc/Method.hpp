@@ -4,11 +4,13 @@
 #include <vector>
 #include <sstream>
 #include "Exceptions.hpp"
+#include <filesystem>
+#include <fstream>
 
 class Method
 {
     private:
-        std::string path;
+        std::string _path;
     public:
         Method();
         ~Method();

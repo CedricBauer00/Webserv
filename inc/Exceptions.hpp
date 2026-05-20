@@ -9,6 +9,12 @@ class BadRequest : public HttpException
         // ~BadRequest();
 };
 
+class NotFound : public HttpException
+{
+    public:
+        NotFound() : HttpException( 404, "Not Found" ) {}
+};
+
 class MethodNotAllowed : public HttpException
 {
     public:

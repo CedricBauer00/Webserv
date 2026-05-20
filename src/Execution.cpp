@@ -44,12 +44,16 @@ void    Execution::execution( std::string request, Response &res, std::vector<Se
         // 10)  CONTENT
         //      proxy/static
 
+        //validate path
+
         Method  m;
+        std::cout << "whichmethod:" << whichMeth << std::endl;
         if ( whichMeth == METHOD_GET )
             m.getMethod();
         else if ( whichMeth == METHOD_DELETE )
             m.deleteMethod();
         else if ( whichMeth == METHOD_POST )
+            m.deleteMethod();
         if ( whichMeth == METHOD_POST )
         {
             parser.setBody(); // for POST requests - last step of execution

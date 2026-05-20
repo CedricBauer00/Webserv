@@ -117,12 +117,15 @@ void    HttpParser::setUri()
 
 void    HttpParser::setMethod() // eventuell hier Execution class instance createn, die die Method selbst speichert
 {
+    std::cout << "startline:" << _startLine[ 0 ] << std::endl;
     if ( _startLine[ 0 ] == "GET" )
         _method = METHOD_GET;
     else if ( _startLine[ 0 ] == "POST" )
         _method = METHOD_POST;
     else if ( _startLine[ 0 ] == "DELETE" )
         _method = METHOD_DELETE;
+    std::cout << "_method:" << _method << std::endl;
+    
 }
 
 std::string HttpParser::trim( const std::string& value )
