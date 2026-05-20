@@ -23,6 +23,9 @@ class AWebservParser : virtual public IWebservModule {
         virtual ~AWebservParser() = default;
         int	isDirectiveValid(const std::string& directive,
 			WebservConfLevel level) override;
+        HttpConf*	getHttpConfPtr(const ConfCtx& confCtx) override;
+		SrvConf*	getSrvConfPtr(const ConfCtx& confCtx) override;
+		LocConf*	getLocConfPtr(const ConfCtx& confCtx) override;
 };
 
 template<typename T>

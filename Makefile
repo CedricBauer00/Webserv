@@ -8,6 +8,7 @@ SRC	=	main.cpp \
 		Configparsing/WebservCoreParser.cpp \
 		Configparsing/WebservCoreModule.cpp \
 		Configparsing/ConfigParser.cpp \
+		Configparsing/modules.cpp \
 		Servers.cpp
 
 OBJ_DIR = obj

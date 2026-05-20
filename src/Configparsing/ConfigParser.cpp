@@ -10,7 +10,7 @@ ConfigParser::ConfigParser(char* filename): _configFilename(filename) {
 ConfigParser::~ConfigParser() {
 }
 
-std::deque<std::string>    ConfigParser::_tokenize() {
+Tokens  ConfigParser::_tokenize() {
     std::ifstream   file(_configFilename, std::ios::binary);
 
     file.seekg(0, std::ios::end);
@@ -20,7 +20,7 @@ std::deque<std::string>    ConfigParser::_tokenize() {
     std::string str(size, '\0');
     file.read(&str[0], size);
 
-	std::deque<std::string> tokens;
+	Tokens tokens;
     std::size_t pos = 0;
     std::string word;
     while (pos != size) {
@@ -50,73 +50,46 @@ std::deque<std::string>    ConfigParser::_tokenize() {
     return tokens;
 }
 
-// size_t	ConfigParser::parseHttpLocConfig(size_t i) {
-// 	if (_tokens.size() <= i || _tokens[i] != "{")
-// 		throw std::runtime_error("Expected '{' after 'location'");
-// 	_httpConf.servers.back().locations.resize(_httpConf->servers.back().locations.size() + 1);
-// 	++i;
-//     while (i < _tokens.size()) {
-// 		if (_tokens[i] == "}")
-// 			return;
-//         ++i;
-//     }
-// 	throw std::runtime_error("Expected '}' at end of location block");
-// }
+void	ConfigParser::_validateBlockAllowedInLevel(
+	const std::string& directive, WebservConfLevel level) {
+	if ((_blockToValLevelMap.at(directive) & level)
+	== static_cast<WebservConfLevel>(0))
+		throw std::runtime_error("Unexpected '" + directive
+			+ "' at level " + getLevelName(level));
+}
 
-// void	ConfigParser::parseHttpSrvField(WebservSrvConf &srvConf, size_t i) {
-// 	std::unordered_map<std::string, int> elementMap = {
-// 		{"listen", 0},
-// 		{"server_name", 1},
-// 		{"root", 2},
-// 		{"num_req_expected", 3},
-// 		{"client_header_timeout", 4},
-// 		{"ignore_invalid_headers", 5},
-// 		{"merge_slashes", 6},
-// 		{"underscore_is_valid", 7}
-// 	};
-
-// 	std::string key = _tokens[i];
-// 	++i;
-// 	if (_tokens.size() <= i || _tokens[i] == ";"
-// 		|| _tokens[i] == "{" || _tokens[i] == "}")
-// 		throw std::runtime_error("Expected argument after '" + key + "'");
-// 	switch (elementMap[key]) {
-// 		case 0: // listen
-// 			srvConf.flags |= LISTEN;
-// 			break;
-// 		case 1: // server_name
-// 			while (1) {
-// 				srvConf.serverNames.push(_tokens[i]);
-// 				if (_tokens.size() <= i + 1 || _tokens[i + 1] == ";"
-// 					|| _tokens[i + 1] == "{" || _tokens[i + 1] == "}")
-// 					break;
-// 				++i;
-// 			}
-// 			break;
-// 		case 2: // root
-// 			// srvConf.flags |= ROOT;
-// 			break;
-// 		case 3: // num_req_expected
-// 			srvConf.numReqExpected = std::stoul(_tokens[i]);
-// 			break;
-// 		case 4: // client_header_timeout
-// 			srvConf.clientHeaderTimeout = WebservMsec(std::stoul(_tokens[i]));
-// 			break;
-// 		case 5: // ignore_invalid_headers
-// 			srvConf.ignore_invalid_headers = _tokens[i] == "true";
-// 			break;
-// 		case 6: // merge_slashes
-// 			srvConf.merge_slashes = _tokens[i] == "true";
-// 			break;
-// 		case 7: // underscore_is_valid
-// 			srvConf.underscore_is_valid = _tokens[i] == "true";
-// 			break;
-// 		default:
-// 			throw std::runtime_error("Unknown server element: " + key);
-// 	}
-// 	if (_tokens.size() <= i + 1 || _tokens[i + 1] != ";")
-// 		throw std::runtime_error("Expected ';' after the value of '" + key + "'");
-// }
+void	ConfigParser::_parseBlock(
+	const std::string& name, WebservConfLevel level) {
+	_validateBlockAllowedInLevel(name, level);
+	if (name == "http") {
+		if (!httpConfs.empty() || 0 < servers.size())
+			throw std::runtime_error(
+				"Multiple 'http' blocks are not allowed");
+		_confCtx.httpConfs = &httpConfs;
+	}
+	else if (name == "server") {
+		servers.emplace_back(std::make_unique<IWebservModule::SrvNode>());
+		_confCtx.srvConfs = &servers.back().get()->srvConfs;
+		_curLocNode = &servers.back().get()->location;
+		_confCtx.locConfs = &_curLocNode->locConfs;
+	}
+	else if (name == "location") {
+		_curLocNode->locations.emplace_back(
+			std::make_unique<IWebservModule::LocNode>());
+		_curLocNode->locations.back().get()->parent = _curLocNode;
+		_curLocNode = _curLocNode->locations.back().get();
+		_confCtx.locConfs = &_curLocNode->locConfs;
+		if (!_tokens.empty() && _tokens.front() == "=")
+			_curLocNode->matchType = 0, _tokens.pop_front();
+		if (_tokens.empty() || _tokens.front() == "{"
+			|| _tokens.front() == "}" || _tokens.front() == ";")
+			throw std::runtime_error("Invalid Location");
+		if (_tokens.front()[0] != '/')
+			throw std::runtime_error(
+				"Only exact and normal prefix matching implemented");
+		_curLocNode->name = _tokens.front(), _tokens.pop_front();
+	}
+}
 
 void    ConfigParser::_parseModuleDirective(WebservConfLevel level) {
 	for (const auto& module: _modules) {
@@ -128,20 +101,18 @@ void    ConfigParser::_parseModuleDirective(WebservConfLevel level) {
 	throw std::runtime_error("Unknown directive '"
 		+ _tokens.front() + "' at level " + getLevelName(level));
 }
-
-int    ConfigParser::_isDirectiveNotInValidLevel(
-	const std::string& directive, WebservConfLevel level) {
-    return ((_directiveValLevelMap.at(directive) & level)
-		== static_cast<WebservConfLevel>(0));
+void	ConfigParser::_validateLevel(WebservConfLevel level) {
+	if (level != WebservConfLevel::MAIN
+		&& level != WebservConfLevel::HTTP
+		&& level != WebservConfLevel::SERVER
+		&& level != WebservConfLevel::LOCATION)
+		throw std::runtime_error("Invalid configuration level");
 }
 
 void	ConfigParser::parseConfig(WebservConfLevel level) {
-	std::string						directive;
-	static IWebservModule::LocNode*	curLocNode = nullptr;
+	std::string	blockName;
 
-	if (level != WebservConfLevel::MAIN && level != WebservConfLevel::HTTP
-	&& level != WebservConfLevel::SERVER && level != WebservConfLevel::LOCATION)
-		throw std::runtime_error("Invalid configuration level");
+	_validateLevel(level);
     while (!_tokens.empty()) {
 		if (_tokens.front() == "}") {
 			if (level == WebservConfLevel::MAIN)
@@ -149,38 +120,18 @@ void	ConfigParser::parseConfig(WebservConfLevel level) {
 					"Unexpected '}' at the end of MAIN block");
 			_tokens.pop_front();
 			if (level == WebservConfLevel::LOCATION)
-				curLocNode = curLocNode->parent;
+				_curLocNode = _curLocNode->parent;
 			return;
 		}
-        else if (_tokens.front() == "http" || _tokens.front() == "server"
+        else if (_tokens.front() == "http"
+		|| _tokens.front() == "server"
 		|| _tokens.front() == "location") {
-			directive = _tokens.front();
-			_tokens.pop_front();
-            if (_isDirectiveNotInValidLevel(directive, level))
-                throw std::runtime_error("Unexpected '" + directive
-					+ "' at level " + getLevelName(level));
+			blockName = _tokens.front(), _tokens.pop_front();
+            _parseBlock(blockName, level);
             if (_tokens.empty() || _tokens.front() != "{")
-                throw std::runtime_error("Expected '{' at the beginning of a " 
-					+ directive + " block");
+                throw std::runtime_error("Expected '{' at the beginning of '" 
+					+ blockName + "' block");
             _tokens.pop_front();
-			if (directive == "http") {
-				if (!httpConfs.empty() || 0 < servers.size())
-					throw std::runtime_error(
-						"Multiple 'http' blocks are not allowed");
-				confCtx.httpConfs = &httpConfs;
-			}
-			else if (directive == "server") {
-				servers.emplace_back();
-				confCtx.srvConfs = &servers.back().srvConfs;
-				curLocNode = &servers.back().location;
-				confCtx.locConfs = &curLocNode->locConfs;
-			}
-			else if (directive == "location") {
-				curLocNode->locations.resize(curLocNode->locations.size() + 1);
-				curLocNode->locations.back().parent = curLocNode;
-				curLocNode = &curLocNode->locations.back();
-				confCtx.locConfs = &curLocNode->locConfs;
-			}
             parseConfig(level << 1);
         }
         else
@@ -191,8 +142,16 @@ void	ConfigParser::parseConfig(WebservConfLevel level) {
 			+ getLevelName(level) + " block");
 }
 
-std::deque<std::string>&	ConfigParser::getTokens() {
+Tokens&	ConfigParser::getTokens() {
 	return _tokens;
+}
+
+const IWebservModule::LocNode&	ConfigParser::getLocNode() {
+	return *_curLocNode;
+}
+
+const IWebservModule::ConfCtx&	ConfigParser::getConfCtx() {
+	return _confCtx;
 }
 
 const std::string&	ConfigParser::getLevelName(WebservConfLevel level) const {
