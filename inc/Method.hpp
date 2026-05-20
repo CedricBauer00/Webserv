@@ -6,6 +6,7 @@
 #include "Exceptions.hpp"
 #include <filesystem>
 #include <fstream>
+#include "Response.hpp"
 
 class Method
 {
@@ -14,7 +15,7 @@ class Method
     public:
         Method();
         ~Method();
-        void    getMethod();
-        void    postMethod();
-        void    deleteMethod();
+        void    getMethod( Response& res);
+        void    postMethod( Response& res);
+        void    deleteMethod( Response& res);
 };

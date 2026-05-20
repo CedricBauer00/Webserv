@@ -49,11 +49,11 @@ void    Execution::execution( std::string request, Response &res, std::vector<Se
         Method  m;
         std::cout << "whichmethod:" << whichMeth << std::endl;
         if ( whichMeth == METHOD_GET )
-            m.getMethod();
+            m.getMethod( res );
         else if ( whichMeth == METHOD_DELETE )
-            m.deleteMethod();
+            m.deleteMethod( res );
         else if ( whichMeth == METHOD_POST )
-            m.deleteMethod();
+            m.deleteMethod( res );
         if ( whichMeth == METHOD_POST )
         {
             parser.setBody(); // for POST requests - last step of execution

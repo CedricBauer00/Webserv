@@ -4,7 +4,7 @@ Method::Method() {}
 
 Method::~Method() {}
 
-void    Method::getMethod() // status codes 200, 402, 404
+void    Method::getMethod( Response& res) // status codes 200, 402, 404
 {
     std::string mockUri = "/images/cat%20pics/../dog.png?size=large&debug=1";
 
@@ -104,8 +104,17 @@ void    Method::getMethod() // status codes 200, 402, 404
                 {
                     content += line;
                 }
+                res.setBody( content );
+                res.setCodeAndPhrase( "200", "OK" );
+                res.setHeaders( "Content-Length", std::to_string( content.size() ) );
+                res.setHeaders( "Content-Type", getFileType( joinedPath ) );
+                return ;
             }
-        }       
+        }
+        if ( autoIndexActive() )   
+            createAutoIndex();
+        else
+            throw NotFound();
     }
     // if ( std::filesystem::is_regular_file( newPath ) )
     // {
@@ -135,12 +144,20 @@ void    Method::getMethod() // status codes 200, 402, 404
 
 }
 
-void    Method::postMethod() // status Codes 200/201, 400, 413
+void    Method::postMethod( Response& res ) // status Codes 200/201, 400, 413
 {
 
 }
 
-void    Method::deleteMethod() // status Codes 200/204, 403, 404
+void    Method::deleteMethod( Response& res ) // status Codes 200/204, 403, 404
 {
     
 }
+
+int autoIndexActive()
+{
+
+    return 0;
+}
+
+void    createAutoIndex() {}
