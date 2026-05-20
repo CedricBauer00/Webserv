@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "HttpServer.hpp"
 #include "Servers.hpp"
 #include "../inc/Configparsing/ConfigParser.hpp"
@@ -15,6 +17,8 @@ int main(int argc, char* argv[])
         std::cerr << e.what() << std::endl;
     }
 
+    std::cout << confparser.getAddrToServersMap().at("0.0.0.0:80").size() << std::endl;
+    std::cout << confparser.getAddrToServersMap().at("0.0.0.0:80").front() << std::endl;
     HttpServer server;
     Global AllServers;
     Server CurServ;

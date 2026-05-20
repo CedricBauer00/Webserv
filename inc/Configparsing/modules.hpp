@@ -6,8 +6,11 @@
 #include <string>
 #include <deque>
 
-#define LISTEN (1 << 0)
-#define DEFAULT_SERVER (1 << 1)
+constexpr const unsigned int    LISTEN = (1 << 0);
+constexpr const unsigned int    DEFAULT_SERVER = (1 << 1);
+
+constexpr const char*   IP = "0.0.0.0";
+constexpr const char*   PORT = "80";
 
 enum class WebservConfLevel : uint8_t {
     MAIN = 1 << 0,

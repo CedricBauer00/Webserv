@@ -47,7 +47,6 @@ void WebservCoreParser::parseDirective(
         };
         int i = 0;
         for (const auto& directive : directives) {
-            std::cout << directive << i << std::endl;
             m[directive] = i++;
         }
         return m;
@@ -57,16 +56,16 @@ void WebservCoreParser::parseDirective(
 	std::string		directive = tokens.front();
 	tokens.pop_front();
 
-	if (tokens.empty())
+	if (tokens.empty() || _isDelimiter(tokens.front()))
 		throw std::runtime_error(
-			"Incomplete Config: Nothing after '" + directive + "'");
+			"Invalid definition for directive '" + directive + "'");
     _initConfIfEmptyAtLevel(confCtx, level);
     switch (directiveMap.at(directive)) {
         case 0: // listen
 			_parseListen(tokens, confCtx, parser);
 			break;
         case 1: // server_name
-			_parseServerNames(directive, tokens, confCtx);
+			_parseServerNames(tokens, confCtx);
             break;
         case 2: // num_req_expected
 			_parseNumReqExpected(directive, tokens, confCtx, level);
@@ -119,7 +118,7 @@ void WebservCoreParser::parseDirective(
     }
 	if (tokens.empty() || tokens.front() != ";")
 		throw std::runtime_error(
-			"Expected ';' after directive '" + directive + "'");
+			"Invalid definition for directive '" + directive + "'");
 	tokens.pop_front();
 };
 
@@ -147,15 +146,9 @@ void	WebservCoreParser::_initConfIfEmptyAtLevel(
 	};
 };
 
-bool	WebservCoreParser::_isValueValid(const std::string& tok) {
-	return (tok != ";" && tok != "{" && tok != "}");
+bool	WebservCoreParser::_isDelimiter(const std::string& tok) {
+	return (tok == ";" || tok == "{" || tok == "}");
 };
-void	WebservCoreParser::_validateValue(const std::string& directive,
-	const std::string& val) {
-	if (!_isValueValid(val))
-		throw std::runtime_error("Invalid value '" + val
-            + "'for directive '" + directive + "'");
-}
 
 bool	WebservCoreParser::_parseBooleanValue(const std::string& directive,
     const std::string& tok) {
@@ -181,7 +174,7 @@ void	WebservCoreParser::_parseListen(Tokens& t, const ConfCtx& c,
 	std::string	ip;
 	std::string	port;
 	std::string	str = t.front();
-	t.pop_front();
+    t.pop_front();
 
 	size_t colonPos = str.find(':');
 	if (colonPos != std::string::npos) {
@@ -190,40 +183,38 @@ void	WebservCoreParser::_parseListen(Tokens& t, const ConfCtx& c,
 	}
 	else {
 		if (str.find('.') != std::string::npos)
-			ip = str, port = "80";
+			ip = str, port = PORT;
 		else
-			ip = "0.0.0.0", port = str;
+			ip = IP, port = str;
 	}
 	if (!isValidIpv4(ip))
 		throw std::runtime_error("Invalid listen IP '" + ip + "'");
 	if (!isValidPort(port))
 		throw std::runtime_error("Invalid listen port '" + port + "'");
 
-	std::string	addr = ip + ":" + port;
-	SrvNode* node = parser.servers.back().get();
-	ConfigParser::AddrToServersMap& map = parser.addrToServersMap;
-	map[addr].push_back(node);
-	std::cout << map.at(addr).back() << std::endl;
+    if (ip != IP || port != PORT) {
+        parser.mapAddrToServer(ip + ":" + port, parser.getLastSrvNode());
+        parser.eraseMappingAddrToServer(std::string(IP) + ":" + PORT,
+            parser.getLastSrvNode());
+    }
 	SrvCoreConf* srvConf = dynamic_cast<SrvCoreConf*>(getSrvConfPtr(c));
 	srvConf->flags = LISTEN;
 	if (!t.empty() && t.front() == "default_server")
 		srvConf->flags |= DEFAULT_SERVER, t.pop_front();
-	
 };
 
-void	WebservCoreParser::_parseServerNames(const std::string& directive,
-	Tokens& t, const ConfCtx& c) {
+void	WebservCoreParser::_parseServerNames(Tokens& t, const ConfCtx& c) {
 	SrvCoreConf* srvConf = dynamic_cast<SrvCoreConf*>(getSrvConfPtr(c));
-	_validateValue(directive, t.front());
-	while (!t.empty() && _isValueValid(t.front())) {
+	while (1) {
 		srvConf->serverNames.push_back(t.front());
 		t.pop_front();
+        if (t.empty() || _isDelimiter(t.front()))
+            break;
 	}
 };
 
 void WebservCoreParser::_parseNumReqExpected(const std::string& directive,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
-	_validateValue(directive, t.front());
 	if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
 		_addLowerLevelDirective(directive,
             {t.front()},
@@ -236,7 +227,6 @@ void WebservCoreParser::_parseNumReqExpected(const std::string& directive,
 
 void WebservCoreParser::_parseClientHeaderTimeout(const std::string& directive,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
-	_validateValue(directive, t.front());
 	if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
 		_addLowerLevelDirective(directive,
             {t.front()},
@@ -274,15 +264,12 @@ void WebservCoreParser::_parseBoolDirective(const std::string& d,
 
 void WebservCoreParser::_parseRoot(const std::string& directive,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
-	_validateValue(directive, t.front());
 	if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
 		_addLowerLevelDirective(directive,
             {t.front()},
             dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
-	else {
-		LocCoreConf* locConf = dynamic_cast<LocCoreConf*>(getLocConfPtr(c));
-		locConf->root = t.front();
-	}
+	else
+		dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->root = t.front();
 	t.pop_front();
 }
 
@@ -293,9 +280,8 @@ void WebservCoreParser::_parseAllow(const std::string& directive,
         {"DELETE", 1u<<3}, {"HEAD", 1u<<4}, {"OPTIONS", 1u<<5}};
     unsigned int mask = 0;
     std::vector<std::string> values;
-    if (!m.count(t.front())) throw std::runtime_error("Invalid value '" + t.front() 
-    + "'for directive '" + directive + "'");
-	while (!t.empty() && _isValueValid(t.front())) {
+
+	while (1) {
         if (m.count(t.front()))
             if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
                 values.push_back(t.front());
@@ -305,6 +291,8 @@ void WebservCoreParser::_parseAllow(const std::string& directive,
             throw std::runtime_error("Invalid value '" + t.front()
                 + "'for directive '" + directive + "'");
 		t.pop_front();
+        if (t.empty() && _isDelimiter(t.front()))
+            break;
 	}
 	if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
 		_addLowerLevelDirective(directive,
@@ -317,14 +305,12 @@ void WebservCoreParser::_parseAllow(const std::string& directive,
 void WebservCoreParser::_parseAlias(const std::string& directive,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l, ConfigParser& parser) {
 	const LocNode&	curLocNode = parser.getLocNode();
-	LocCoreConf* locConf = dynamic_cast<LocCoreConf*>(getLocConfPtr(c));
-	locConf->alias = curLocNode.name.size();
+	dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->alias = curLocNode.name.size();
 	_parseRoot(directive, t, c, l);
 }
 
 void WebservCoreParser::_parseClientBodyBufferSize(const std::string& directive,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
-    _validateValue(directive, t.front());
     if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
 		_addLowerLevelDirective(directive,
             {t.front()},
@@ -337,7 +323,6 @@ void WebservCoreParser::_parseClientBodyBufferSize(const std::string& directive,
 
 void WebservCoreParser::_parseClientBodyTimeout(const std::string& directive,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
-	_validateValue(directive, t.front());
     if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
 		_addLowerLevelDirective(directive,
             {t.front()},
@@ -350,7 +335,6 @@ void WebservCoreParser::_parseClientBodyTimeout(const std::string& directive,
 
 void WebservCoreParser::_parseClientMaxBodySize(const std::string& directive,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
-    _validateValue(directive, t.front());
     if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
 		_addLowerLevelDirective(directive,
             {t.front()},
@@ -363,7 +347,6 @@ void WebservCoreParser::_parseClientMaxBodySize(const std::string& directive,
 
 void WebservCoreParser::_parseSendTimeout(const std::string& directive,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
-    _validateValue(directive, t.front());
     if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
 		_addLowerLevelDirective(directive,
             {t.front()},
@@ -385,10 +368,11 @@ void WebservCoreParser::_parseErrorPage(const std::string& directive,
 void WebservCoreParser::_parseIndex(const std::string& directive,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
     std::vector<std::string> values;
-    _validateValue(directive, t.front());
-	while (!t.empty() && _isValueValid(t.front())) {
+	while (1) {
 		values.push_back(t.front());
 		t.pop_front();
+        if (t.empty() && _isDelimiter(t.front()))
+            break;
 	}
     if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
 		_addLowerLevelDirective(directive,

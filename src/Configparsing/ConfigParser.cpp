@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "../../inc/Configparsing/ConfigParser.hpp"
 #include "../../inc/Configparsing/WebservCoreModule.hpp"
 
@@ -62,15 +63,16 @@ void	ConfigParser::_parseBlock(
 	const std::string& name, WebservConfLevel level) {
 	_validateBlockAllowedInLevel(name, level);
 	if (name == "http") {
-		if (!httpConfs.empty() || 0 < servers.size())
+		if (!_httpConfs.empty() || 0 < _servers.size())
 			throw std::runtime_error(
 				"Multiple 'http' blocks are not allowed");
-		_confCtx.httpConfs = &httpConfs;
+		_confCtx.httpConfs = &_httpConfs;
 	}
 	else if (name == "server") {
-		servers.emplace_back(std::make_unique<IWebservModule::SrvNode>());
-		_confCtx.srvConfs = &servers.back().get()->srvConfs;
-		_curLocNode = &servers.back().get()->location;
+		_servers.emplace_back(std::make_unique<IWebservModule::SrvNode>());
+		mapAddrToServer(std::string(IP) + ":" + PORT, _servers.back().get());
+		_confCtx.srvConfs = &_servers.back().get()->srvConfs;
+		_curLocNode = &_servers.back().get()->location;
 		_confCtx.locConfs = &_curLocNode->locConfs;
 	}
 	else if (name == "location") {
@@ -118,9 +120,9 @@ void	ConfigParser::parseConfig(WebservConfLevel level) {
 			if (level == WebservConfLevel::MAIN)
 				throw std::runtime_error(
 					"Unexpected '}' at the end of MAIN block");
-			_tokens.pop_front();
 			if (level == WebservConfLevel::LOCATION)
 				_curLocNode = _curLocNode->parent;
+			_tokens.pop_front();
 			return;
 		}
         else if (_tokens.front() == "http"
@@ -146,11 +148,11 @@ Tokens&	ConfigParser::getTokens() {
 	return _tokens;
 }
 
-const IWebservModule::LocNode&	ConfigParser::getLocNode() {
+const IWebservModule::LocNode&	ConfigParser::getLocNode() const {
 	return *_curLocNode;
 }
 
-const IWebservModule::ConfCtx&	ConfigParser::getConfCtx() {
+const IWebservModule::ConfCtx&	ConfigParser::getConfCtx() const {
 	return _confCtx;
 }
 
@@ -160,4 +162,37 @@ const std::string&	ConfigParser::getLevelName(WebservConfLevel level) const {
 		return it->second;
 	else
 		throw std::runtime_error("Unknown configuration level");
+}
+
+const IWebservModule::SrvNode*	ConfigParser::getLastSrvNode() const {
+    if (_servers.empty())
+        throw std::runtime_error(
+            "Can't fetch the last server node as none available yet");
+    return _servers.back().get();
+}
+
+const ConfigParser::AddrToServersMap&	ConfigParser::getAddrToServersMap() const
+{
+	return _addrToServersMap;
+}
+
+void	ConfigParser::mapAddrToServer(const std::string& addr,
+	const IWebservModule::SrvNode* node) {
+	if (!_addrToServersMap.count(addr)
+		|| (std::find(_addrToServersMap[addr].begin(),
+			_addrToServersMap[addr].end(),
+			node) == _addrToServersMap[addr].end())
+	) _addrToServersMap[addr].push_back(node);
+}
+
+void	ConfigParser::eraseMappingAddrToServer(const std::string& addr,
+	const IWebservModule::SrvNode* node) {
+	if (_addrToServersMap.count(addr)) {
+		auto it = std::find(_addrToServersMap[addr].begin(),
+		_addrToServersMap[addr].end(), node);
+		if (it != _addrToServersMap[addr].end())
+			_addrToServersMap[addr].erase(it);
+		if (_addrToServersMap[addr].empty())
+			_addrToServersMap.erase(addr);
+	}
 }
