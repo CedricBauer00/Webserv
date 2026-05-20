@@ -55,9 +55,7 @@ class WebservCoreParser : public AWebservParser {
 	private:
 		void	_initConfIfEmptyAtLevel(
 			const ConfCtx& confCtx, WebservConfLevel level);
-		bool	_isValueValid(const std::string& tok);
-		void	_validateValue(
-			const std::string& directive, const std::string& val);
+		bool	_isDelimiter(const std::string& tok);
 		bool	_parseBooleanValue(const std::string& directive,
             const std::string& tok);
 		void	_addLowerLevelDirective(const std::string& directive,
@@ -65,8 +63,7 @@ class WebservCoreParser : public AWebservParser {
             std::vector<std::vector<std::string>>& arr);
 		void	_parseListen(Tokens& tokens, const ConfCtx& confCtx,
 			ConfigParser& parser);
-		void	_parseServerNames(const std::string& directive,
-			Tokens& tokens, const ConfCtx& confCtx);
+		void	_parseServerNames(Tokens& tokens, const ConfCtx& confCtx);
 		void	_parseNumReqExpected(const std::string& directive,
 			Tokens& tokens, const ConfCtx& confCtx, WebservConfLevel level);
 		void	_parseClientHeaderTimeout(const std::string& directive,
