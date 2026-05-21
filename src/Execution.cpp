@@ -50,9 +50,10 @@ void    Execution::execution( std::string request, Response &res, std::vector<Se
         Method  m;
         // m.checkMethodAllowed()/
         std::string newPath = m.modifyPath( parser.getUri(), whichMethod );
-        std::cout << "whichmethodod:" << whichMethod << std::endl;
+        std::cout << "newPath:" << newPath << std::endl;
+
         if ( whichMethod == METHOD_GET )
-            m.getMethod( newPath, res, parser.getUri() );
+            m.getMethod( newPath, res );
         else if ( whichMethod == METHOD_DELETE )
             m.deleteMethod( newPath, res );
         if ( whichMethod == METHOD_POST )

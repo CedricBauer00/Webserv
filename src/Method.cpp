@@ -60,7 +60,7 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
             newPath += "/";
     }
     
-    std::cout << "newPath == " << newPath << std::endl; 
+    // std::cout << "newPath == " << newPath << std::endl; 
 
     std::string mockLocation = "/images";
     std::string mockRoot = getRootPath();
@@ -69,6 +69,7 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
     {
         if( !( path.empty() ) )
             mockRoot = getUploadPath();   
+        std::cout << mockRoot << std::endl;
     }
     newPath = newPath.substr( mockLocation.size() );
     
@@ -79,29 +80,26 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
         mockRoot += '/';
     newPath = mockRoot + newPath;
 
-    std::cout << "newPath:" << newPath << std::endl;
+    // std::cout << "newPath:" << newPath << std::endl;
     
+    std::cout << "finished modify path" << std::endl;
     return newPath;
 }
 
 
-void    Method::getMethod( std::string newPath, Response &res, std::string uri ) // status codes 200, 402, 404
+void    Method::getMethod( std::string newPath, Response &res ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
-    (void)uri;
     std::vector<std::string> stack;
     stack.push_back("index1.html");
     stack.push_back("index2.html");
     stack.push_back("index3.html");
 
-    std::cout << "newPath:" << newPath << std::endl;
+    // std::cout << "newPath:" << newPath << std::endl;
 
     std::error_code ec;
     if ( !( std::filesystem::exists( newPath, ec ) ) )
-    {
-        std::cout << "here1" << std::endl; 
         throw NotFound();
-    }
 
     if ( std::filesystem::is_regular_file( newPath ) )
     {
@@ -131,8 +129,6 @@ void    Method::getMethod( std::string newPath, Response &res, std::string uri )
         }
         for ( auto x : stack ) // replace stack with all files in directory - indexes from location 
         {
-            std::cout << "here3" << std::endl; 
-
             std::string joinedPath = newPath + x;
             if ( std::filesystem::exists( joinedPath, ec ) )
             {
@@ -152,6 +148,8 @@ void    Method::getMethod( std::string newPath, Response &res, std::string uri )
                 res.setCodeAndPhrase( "200", "OK" );
                 res.setHeaders( "Content-Length", std::to_string( content.size() ) );
                 res.setHeaders( "Content-Type", getFileType( joinedPath ) );
+                std::cout << "GET function is done" << std::endl;
+
                 return ;
             }
         }
@@ -163,7 +161,6 @@ void    Method::getMethod( std::string newPath, Response &res, std::string uri )
         }
         else
             throw NotFound();
-
     }
 
     // 1) Method permissions pruefen passiert in execution func - check ob syntax korrekt?
@@ -193,12 +190,6 @@ void    Method::postMethod( std::string newPath, Response &res ) // status Codes
     (void)res;
 }
 
-void    Method::deleteMethod( std::string newPath, Response &res ) // status Codes 200/204, 403, 404
-{
-    (void)newPath;
-    (void)res;
-}
-
 bool    getUploadEnabled()
 {
     return true;
@@ -213,3 +204,40 @@ std::string getRootPath()
 {
     return "./servers/server1/data";
 }
+
+
+void    Method::deleteMethod( std::string newPath, Response &res ) // status codes 200, 402, 404
+{
+    // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
+    // std::cout << "newPath:" << newPath << std::endl;
+
+    std::error_code ec;
+    if ( !( std::filesystem::exists( newPath, ec ) ) )
+        throw NotFound();
+
+    if ( std::filesystem::is_regular_file( newPath ) )
+    {
+        std::ifstream ifs( newPath ); 
+    
+        if ( !( ifs.is_open() ) ) // permissions check
+            throw NotFound();
+        // delete file
+        std::filesystem::remove( newPath );
+
+        res.setCodeAndPhrase( "204", "No Content" );
+        res.setHeaders( "Content-Length", "0" );
+        return ;
+    }
+
+    if ( autoIndexActive() ) // not implemented yet   
+    {
+        createAutoIndex( newPath, res ); // not implemented yet
+        return ;
+    }
+    else
+        throw NotFound();
+
+
+}
+
+// test: printf 'DELETE /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
