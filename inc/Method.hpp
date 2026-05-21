@@ -7,7 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include "Response.hpp"
-
+#include "MethodTypes.hpp"
 
 class Method
 {
@@ -16,7 +16,7 @@ class Method
     public:
         Method();
         ~Method();
-        std::string    modifyPath( Response &res, std::string uri, whichMethod whichMethod );
+        std::string    modifyPath( std::string uri, whichMethod whichMethod );
         void    getMethod( std::string newPath, Response &res, std::string uri );
         void    postMethod( std::string newPath, Response &res);
         void    deleteMethod( std::string newPath, Response &res);
@@ -24,3 +24,7 @@ class Method
 
 // bool        autoIndexActive();
 // void        createAutoIndex( std::string mockUri, Response &res );
+
+std::string getRootPath();
+bool        getUploadEnabled();
+std::string getUploadPath();

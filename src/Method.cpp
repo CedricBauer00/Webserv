@@ -4,7 +4,7 @@ Method::Method() {}
 
 Method::~Method() {}
 
-std::string    modifyPath( Response &res, std::string uri, whichMethod whichMethod )
+std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
 {
         // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
 
@@ -88,7 +88,7 @@ std::string    modifyPath( Response &res, std::string uri, whichMethod whichMeth
 void    Method::getMethod( std::string newPath, Response &res, std::string uri ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
-    
+    (void)uri;
     std::vector<std::string> stack;
     stack.push_back("index1.html");
     stack.push_back("index2.html");
@@ -187,14 +187,15 @@ void    Method::getMethod( std::string newPath, Response &res, std::string uri )
 
 }
 
-void    Method::postMethod( Response &res ) // status Codes 200/201, 400, 413
+void    Method::postMethod( std::string newPath, Response &res ) // status Codes 200/201, 400, 413
 {
-
+    (void)newPath;
     (void)res;
 }
 
-void    Method::deleteMethod( Response &res ) // status Codes 200/204, 403, 404
+void    Method::deleteMethod( std::string newPath, Response &res ) // status Codes 200/204, 403, 404
 {
+    (void)newPath;
     (void)res;
 }
 

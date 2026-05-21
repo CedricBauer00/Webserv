@@ -19,7 +19,10 @@
 #include <algorithm> 
 #include <cctype>
 
-#include "Execution.hpp"
+// #include "Execution.hpp"
+#include "MethodTypes.hpp"
+// #include "HttpException.hpp"
+#include "Exceptions.hpp"
 
 #define RED  "\033[31m"
 #define ELEC_RED "\033[38;2;255;20;20m"
@@ -29,13 +32,6 @@
 #define RESET  "\033[0m"
 
 #define MAX_BODY_SIZE 1024
-
-enum whichMethod
-{
-    METHOD_GET,
-    METHOD_POST,
-    METHOD_DELETE
-};
 
 class HttpParser
 {
