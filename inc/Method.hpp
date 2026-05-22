@@ -28,3 +28,4 @@ class Method
 std::string getRootPath();
 bool        getUploadEnabled();
 std::string getUploadPath();
+bool        getAllowDeleteDir();

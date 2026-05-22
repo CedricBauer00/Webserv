@@ -69,7 +69,7 @@ int HttpServer::eventLoop( std::vector<int> listenFds, std::vector<Server> serve
     {
         printf("Number of open fds: %d\n", fdCount);
         nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
-
+        // check client disconnecting time
         if (nfds == -1)
         {
             perror( "epoll_wait" );
@@ -107,7 +107,7 @@ int HttpServer::eventLoop( std::vector<int> listenFds, std::vector<Server> serve
                     ev.data.ptr = new Client(new_fd);
                     ev.events = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET;
                     
-                    if (epoll_ctl(epollfd, EPOLL_CTL_ADD, new_fd, &ev) == -1)
+                    if (epoll_ctl(epollfd, EPOLL_CTL_ADD, new_fd, &ev) == -1) // get timestamp for slowloris check
                     {
                         delete static_cast<Client*>(ev.data.ptr); 
                         throw std::runtime_error("EPOLL_CTL_ERROR");
@@ -139,7 +139,7 @@ int HttpServer::eventLoop( std::vector<int> listenFds, std::vector<Server> serve
 
                 Client &client = *(static_cast<Client*>(events[n].data.ptr));
                 
-                if (events[n].events & EPOLLIN)
+                if (events[n].events & EPOLLIN) // update timestamp for bytes read
                 {
                     ret = client.receiveFromClient();
                     if (ret < 1)
@@ -156,7 +156,7 @@ int HttpServer::eventLoop( std::vector<int> listenFds, std::vector<Server> serve
 
                 // const char* response = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n<html><body>Hello, World!</body></html>";
 
-                if ( client.getComplHeader() )
+                if ( client.getComplHeader() ) // if false && now - lastActivity > header_timeout -> close connection
                 {                    
                     Execution exec;
                     exec.execution( client.getRequest(), res, servers );

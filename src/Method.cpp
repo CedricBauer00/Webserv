@@ -209,7 +209,8 @@ std::string getRootPath()
 void    Method::deleteMethod( std::string newPath, Response &res ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
-    // std::cout << "newPath:" << newPath << std::endl;
+    std::cout << "newPath:" << newPath << std::endl;
+
 
     std::error_code ec;
     if ( !( std::filesystem::exists( newPath, ec ) ) )
@@ -217,6 +218,8 @@ void    Method::deleteMethod( std::string newPath, Response &res ) // status cod
 
     if ( std::filesystem::is_regular_file( newPath ) )
     {
+        std::cout << "Enter delete function" << std::endl;
+
         std::ifstream ifs( newPath ); 
     
         if ( !( ifs.is_open() ) ) // permissions check
@@ -227,6 +230,18 @@ void    Method::deleteMethod( std::string newPath, Response &res ) // status cod
         res.setCodeAndPhrase( "204", "No Content" );
         res.setHeaders( "Content-Length", "0" );
         return ;
+    }
+    else // is directory, 403 Forbidden oder wenn delete directory explizit erlaubt ist
+    {
+        if ( getAllowDeleteDir() == true ) // deleting directory is allowed
+        {
+            std::filesystem::remove_all( newPath );
+            res.setCodeAndPhrase( "204", "No Content" );
+            res.setHeaders( "Content-Length", "0" );
+            return ;
+        }
+
+        throw Forbidden();
     }
 
     if ( autoIndexActive() ) // not implemented yet   
@@ -241,3 +256,8 @@ void    Method::deleteMethod( std::string newPath, Response &res ) // status cod
 }
 
 // test: printf 'DELETE /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
+
+bool getAllowDeleteDir()
+{
+    return true;
+}
