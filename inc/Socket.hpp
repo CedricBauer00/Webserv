@@ -9,19 +9,11 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <sys/wait.h>
-#include <sys/epoll.h>
-#include <signal.h>
 #include <fcntl.h>
 #include <algorithm>
 #include <vector>
-#include "../inc/HttpParser.hpp"
-#include "../inc/Client.hpp"
-#include "../inc/ListenHandler.hpp"
-#include "../inc/ConfigParsing.hpp"
 
-#define PORT "3490"
-#define BACKLOG 5
+constexpr unsigned int  BACKLOG = 1024;
 
 class Socket
 {

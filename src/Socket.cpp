@@ -1,17 +1,12 @@
 #include "../inc/Socket.hpp"
 
-Socket::Socket() { std::cout << "Created Socket." << std::endl; }
+Socket::Socket() {
+}
 
-Socket::~Socket() { std::cout << "Destroyed Socket." << std::endl; }
-
-
-void sigchld_handler(int s)
-{
-    (void)s; // quiet unused variable warning
-    int saved_errno = errno; // waitpid() might overwrite errno, so we save and restore it:
-
-    while(waitpid(-1, NULL, WNOHANG) > 0); //ends all child processes - zombie processes
-    errno = saved_errno;
+Socket::~Socket() {
+    for (auto fd: _listenFds) {
+        close(fd);
+    }
 }
 
 void *get_in_addr(struct sockaddr *sa)

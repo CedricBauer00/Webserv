@@ -11,6 +11,7 @@
 #include <iostream>
 #include <ctime>
 #include <unistd.h>
+#include "HttpParser.hpp"
 
 class Method
 {
