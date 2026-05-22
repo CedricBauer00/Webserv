@@ -202,7 +202,7 @@ std::string getUploadPath()
 
 std::string getRootPath()
 {
-    return "./servers/server1/data";
+    return "./servers/server1/uploads/data";
 }
 
 
@@ -259,5 +259,5 @@ void    Method::deleteMethod( std::string newPath, Response &res ) // status cod
 
 bool getAllowDeleteDir()
 {
-    return true;
+    return false;
 }
