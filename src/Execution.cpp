@@ -59,7 +59,7 @@ void    Execution::execution( std::string request, Response &res, std::vector<Se
         if ( whichMethod == METHOD_POST )
         {
             parser.setBody(); // for POST requests - last step of execution
-            m.postMethod( newPath, res );
+            m.postMethod( newPath, res, parser.getBody() );
             std::cout << ORANGE << parser.getBody() << RESET << std::endl;
         }
         /// Response Buidling 

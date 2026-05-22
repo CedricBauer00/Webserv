@@ -8,6 +8,9 @@
 #include <fstream>
 #include "Response.hpp"
 #include "MethodTypes.hpp"
+#include <iostream>
+#include <ctime>
+
 
 class Method
 {
@@ -18,8 +21,8 @@ class Method
         ~Method();
         std::string    modifyPath( std::string uri, whichMethod whichMethod );
         void    getMethod( std::string newPath, Response &res );
-        void    postMethod( std::string newPath, Response &res);
         void    deleteMethod( std::string newPath, Response &res ); // status codes 200, 402, 404
+        void    postMethod( std::string newPath, Response &res, std::string contentBody ); // status codes 200, 402, 404
 };
 
 // bool        autoIndexActive();
@@ -29,3 +32,5 @@ std::string getRootPath();
 bool        getUploadEnabled();
 std::string getUploadPath();
 bool        getAllowDeleteDir();
+bool        getAllowedToOverwrite();
+std::string getTimeStamp();

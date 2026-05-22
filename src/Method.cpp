@@ -65,12 +65,15 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
     std::string mockLocation = "/images";
     std::string mockRoot = getRootPath();
 
-    if ( whichMethod == METHOD_POST && getUploadEnabled() )
+    if ( whichMethod == METHOD_POST )
     {
+        if ( !getUploadEnabled() )
+            throw Forbidden();
         if( !( path.empty() ) )
-            mockRoot = getUploadPath();   
+            mockRoot = getUploadPath().empty() ? mockRoot : getUploadPath();
         std::cout << mockRoot << std::endl;
     }
+    
     newPath = newPath.substr( mockLocation.size() );
     
     // /DO.PNG
@@ -108,12 +111,13 @@ void    Method::getMethod( std::string newPath, Response &res ) // status codes 
         if ( !( ifs.is_open() ) ) // permissions check
             throw NotFound();
         
-        std::string line;
         std::string content;
-        while ( getline( ifs, line ) )
-        {
-            content += line;
-        }
+        std::ostringstream oss;
+        
+        oss << ifs.rdbuf();
+
+        content = oss.str();
+
         res.setBody( content );
         res.setCodeAndPhrase( "200", "OK" );
         res.setHeaders( "Content-Length", std::to_string( content.size() ) );
@@ -137,13 +141,13 @@ void    Method::getMethod( std::string newPath, Response &res ) // status codes 
 
                 if ( !( ifs.is_open() ) ) // permissions check
                     throw NotFound();
-                std::string line;
                 std::string content;
-                while ( getline( ifs, line ) )
-                {
-                    content += line;
-                    std::cout  << "here" << std::endl;
-                }
+                std::ostringstream oss;
+        
+                oss << ifs.rdbuf();
+
+                content = oss.str();
+
                 res.setBody( content );
                 res.setCodeAndPhrase( "200", "OK" );
                 res.setHeaders( "Content-Length", std::to_string( content.size() ) );
@@ -184,12 +188,6 @@ void    Method::getMethod( std::string newPath, Response &res ) // status codes 
 
 }
 
-void    Method::postMethod( std::string newPath, Response &res ) // status Codes 200/201, 400, 413
-{
-    (void)newPath;
-    (void)res;
-}
-
 bool    getUploadEnabled()
 {
     return true;
@@ -197,15 +195,15 @@ bool    getUploadEnabled()
 
 std::string getUploadPath()
 {
-    return "/uploads/";
+    return "./servers/server1/uploads";
 }
 
 std::string getRootPath()
 {
-    return "./servers/server1/uploads/data";
+    return "./servers/server1/uploads";
 }
 
-
+// test: printf 'DELETE /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
 void    Method::deleteMethod( std::string newPath, Response &res ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
@@ -245,47 +243,73 @@ void    Method::deleteMethod( std::string newPath, Response &res ) // status cod
     }
 }
 
-void    Method::postMethod( std::string newPath, Response &res ) // status codes 200, 402, 404
+// test: printf 'POST /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
+void    Method::postMethod( std::string newPath, Response &res, std::string contentBody ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
     std::cout << "newPath:" << newPath << std::endl;
 
-
     std::error_code ec;
-    if ( ( std::filesystem::exists( newPath, ec ) ) ) // wenn file existiert muessen wir checken, ob wir ueberschreiben duerfen? sonst exception?
+    if ( !( std::filesystem::exists( newPath, ec ) ) ) // wenn file existiert muessen wir checken, ob wir ueberschreiben duerfen? sonst exception?
         throw NotFound();
 
+        
     if ( std::filesystem::is_regular_file( newPath ) )
     {
         std::cout << "Enter delete function" << std::endl;
-
-        std::ifstream ifs( newPath ); 
-    
-        if ( !( ifs.is_open() ) ) // permissions check
-            throw NotFound();
-
-        // put content
-
-        res.setCodeAndPhrase( "204", "No Content" );
-        res.setHeaders( "Content-Length", "0" );
-        return ;
+        
+        if ( !getAllowedToOverwrite() )
+            throw Forbidden();
+        else
+        {
+            std::ofstream ofs( newPath, std::ios::binary | std::ios::trunc );
+            if ( !ofs )
+                throw BadRequest();
+            //write
+            // put content
+            ofs << contentBody;
+            ofs.close();
+            res.setCodeAndPhrase( "200", "OK" );
+            res.setHeaders( "Content-Length", "0" );
+            return ;
+        }        
     }
     else // is directory, 403 Forbidden oder wenn delete directory explizit erlaubt ist
     {
         // create file 
+        std::string fileName = "upload";
+        fileName += getTimeStamp();
+        fileName += ".bin";
+        
+        std::cout << "FileName:" << fileName << "\n" << "JoinedPath:" << newPath + fileName << "\nBody:\n" << contentBody << std::endl;
+        std::ofstream ofs( newPath + fileName );
+        
+        if ( !ofs )
+            throw BadRequest();
 
-        res.setCodeAndPhrase( "200", "OK" );
+        ofs << contentBody;
+
+        ofs.close();
+        
+        res.setCodeAndPhrase( "201", "Created" );
         res.setHeaders( "Content-Length", "0" );
         return ;
-
-        throw Forbidden();
     }
 }
 
 
-// test: printf 'DELETE /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
 
-bool getAllowDeleteDir()
+bool    getAllowDeleteDir()
 {
     return false;
+}
+
+bool    getAllowedToOverwrite()
+{
+    return false;
+}
+
+std::string getTimeStamp()
+{
+    return std::to_string( std::time( 0 ) );
 }
