@@ -13,11 +13,7 @@ void	WebServ::_createListeners() {
 	if (_confParser.getAddrToServersMap().empty())
 		throw std::runtime_error("No servers defined in config file");
 	for (const auto& addrAndSrvNodes : _confParser.getAddrToServersMap()) {
-		_listeners.emplace_back(
-			Listener(addrAndSrvNodes.first,
-				addrAndSrvNodes.second,
-				&_epoller
-			));
+		new Listener(addrAndSrvNodes.first, addrAndSrvNodes.second, _epoller);
 	}
 }
 

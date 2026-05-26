@@ -16,23 +16,22 @@ class AEventHandler {
 	protected:
 		const int											_fd;
 		const std::vector<const IWebservModule::SrvNode*>&	_servers;
-		const Epoller* const								_epoller;
+		const Epoller&										_epoller;
 
-		int		_setNonBlocking(int fd);
-
+		void	_setNonBlocking(int fd);
     public:
 		AEventHandler() = delete;
         AEventHandler(const int fd,
 			const std::vector<const IWebservModule::SrvNode*>& servers,
-			const Epoller* const epoller);
+			const Epoller& epoller,
+			const uint32_t events);
         virtual ~AEventHandler();
 
 		const std::vector<const IWebservModule::SrvNode*>&	getServers() const;
-		const Epoller* 	getEpoller() const;
-        const int		getFd() const;
-		void			closeFd();
-        void*			getInAddr(struct sockaddr *sa) const;
-        void			addSelfToEpoll(uint32_t events) const;
-		void			delSelfFromEpoll() const;
+		const int		getFd() const;
+		const Epoller&	getEpoller() const;
+		void			closeFd(int fd);
+        void*			getInAddr(struct sockaddr_storage& st) const;
+		in_port_t		getPort(struct sockaddr_storage& st) const;
         virtual void	process(uint32_t events) = 0;
 };

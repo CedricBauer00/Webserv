@@ -3,8 +3,10 @@
 #include "../inc/constants.h"
 
 Reader::Reader(const int fd, const Listener& listener)
-    : AEventHandler(fd, listener.getServers(), listener.getEpoller()) {
-    addSelfToEpoll(EPOLLIN | EPOLLRDHUP | EPOLLET);
+    : AEventHandler(fd,
+        listener.getServers(),
+        listener.getEpoller(),
+        EPOLLIN | EPOLLRDHUP | EPOLLET) {
 }
 
 Reader::~Reader() {
@@ -55,6 +57,8 @@ void    Reader::process(uint32_t events) {
     else {
 		//TODO: if complete request has been received, it could be
 		//that client side did a shutdown and still open for receiving
+		if (_complHeader)
+		
         delete this; // Will also remove from epoll
         throw std::runtime_error("Client disconnected");
     }

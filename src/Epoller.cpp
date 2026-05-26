@@ -1,9 +1,3 @@
-#include <unistd.h>
-#include <string.h>
-#include <string>
-#include <stdexcept>
-#include <iostream>
-#include <fcntl.h>
 #include "../inc/Epoller.hpp"
 #include "../inc/AEventHandler.hpp"
 
@@ -25,8 +19,10 @@ const int	Epoller::getFd() const {
 	return _epollfd;
 }
 
-void    Epoller::addEventHandler(AEventHandler* handler, uint32_t events) {
+void    Epoller::addEventHandler(
+	AEventHandler* handler, const uint32_t events) const {
 	struct epoll_event ev;
+
 	ev.events = events;
 	ev.data.ptr = handler;
 	if (epoll_ctl(_epollfd, EPOLL_CTL_ADD, handler->getFd(), &ev) == -1)
@@ -36,7 +32,7 @@ void    Epoller::addEventHandler(AEventHandler* handler, uint32_t events) {
 	<< ": added to epoll with events " << events << std::endl;
 }
 
-void    Epoller::deleteEventHandler(AEventHandler* handler) {
+void    Epoller::deleteEventHandler(AEventHandler* handler) const {
     if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, handler->getFd(), NULL) == -1)
         std::cerr << "Error deleting fd " << handler->getFd()
         << " from epoll: " << strerror(errno) << std::endl;
@@ -45,27 +41,27 @@ void    Epoller::deleteEventHandler(AEventHandler* handler) {
         << ": deleted from epoll" << std::endl;
 }
 
-void	Epoller::runEventLoop() {
+void	Epoller::runEventLoop() const {
 	struct epoll_event events[MAX_EVENTS];
+
 	while (true) {
 		int nfds = epoll_wait(_epollfd, events, MAX_EVENTS, -1);
 		if (nfds == -1) {
 			if (errno == EINTR)
 				continue; // Restart if interrupted by signal
 			throw std::runtime_error(
-                std::string("FATAL ERROR (epoll_wait): ") + strerror(errno));
+                std::string("FATAL ERROR [epoll_wait]: ") + strerror(errno));
 			// heap memory is not freed here. Doing so requires storing
 			// allocations as a list and free'ing them here, which by design 
 			// is avoided here to speed up event processing.
 		}
 		for (int n = 0; n < nfds; ++n) {
 			try {
-				static_cast<AEventHandler*>(events[n].data.ptr)->process();
+				static_cast<AEventHandler*>(events[n].data.ptr)->process(
+					events[n].events);
 			}
 			catch (const std::exception& e) {
-				std::cerr << "Error processing event for fd " 
-				<< static_cast<AEventHandler*>(events[n].data.ptr)->getFd()
-				<< ": " << e.what() << std::endl;
+				std::cerr << e.what() << std::endl;
 			}
 		}
 	}
