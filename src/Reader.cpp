@@ -12,7 +12,7 @@ Reader::Reader(const int fd, const Listener& listener)
 Reader::~Reader() {
 }
 
-int Reader::receiveFromClient() {
+int Reader::_receiveFromClient() {
      std::cout << BLUE << "FD " << _fd << ": Reading from client.." 
      << RESET << std::endl;
     char buffer[BUFFER_SIZE];
@@ -36,18 +36,17 @@ int Reader::receiveFromClient() {
 
 void    Reader::process(uint32_t events) {
     if (events & (EPOLLERR | EPOLLHUP)) {
-		int err;
-		socklen_t len = sizeof(err);
-
-		getsockopt(_fd, SOL_SOCKET, SO_ERROR, &err, &len);
-		std::cerr << "socket error: " << strerror(err) << std::endl;
+		_printSocketError();
 		delete this;
-		throw std::runtime_error("Client socket error");
+		throw;
     }
 
     if (receiveFromClient() < 0) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK)
-            return; // No more data to read right now
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			if (!_complHeader)
+				return; // No more data to read right now
+			//TODO: run stuff
+		}
         else {
             delete this; // Will also remove from epoll
             throw std::runtime_error(
@@ -55,11 +54,11 @@ void    Reader::process(uint32_t events) {
         }
     }
     else {
-		//TODO: if complete request has been received, it could be
-		//that client side did a shutdown and still open for receiving
-		if (_complHeader)
-		
-        delete this; // Will also remove from epoll
-        throw std::runtime_error("Client disconnected");
+		if (!_complHeader) {
+			std::cerr << "FD " << _fd << ": Client disconnected" << std::endl;
+			delete this; // Will also remove from epoll
+			throw;
+		}
+		//TODO: run stuff
     }
 }

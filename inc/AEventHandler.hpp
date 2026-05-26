@@ -19,6 +19,7 @@ class AEventHandler {
 		const Epoller&										_epoller;
 
 		void	_setNonBlocking(int fd);
+        void    _printSocketError();
     public:
 		AEventHandler() = delete;
         AEventHandler(const int fd,

@@ -66,8 +66,7 @@ int	Listener::_createListenFd(const std::string& addr) {
 }
 
 void	Listener::_recover(uint32_t events) {
-	std::cerr << "FD " << getFd() 
-	<< ": Got error event [type: " << events <<  "]" <<std::endl;
+	_printSocketError();
 
 	try {
 		new Listener(_addr, _servers, _epoller);

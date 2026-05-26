@@ -1,7 +1,5 @@
 #include <iostream>
 
-#include "HttpServer.hpp"
-#include "Servers.hpp"
 #include "../inc/Configparsing/ConfigParser.hpp"
 
 int main(int argc, char* argv[])
@@ -45,31 +43,43 @@ int main(int argc, char* argv[])
 
     std::cout << confparser.getAddrToServersMap().at("0.0.0.0:80").size() << std::endl;
     std::cout << confparser.getAddrToServersMap().at("0.0.0.0:80").front() << std::endl;
-    HttpServer server;
-    Global AllServers;
-    Server CurServ;
+    // Socket      socket;
+    // HttpServer  server;
+    // Global      AllServers;
+    // Server      CurServ;
 
-    CurServ.setDomain( "127.0.0.1" );
-    AllServers.setServer(CurServ);
-    CurServ = Server();
-    CurServ.setDomain( "127.0.0.2" );
-    AllServers.setServer(CurServ);
-    CurServ = Server();
-    CurServ.setDomain( "127.0.0.3" );
-    AllServers.setServer(CurServ);
+    // CurServ.setDomain( "127.0.0.1" );
+    // CurServ.setPort( 8081 );
+    // CurServ.setServerName( "example.com" );
 
-    std::vector<Server> servers = AllServers.getServers();
+    // AllServers.setServer(CurServ);
+    // CurServ = Server();
+    // CurServ.setDomain( "127.0.0.2" );
+    // CurServ.setPort( 8082 );
+    // CurServ.setServerName( "localhost" );
 
-    if ( server.createSocket( servers ) )
-    {
-        std::cout << "creating socket failed." << std::endl;
-        return -1;
-    }
-    if ( server.eventLoop() )
-    {
-        std::cout << "eventloop crashed." << std::endl;
-        return -1;
-    }
+
+    // AllServers.setServer(CurServ);
+    // CurServ = Server();
+    // CurServ.setDomain( "127.0.0.3" );
+    // CurServ.setPort( 8083 );
+    // CurServ.setServerName( "api.example.com" );
+
+
+    // AllServers.setServer(CurServ);
+
+    // std::vector<Server> servers = AllServers.getServers();
+
+    // if ( socket.createSocket( servers ) )
+    // {
+    //     std::cout << "creating socket failed." << std::endl;
+    //     return -1;
+    // }
+    // if ( server.eventLoop( socket.getListenFds(), servers ) )
+    // {
+    //     std::cout << "eventloop crashed." << std::endl;
+    //     return -1;
+    // }
     
     return 0;
 }

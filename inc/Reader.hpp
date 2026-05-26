@@ -8,7 +8,8 @@ class Reader: public AEventHandler {
 		std::string		_request;
 		bool			_complHeader;
 
-		int	receiveFromClient();
+		int		_receiveFromClient();
+
 	public:
 		Reader() = delete;
 		Reader(const int fd, const Listener& listener);

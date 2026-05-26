@@ -10,8 +10,7 @@ Epoller::Epoller() : _epollfd(epoll_create1(O_CLOEXEC)) {
 
 Epoller::~Epoller() {
 	if (close(_epollfd) == -1)
-		std::cerr << "Error closing epoll fd "
-		<< _epollfd << ": " << strerror(errno) << std::endl;
+		std::cerr << "FD " << _epollfd << ": " << strerror(errno) << std::endl;
 	std::cout << "FD " << _epollfd << ": epoll closed" << std::endl;
 }
 
@@ -34,8 +33,8 @@ void    Epoller::addEventHandler(
 
 void    Epoller::deleteEventHandler(AEventHandler* handler) const {
     if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, handler->getFd(), NULL) == -1)
-        std::cerr << "Error deleting fd " << handler->getFd()
-        << " from epoll: " << strerror(errno) << std::endl;
+        std::cerr << "FD " << handler->getFd()
+		<< ": " << strerror(errno) << std::endl;
     else
         std::cout << "FD " << handler->getFd()
         << ": deleted from epoll" << std::endl;

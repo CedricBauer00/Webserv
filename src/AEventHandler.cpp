@@ -26,6 +26,14 @@ void	AEventHandler::_setNonBlocking(int fd) {
 		throw std::runtime_error(std::string("fcntl set: ") + strerror(errno));
 }
 
+void    AEventHandler::_printSocketError() {
+    int err;
+    socklen_t len = sizeof(err);
+
+    getsockopt(_fd, SOL_SOCKET, SO_ERROR, &err, &len);
+    std::cerr << "FD " << _fd << ": " << strerror(err) << std::endl;
+}
+
 const std::vector<const IWebservModule::SrvNode*>&	AEventHandler::getServers(
 ) const {
 	return _servers;

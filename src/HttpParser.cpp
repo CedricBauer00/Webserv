@@ -1,4 +1,5 @@
 #include "../inc/HttpParser.hpp"
+#include "../inc/Exceptions.hpp"
 
 HttpParser::HttpParser() {}
 
