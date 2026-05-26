@@ -8,14 +8,15 @@ class Listener: public AEventHandler
 		const unsigned int	BACKLOG{8192};
 		const std::string&		_addr;
 
-		int	_createListenSock();
+		int		_createListenSock();
+        void	_recreateSelf();
 
 	public:
 		Listener() = delete;
 		Listener(const std::string& addr,
 			const std::vector<const IWebservModule::SrvNode*>& servers,
-			Epoller* const epoller);
+			const Epoller* const epoller);
 		virtual ~Listener();
 
-		void	process() override;
+		void	process(uint32_t events) override;
 };

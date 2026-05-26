@@ -4,7 +4,9 @@
 
 class Reader: public AEventHandler {
 	private:
-		std::string	req;
+		const size_t	BUFFER_SIZE{4096};
+		std::string		_request;
+		bool			_complHeader;
 
 		int	receiveFromClient();
 	public:
@@ -12,5 +14,5 @@ class Reader: public AEventHandler {
 		Reader(const int fd, const Listener& listener);
 		virtual ~Reader();
 
-		void	process() override;
+		void	process(uint32_t ev) override;
 };

@@ -9,7 +9,8 @@
 
 Epoller::Epoller() : _epollfd(epoll_create1(O_CLOEXEC)) {
 	if (_epollfd == -1)
-		throw std::runtime_error(std::string("epoll_create1: ") + strerror(errno));
+		throw std::runtime_error(
+            std::string("epoll_create1: ") + strerror(errno));
 	std::cout << "FD " << _epollfd << ": epoll instance created" << std::endl;
 }
 
@@ -20,14 +21,28 @@ Epoller::~Epoller() {
 	std::cout << "FD " << _epollfd << ": epoll closed" << std::endl;
 }
 
+const int	Epoller::getFd() const {
+	return _epollfd;
+}
+
 void    Epoller::addEventHandler(AEventHandler* handler, uint32_t events) {
 	struct epoll_event ev;
 	ev.events = events;
 	ev.data.ptr = handler;
 	if (epoll_ctl(_epollfd, EPOLL_CTL_ADD, handler->getFd(), &ev) == -1)
-		throw std::runtime_error(std::string("epoll_ctl[add]: ") + strerror(errno));
+		throw std::runtime_error(
+            std::string("epoll_ctl[add]: ") + strerror(errno));
 	std::cout << "FD " << handler->getFd()
 	<< ": added to epoll with events " << events << std::endl;
+}
+
+void    Epoller::deleteEventHandler(AEventHandler* handler) {
+    if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, handler->getFd(), NULL) == -1)
+        std::cerr << "Error deleting fd " << handler->getFd()
+        << " from epoll: " << strerror(errno) << std::endl;
+    else
+        std::cout << "FD " << handler->getFd()
+        << ": deleted from epoll" << std::endl;
 }
 
 void	Epoller::runEventLoop() {
@@ -37,7 +52,11 @@ void	Epoller::runEventLoop() {
 		if (nfds == -1) {
 			if (errno == EINTR)
 				continue; // Restart if interrupted by signal
-			throw std::runtime_error(std::string("epoll_wait: ") + strerror(errno));
+			throw std::runtime_error(
+                std::string("FATAL ERROR (epoll_wait): ") + strerror(errno));
+			// heap memory is not freed here. Doing so requires storing
+			// allocations as a list and free'ing them here, which by design 
+			// is avoided here to speed up event processing.
 		}
 		for (int n = 0; n < nfds; ++n) {
 			try {

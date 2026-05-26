@@ -1,12 +1,12 @@
 #include <iostream>
 #include "../inc/Listener.hpp"
-#include "../inc/HttpServer.hpp"
+#include "../inc/Epoller.hpp"
 
 Listener::Listener(const std::string& addr, 
 	const std::vector<const IWebservModule::SrvNode*>& servers,
-	Epoller* const epoller)
+	const Epoller* const epoller)
 	: AEventHandler(_createListenSock(), servers, epoller), _addr(addr) {
-	_epoller->addEventHandler(this, EPOLLIN | EPOLLET);
+    addSelfToEpoll(EPOLLIN | EPOLLET);
 }
 
 Listener::~Listener() {
@@ -62,12 +62,28 @@ int	Listener::_createListenSock() {
 	return fd;
 }
 
-void	Listener::process() {
+void    Listener::_recreateSelf() {
+    int err;
+    socklen_t len = sizeof(err);
+
+    getsockopt(_fd, SOL_SOCKET, SO_ERROR, &err, &len);
+    std::cerr << "socket error: " << strerror(err) << std::endl;
+    delSelfFromEpoll();
+    closeFd();
+    _fd = _createListenSock();
+    addSelfToEpoll(EPOLLIN | EPOLLET);
+}
+
+void	Listener::process(uint32_t events) {
 	struct sockaddr_storage	sockAddr;
 	socklen_t				addrLen{sizeof sockAddr};
 	char					s[INET_ADDRSTRLEN];
 	int						clientFd;
 
+    if (events & (EPOLLERR | EPOLLHUP)) {
+        _recreateSelf();
+        return;
+    }
 	while (true) {
 		clientFd = accept(
 			_fd, reinterpret_cast<struct sockaddr*>(&sockAddr), &addrLen);
@@ -91,8 +107,7 @@ void	Listener::process() {
 			if (_setNonBlocking(clientFd) == -1)
 				throw std::runtime_error(
 					std::string("fcntl set: ") + strerror(errno));
-			Reader* reader = new Reader(clientFd, *this);
-			_epoller->addEventHandler(reader, EPOLLIN | EPOLLRDHUP | EPOLLET);
+			new Reader(clientFd, *this);
 		}
 		catch (const std::exception& e) {
 			std::cerr << "Error creating Reader for fd " << clientFd

@@ -1,7 +1,10 @@
 #include "../inc/Reader.hpp"
+#include "../inc/Epoller.hpp"
+#include "../inc/constants.h"
 
 Reader::Reader(const int fd, const Listener& listener)
     : AEventHandler(fd, listener.getServers(), listener.getEpoller()) {
+    addSelfToEpoll(EPOLLIN | EPOLLRDHUP | EPOLLET);
 }
 
 Reader::~Reader() {
@@ -19,11 +22,8 @@ int Reader::receiveFromClient() {
             if( _request.find("\r\n\r\n") != std::string::npos )
                 _complHeader = true;
         }
-        else if (-1 < count) {
-            std::cout << RED << "Client closed the connection\n" 
-            << RESET << std::endl;
+        else if (-1 < count)
             return 0;
-        }
         else {
             if (errno == EINTR)
                 continue;
@@ -32,21 +32,30 @@ int Reader::receiveFromClient() {
     }
 }
 
-void    Reader::process() {
-    char buf[512];
-    ssize_t bytesRead = recv(_fd, buf, sizeof(buf) - 1, 0);
-    if (bytesRead == -1) {
-        if (errno != EAGAIN && errno != EWOULDBLOCK) {
-            std::cerr << "Error reading from fd " << _fd << ": "
-            << strerror(errno) << std::endl;
-        }
-        return;
-    }
-    else if (bytesRead == 0) {
-        std::cout << "Client disconnected: fd=" << _fd << std::endl;
-        return;
+void    Reader::process(uint32_t events) {
+    if (events & (EPOLLERR | EPOLLHUP)) {
+		int err;
+		socklen_t len = sizeof(err);
+
+		getsockopt(_fd, SOL_SOCKET, SO_ERROR, &err, &len);
+		std::cerr << "socket error: " << strerror(err) << std::endl;
+		delete this;
+		throw std::runtime_error("Client socket error");
     }
 
-    buf[bytesRead] = '\0';
-    req += buf;
+    if (receiveFromClient() < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
+            return; // No more data to read right now
+        else {
+            delete this; // Will also remove from epoll
+            throw std::runtime_error(
+                std::string("recv: ") + strerror(errno));
+        }
+    }
+    else {
+		//TODO: if complete request has been received, it could be
+		//that client side did a shutdown and still open for receiving
+        delete this; // Will also remove from epoll
+        throw std::runtime_error("Client disconnected");
+    }
 }
