@@ -50,6 +50,7 @@ class HttpParser
         std::string _hostPort;
         std::string _hostName;
         whichMethod _method;
+        bool        _isCgiFile;
 
     public:
         HttpParser();
@@ -66,14 +67,15 @@ class HttpParser
         void        initIss( std::string request );
         void        checkHostHeader( std::string value );
         void        validatePort( std::string portStr );
-        
+        void        checkCgiExtension();
+
         // void    setHttpVersion();
         
         std::vector<std::string>    getStartLine();
         std::unordered_map<std::string, std::string>  getHeaders();
         std::string                 getBody() const;
         std::string                 getUri();
-        whichMethod                      getMethod() const;
+        whichMethod                 getMethod() const;
         std::string                 getHostName();
         std::string                 getHostPort();
 

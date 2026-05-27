@@ -10,19 +10,24 @@
 #include "MethodTypes.hpp"
 #include <iostream>
 #include <ctime>
-
+#include <unistd.h>
 
 class Method
 {
     private:
         std::string _path;
+        std::string _query;
     public:
         Method();
         ~Method();
         std::string    modifyPath( std::string uri, whichMethod whichMethod );
-        void    getMethod( std::string newPath, Response &res );
+        void    getMethod( std::string newPath, Response &res, bool _isCgiFile );
+        void    postMethod( std::string newPath, Response &res, std::string contentBody, bool _isCgiFile ); // status codes 200, 402, 404
         void    deleteMethod( std::string newPath, Response &res ); // status codes 200, 402, 404
-        void    postMethod( std::string newPath, Response &res, std::string contentBody ); // status codes 200, 402, 404
+        void    runCgi();
+        std::string getCgiPath();
+
+
 };
 
 // bool        autoIndexActive();

@@ -10,12 +10,11 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
 
     std::string::size_type pos = uri.find( '?' );
     std::string path = uri;
-    std::string query;
     
     if ( pos != std::string::npos )
     {
         path = uri.substr( 0, pos );
-        query = uri.substr( pos + 1 );
+        _query = uri.substr( pos + 1 );
     }
 
     for ( size_t i = 0; i < path.size(); ++i )
@@ -90,7 +89,7 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
 }
 
 
-void    Method::getMethod( std::string newPath, Response &res ) // status codes 200, 402, 404
+void    Method::getMethod( std::string newPath, Response &res, bool _isCgiFile ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
     std::vector<std::string> stack;
@@ -106,6 +105,11 @@ void    Method::getMethod( std::string newPath, Response &res ) // status codes 
 
     if ( std::filesystem::is_regular_file( newPath ) )
     {
+        if ( _isCgiFile )
+        {
+            runCgi(); // put CGI output to response
+            return ;
+        }
         std::ifstream ifs( newPath ); 
     
         if ( !( ifs.is_open() ) ) // permissions check
@@ -244,7 +248,7 @@ void    Method::deleteMethod( std::string newPath, Response &res ) // status cod
 }
 
 // test: printf 'POST /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
-void    Method::postMethod( std::string newPath, Response &res, std::string contentBody ) // status codes 200, 402, 404
+void    Method::postMethod( std::string newPath, Response &res, std::string contentBody, bool _isCgiFile ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
     std::cout << "newPath:" << newPath << std::endl;
@@ -257,7 +261,12 @@ void    Method::postMethod( std::string newPath, Response &res, std::string cont
     if ( std::filesystem::is_regular_file( newPath ) )
     {
         std::cout << "Enter delete function" << std::endl;
-        
+        if ( _isCgiFile )
+        {
+            runCgi(); // put CGI output to response
+            return ;
+        }
+
         if ( !getAllowedToOverwrite() )
             throw Forbidden();
         else
@@ -297,7 +306,40 @@ void    Method::postMethod( std::string newPath, Response &res, std::string cont
     }
 }
 
+void    Method::runCgi()
+{
+    int inPipe[2];
+    int outPipe[2];
 
+    pipe( inPipe );
+    pipe( outPipe );
+
+    pid_t pid = fork();
+
+    if ( pid == 0 )
+    {
+        std::string cgi = getCgiPath();
+        std::string script = getScript();
+        
+        _query += "QUERY_STRING=" + _query;
+        char *envp[] = { ( char *)_query.c_str(), NULL };
+        char *argv[] = { ( char *)cgi.c_str(), ( char *)script.c_str(), NULL };
+
+        dup2( inPipe[ 0 ], STDIN_FILENO );
+        dup2( outPipe[ 1 ], STDOUT_FILENO );
+        close( inPipe[ 1 ] );
+        close( outPipe[ 0 ] );
+
+        execve( cgi.c_str(), argv, envp ); // returned direkt aus function?
+
+        perror( "execve failed" );
+        _exit( 1 );
+    }
+    else
+    {
+
+    }
+}
 
 bool    getAllowDeleteDir()
 {
@@ -312,4 +354,14 @@ bool    getAllowedToOverwrite()
 std::string getTimeStamp()
 {
     return std::to_string( std::time( 0 ) );
+}
+
+std::string Method::getCgiPath()
+{
+    return "./servers/server1/cgi/python3";
+}
+
+std::string getScript()
+{
+    return "print ('Hello, world!')";
 }
