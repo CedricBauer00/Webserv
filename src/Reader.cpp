@@ -1,19 +1,24 @@
 #include "../inc/Reader.hpp"
 #include "../inc/Epoller.hpp"
 #include "../inc/constants.h"
+#include "../inc/Execution.hpp"
+#include "../inc/Writer.hpp"
 
-Reader::Reader(const int fd, const Listener& listener)
+Reader::Reader(const int fd, struct sockaddr_storage& sockAddr,
+    const Listener& listener)
     : AEventHandler(fd,
         listener.getServers(),
         listener.getEpoller(),
-        EPOLLIN | EPOLLRDHUP | EPOLLET) {
+        EPOLLIN | EPOLLRDHUP | EPOLLET),
+        _clientSockAddr(std::move(sockAddr)) {
 }
 
 Reader::~Reader() {
+    std::cout << "FD " << _fd << ": [Reader] destroyed" << std::endl;
 }
 
 int Reader::_receiveFromClient() {
-     std::cout << BLUE << "FD " << _fd << ": Reading from client.." 
+     std::cout << BLUE << "FD " << _fd << ": [Reader] Reading from client.." 
      << RESET << std::endl;
     char buffer[BUFFER_SIZE];
         while (true) {
@@ -34,6 +39,40 @@ int Reader::_receiveFromClient() {
     }
 }
 
+Response	Reader::getResponse() const {
+	if (!_complHeader)
+		throw std::runtime_error(
+            "[Reader] Header not complete, can't build response");
+    return _buildResponse();
+}
+
+Response    Reader::_buildResponse() const {
+    Response    res;
+    Execution   e;
+
+    e.execution(_request, res, _servers);
+    return res;
+}
+
+void    Reader::_createWriter() {
+    int writerFd = dup(_fd);
+
+    if (writerFd == -1) {
+        std::cerr << "FD " << _fd << ": [Reader] Error creating Writer, "
+        << strerror(errno) << std::endl;
+        return;
+    }
+    std::cout << "FD " << writerFd << ": [Reader] Writer FD created" << std::endl;
+    try {
+        new Writer(writerFd, *this);
+    }
+    catch (const std::exception& e) {
+        std::cerr << "FD " << getFd() << ": [Reader] Error creating Writer, " 
+        << e.what() << std::endl;
+        closeFd(writerFd);
+    }
+}
+
 void    Reader::process(uint32_t events) {
     if (events & (EPOLLERR | EPOLLHUP)) {
 		_printSocketError();
@@ -41,11 +80,11 @@ void    Reader::process(uint32_t events) {
 		throw;
     }
 
-    if (receiveFromClient() < 0) {
+    if (_receiveFromClient() < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
 			if (!_complHeader)
 				return; // No more data to read right now
-			//TODO: run stuff
+			_createWriter();
 		}
         else {
             delete this; // Will also remove from epoll
@@ -55,10 +94,13 @@ void    Reader::process(uint32_t events) {
     }
     else {
 		if (!_complHeader) {
-			std::cerr << "FD " << _fd << ": Client disconnected" << std::endl;
+			std::cerr << "FD " << _fd 
+			<< ": [Reader] Client disconnected before completing header"
+			<< std::endl;
 			delete this; // Will also remove from epoll
 			throw;
 		}
-		//TODO: run stuff
+        _createWriter();
     }
+    delete this;
 }

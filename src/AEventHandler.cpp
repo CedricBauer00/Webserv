@@ -43,7 +43,7 @@ const Epoller&	AEventHandler::getEpoller() const {
 	return _epoller;
 }
 
-const int	AEventHandler::getFd() const {
+int	AEventHandler::getFd() const {
 	return _fd;
 }
 

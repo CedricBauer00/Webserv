@@ -7,7 +7,10 @@ Execution::~Execution() {}
 
 // This function is ment to contain all relevant steps for the execution - ich bin mir noch nicht sicher ob das hier Sinn macht...
 // Hier kannst du gerne deine execution Logic skizzieren
-void    Execution::execution( std::string request, Response &res, std::vector<Server> servers )
+void    Execution::execution(
+    std::string request,
+    Response &res,
+    const std::vector<const IWebservModule::SrvNode*>& servers)
 {
     try
     {
@@ -22,7 +25,8 @@ void    Execution::execution( std::string request, Response &res, std::vector<Se
         // 2)   SERVER_REWRITE
         //      server{} rw
 
-        serverRewrite( parser.getUri(), servers, parser.getHostName(), parser.getHostPort() );
+        (void)servers;
+        // serverRewrite( parser.getUri(), servers, parser.getHostName(), parser.getHostPort() );
 
         // 3)   FIND_CONFIG
         //      location{}
@@ -54,13 +58,13 @@ void    Execution::execution( std::string request, Response &res, std::vector<Se
         std::cout << "newPath:" << newPath << std::endl;
 
         if ( whichMethod == METHOD_GET )
-            m.getMethod( newPath, res );
+            m.getMethod( newPath, res, parser.getIsCgiFile() );
         else if ( whichMethod == METHOD_DELETE )
             m.deleteMethod( newPath, res );
         if ( whichMethod == METHOD_POST )
         {
             parser.setBody(); // for POST requests - last step of execution
-            m.postMethod( newPath, res, parser.getBody() );
+            m.postMethod( newPath, res, parser.getBody(), parser.getIsCgiFile() );
             std::cout << ORANGE << parser.getBody() << RESET << std::endl;
         }
         /// Response Buidling 
@@ -80,96 +84,100 @@ void    Execution::execution( std::string request, Response &res, std::vector<Se
     }
 }
 
-struct ServerConfig
-{
-    int         listenPort;
-    std::string serverName;
-    std::vector<RewriteRule> rewriteRules;
-};
+// struct ServerConfig
+// {
+//     int         listenPort;
+//     std::string serverName;
+//     std::vector<RewriteRule> rewriteRules;
+// };
 
-void    initRules( std::vector<RewriteRule>& rewriteRules )
-{
-    rewriteRules.push_back({"/old/", "/new/", false, 0 });
-    //  printf 'GET /old/location/ HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nhOST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
-    rewriteRules.push_back({"/legacy", "/new", true, 301 });
-    //  printf 'GET /legacy/location/ HTTP/1.1\r\nHOST: EXAMPLE.COM\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
-    rewriteRules.push_back({"/beta", "/new", true, 302 });
-    //  printf 'GET /beta/location/ HTTP/1.1\r\nHEAEDER1: A A A A\r\nHoST: example.com\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
-    //  printf 'GET /beta/location/ HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
+// void    initRules( std::vector<RewriteRule>& rewriteRules )
+// {
+//     rewriteRules.push_back({"/old/", "/new/", false, 0 });
+//     //  printf 'GET /old/location/ HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nhOST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
+//     rewriteRules.push_back({"/legacy", "/new", true, 301 });
+//     //  printf 'GET /legacy/location/ HTTP/1.1\r\nHOST: EXAMPLE.COM\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
+//     rewriteRules.push_back({"/beta", "/new", true, 302 });
+//     //  printf 'GET /beta/location/ HTTP/1.1\r\nHEAEDER1: A A A A\r\nHoST: example.com\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
+//     //  printf 'GET /beta/location/ HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
 
-}
+// }
 
-void    Execution::serverRewrite( std::string uri, std::vector<Server> servers, std::string hostName, std::string hostPort ) // wird vorher gecheckt, welcher Serverblock die Request verarbeitet?
-{
-    _uri = uri;
-    ServerConfig srv;
-    initRules( srv.rewriteRules );
+// void    Execution::serverRewrite(
+//     std::string uri,
+//     const std::vector<const IWebservModule::SrvNode*>&  servers,
+//     std::string hostName,
+//     std::string hostPort ) // wird vorher gecheckt, welcher Serverblock die Request verarbeitet?
+// {
+//     _uri = uri;
+//     ServerConfig srv;
+//     initRules( srv.rewriteRules );
 
-    (void)servers;
-    (void)hostName;
-    (void)hostPort;
+//     (void)servers;
+//     (void)hostName;
+//     (void)hostPort;
     
-    // bool    portFound = false;
-    // bool    nameFound = false;
+//     // bool    portFound = false;
+//     // bool    nameFound = false;
         
-    // for ( auto x : servers )
-    // {
-    //     // vorher socket port checken. Also auf welchem Port die Verbindung reinkam
-    //     if ( hostPort && hostPort == std::to_string( x.getPort() ) ) //Schritt 1: Port bestimmen. Wenn im Host‑Header ein Port steht (Host: example.com:8080) → nutze 8080. Schritt 2: Server‑Blöcke nach Port filtern. Du schaust nur die Server an, die auf diesem Port lauschen.
-    //     {
-    //         portForund = true;
-    //         for (  )
-    //         {
-    //             std::cout << "\n" << x.getServerName() << "\n" << x.getDomain() << "\n" << x.getPort() << std::endl;
-    //             if ( x.getServerName() == hostName ) // Schritt 3: Host‑Header gegen server_name. 
-    //             {
-    //                 std::cout << "Server_name matched:\nserver_name: " << x.getServerName() << "\nHostName: " << hostName << std::endl; 
-    //                 matchFound = true;
+//     // for ( auto x : servers )
+//     // {
+//     //     // vorher socket port checken. Also auf welchem Port die Verbindung reinkam
+//     //     if ( hostPort && hostPort == std::to_string( x.getPort() ) ) //Schritt 1: Port bestimmen. Wenn im Host‑Header ein Port steht (Host: example.com:8080) → nutze 8080. Schritt 2: Server‑Blöcke nach Port filtern. Du schaust nur die Server an, die auf diesem Port lauschen.
+//     //     {
+//     //         portForund = true;
+//     //         for (  )
+//     //         {
+//     //             std::cout << "\n" << x.getServerName() << "\n" << x.getDomain() << "\n" << x.getPort() << std::endl;
+//     //             if ( x.getServerName() == hostName ) // Schritt 3: Host‑Header gegen server_name. 
+//     //             {
+//     //                 std::cout << "Server_name matched:\nserver_name: " << x.getServerName() << "\nHostName: " << hostName << std::endl; 
+//     //                 matchFound = true;
         
-    //             }
-    //         }
-    //         if ( matchFound == false ) //Schritt 4: Kein Match → Default‑Server
-    //         {
-    //             // use default server
-    //         }
+//     //             }
+//     //         }
+//     //         if ( matchFound == false ) //Schritt 4: Kein Match → Default‑Server
+//     //         {
+//     //             // use default server
+//     //         }
             
-    //     }
-    // }
-    // if ( portFound == false ) // Sonst → nimm den Socket‑Port, also den Port, auf dem die Verbindung angekommen ist. Verbindung kommt auf Port 3490 an. Host‑Header ist example.com (ohne Port)→ Port = 3490
-    // {
-    //     // use socket port
-    // }
+//     //     }
+//     // }
+//     // if ( portFound == false ) // Sonst → nimm den Socket‑Port, also den Port, auf dem die Verbindung angekommen ist. Verbindung kommt auf Port 3490 an. Host‑Header ist example.com (ohne Port)→ Port = 3490
+//     // {
+//     //     // use socket port
+//     // }
 
-    // 2)   choosing server based on Host/Port !!! HIER WUERDE ICH CHECKEN 
-    //      Server rewrite rules
+//     // 2)   choosing server based on Host/Port !!! HIER WUERDE ICH CHECKEN 
+//     //      Server rewrite rules
     
 
-    std::cout << "\nURI before = " << _uri << std::endl;
-    // 3)   Reading rules
-    //      checking if rules can be applied
-    for ( size_t i = 0; i < srv.rewriteRules.size(); ++i )
-    {
-        const RewriteRule& rule = srv.rewriteRules[ i ];
-        if ( _uri.compare( 0, rule.pattern.size(), rule.pattern ) == 0 )
-        {
-            std::string newUri = rule.replacement + _uri.substr( rule.pattern.size() ); // 4) modifying new URI 
-            std::cout << "newUri=" << newUri << std::endl;
-            if ( rule.redirect ) // if rule is redirect - build response (301/302) - exit
-            {
-                if ( rule.code == 301 )
-                    throw MovedPermanently( newUri );
-                else if ( rule.code == 302 )
-                    throw Found( newUri );
-                // "request should not be handled here!"
-                // Client has to request different URL
-            }
-            else // if only internally - modify URI - continue
-                _uri = newUri; // 5) continue with new URI
-            break;    
-        }
-    }
-    std::cout << "URI after = " << _uri << std::endl;
-}
+//     std::cout << "\nURI before = " << _uri << std::endl;
+//     // 3)   Reading rules
+//     //      checking if rules can be applied
+//     for ( size_t i = 0; i < srv.rewriteRules.size(); ++i )
+//     {
+//         const RewriteRule& rule = srv.rewriteRules[ i ];
+//         if ( _uri.compare( 0, rule.pattern.size(), rule.pattern ) == 0 )
+//         {
+//             std::string newUri = rule.replacement + _uri.substr( rule.pattern.size() ); // 4) modifying new URI 
+//             std::cout << "newUri=" << newUri << std::endl;
+//             if ( rule.redirect ) // if rule is redirect - build response (301/302) - exit
+//             {
+//                 if ( rule.code == 301 )
+//                     throw MovedPermanently( newUri );
+//                 else if ( rule.code == 302 )
+//                     throw Found( newUri );
+//                 // "request should not be handled here!"
+//                 // Client has to request different URL
+//             }
+//             else // if only internally - modify URI - continue
+//                 _uri = newUri; // 5) continue with new URI
+//             break;    
+//         }
+//     }
+//     std::cout << "URI after = " << _uri << std::endl;
+// }
 
 // server {
 //     listen 3490;

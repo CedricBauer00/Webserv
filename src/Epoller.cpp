@@ -14,7 +14,7 @@ Epoller::~Epoller() {
 	std::cout << "FD " << _epollfd << ": epoll closed" << std::endl;
 }
 
-const int	Epoller::getFd() const {
+int	Epoller::getFd() const {
 	return _epollfd;
 }
 
@@ -25,8 +25,9 @@ void    Epoller::addEventHandler(
 	ev.events = events;
 	ev.data.ptr = handler;
 	if (epoll_ctl(_epollfd, EPOLL_CTL_ADD, handler->getFd(), &ev) == -1)
-		throw std::runtime_error(
-            std::string("epoll_ctl[add]: ") + strerror(errno));
+		throw std::runtime_error(std::string("FD ")
+			+ std::to_string(handler->getFd())
+            + ": <epoll_ctl[add]> " + strerror(errno));
 	std::cout << "FD " << handler->getFd()
 	<< ": added to epoll with events " << events << std::endl;
 }
@@ -34,7 +35,7 @@ void    Epoller::addEventHandler(
 void    Epoller::deleteEventHandler(AEventHandler* handler) const {
     if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, handler->getFd(), NULL) == -1)
         std::cerr << "FD " << handler->getFd()
-		<< ": " << strerror(errno) << std::endl;
+		<< ": <epoll_ctl[del]> " << strerror(errno) << std::endl;
     else
         std::cout << "FD " << handler->getFd()
         << ": deleted from epoll" << std::endl;

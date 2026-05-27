@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "../inc/Configparsing/ConfigParser.hpp"
+#include "../inc/WebServ.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -32,17 +33,17 @@ int main(int argc, char* argv[])
     
     if (argc != 2)
         return 0;
-    ConfigParser confparser(argv[1]);
+    // ConfigParser confparser(argv[1]);
 
     try {
-        confparser.parseConfig();
+        // confparser.parseConfig();
+		WebServ webserv(argv[1]);
+		webserv.run();
     }
     catch(std::exception& e) {
         std::cerr << e.what() << std::endl;
     }
 
-    std::cout << confparser.getAddrToServersMap().at("0.0.0.0:80").size() << std::endl;
-    std::cout << confparser.getAddrToServersMap().at("0.0.0.0:80").front() << std::endl;
     // Socket      socket;
     // HttpServer  server;
     // Global      AllServers;

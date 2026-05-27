@@ -332,5 +332,10 @@ std::string     HttpParser::getHostPort()
     return _hostPort;
 }
 
+bool            HttpParser::getIsCgiFile() const
+{
+    return _isCgiFile;
+}
+
 // test for carriage return
 // printf 'GET /Something HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490

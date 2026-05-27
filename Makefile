@@ -11,7 +11,14 @@ SRC	=	main.cpp \
 		HttpException.cpp \
 		Response.cpp \
 		Utils.cpp \
-		Method.cpp
+		Method.cpp \
+		Execution.cpp \
+		Epoller.cpp \
+		AEventHandler.cpp \
+		Listener.cpp \
+		Reader.cpp \
+		Writer.cpp \
+		WebServ.cpp
 
 
 OBJ_DIR = obj

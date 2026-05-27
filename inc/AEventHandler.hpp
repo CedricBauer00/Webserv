@@ -29,7 +29,7 @@ class AEventHandler {
         virtual ~AEventHandler();
 
 		const std::vector<const IWebservModule::SrvNode*>&	getServers() const;
-		const int		getFd() const;
+		int				getFd() const;
 		const Epoller&	getEpoller() const;
 		void			closeFd(int fd);
         void*			getInAddr(struct sockaddr_storage& st) const;

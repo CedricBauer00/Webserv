@@ -17,7 +17,7 @@ class Epoller {
 	public:
 		Epoller();
 		~Epoller();
-        const int	getFd() const;
+        int		getFd() const;
 		void	addEventHandler(AEventHandler* handler, const uint32_t events) const;
         void    deleteEventHandler(AEventHandler* handler) const;
 		void	runEventLoop() const;

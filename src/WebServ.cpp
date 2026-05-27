@@ -2,6 +2,7 @@
 
 WebServ::WebServ(char* configFilename)
 	: _confParser(configFilename), _epoller() {
+    _confParser.parseConfig();
 	std::cout << "WebServ created" << std::endl;
 }
 

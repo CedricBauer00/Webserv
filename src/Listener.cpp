@@ -61,11 +61,11 @@ int	Listener::_createListenFd(const std::string& addr) {
 	if (listen(fd, BACKLOG) == -1)
 		throw std::runtime_error(std::string("listen: ") + strerror(errno));
 	
-	std::cout << "FD " << fd << ": Listening on " << addr << std::endl;
+	std::cout << "FD " << fd << ": [Listener] Listening on " << addr << std::endl;
 	return fd;
 }
 
-void	Listener::_recover(uint32_t events) {
+void	Listener::_recover() {
 	_printSocketError();
 
 	try {
@@ -79,12 +79,12 @@ void	Listener::_recover(uint32_t events) {
 	}
 }
 
-void	Listener::_printAccept(struct sockaddr_storage& st) {
+void	Listener::_printAccept(int clientFd, struct sockaddr_storage& st) {
 	char	s[INET_ADDRSTRLEN];
 
 	inet_ntop(st.ss_family, getInAddr(st), s, sizeof s);
-	std::cout << "FD " << _fd << ": accepted connection from " << s
-	<< ":" << ntohs(getPort(st)) << std::endl;
+	std::cout << "FD " << clientFd << ": [Listener] accepted connection from "
+	<< s << ":" << ntohs(getPort(st)) << std::endl;
 }
 
 void	Listener::process(uint32_t events) {
@@ -93,7 +93,7 @@ void	Listener::process(uint32_t events) {
 	int						clientFd;
 
     if (events & (EPOLLERR | EPOLLHUP))
-        _recover(events);
+		_recover();
 
 	while (true) {
 		clientFd = accept(
@@ -103,14 +103,15 @@ void	Listener::process(uint32_t events) {
 				break; // No more incoming connections to accept
 			throw std::runtime_error(std::string("accept: ") + strerror(errno));
 		}
-		_printAccept(sockAddr);		
+		_printAccept(clientFd, sockAddr);		
 
 		//Create Reader
 		try {
-			new Reader(clientFd, *this);
+			new Reader(clientFd, sockAddr, *this);
 		}
 		catch (const std::exception& e) {
-			std::cerr << "FD " << getFd() << ": Error creating Reader for fd " 
+			std::cerr << "FD " << getFd() 
+			<< ": [Listener] Error creating Reader for fd " 
 			<< clientFd << ", " << e.what() << std::endl;
 			closeFd(clientFd);
 		}

@@ -9,8 +9,8 @@ class Listener: public AEventHandler
 		const std::string&	_addr;
 
 		int		_createListenFd(const std::string& addr);
-        void	_recover(uint32_t events);
-		void	_printAccept(struct sockaddr_storage& st);
+        void	_recover();
+		void	_printAccept(int clientFd, struct sockaddr_storage& st);
 	public:
 		Listener() = delete;
 		Listener(const std::string& addr,

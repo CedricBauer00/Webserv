@@ -72,8 +72,9 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
             mockRoot = getUploadPath().empty() ? mockRoot : getUploadPath();
         std::cout << mockRoot << std::endl;
     }
-    
-    newPath = newPath.substr( mockLocation.size() );
+
+    newPath = mockLocation + newPath;
+    // newPath = newPath.substr( mockLocation.size() );
     
     // /DO.PNG
     if ( !( newPath.empty() ) && newPath[ 0 ] == '/' )
@@ -306,6 +307,16 @@ void    Method::postMethod( std::string newPath, Response &res, std::string cont
     }
 }
 
+std::string Method::getCgiPath()
+{
+    return "./servers/server1/cgi/python3";
+}
+
+std::string getScript()
+{
+    return "print ('Hello, world!')";
+}
+
 void    Method::runCgi()
 {
     int inPipe[2];
@@ -337,28 +348,29 @@ void    Method::runCgi()
     }
     else
     {
-else
-{
-    close(inPipe[0]);   // Parent liest nicht von stdin-pipe
-    close(outPipe[1]);  // Parent schreibt nicht in stdout-pipe
-
-    std::string content;
-    char buffer[1024];
-    ssize_t bytesRead;
-
-    while ((bytesRead = read(outPipe[0], buffer, sizeof(buffer))) > 0)
-    {
-        content.append(buffer, bytesRead);
     }
+// else
+// {
+//     close(inPipe[0]);   // Parent liest nicht von stdin-pipe
+//     close(outPipe[1]);  // Parent schreibt nicht in stdout-pipe
 
-    close(outPipe[0]);
+//     std::string content;
+//     char buffer[1024];
+//     ssize_t bytesRead;
 
-    int status;
-    waitpid(pid, &status, 0);
+//     while ((bytesRead = read(outPipe[0], buffer, sizeof(buffer))) > 0)
+//     {
+//         content.append(buffer, bytesRead);
+//     }
 
-    std::cout << "CGI Output:\n" << content << std::endl;
-}
-    }
+//     close(outPipe[0]);
+
+//     int status;
+//     waitpid(pid, &status, 0);
+
+//     std::cout << "CGI Output:\n" << content << std::endl;
+// }
+    // }
 }
 
 bool    getAllowDeleteDir()
@@ -376,15 +388,6 @@ std::string getTimeStamp()
     return std::to_string( std::time( 0 ) );
 }
 
-std::string Method::getCgiPath()
-{
-    return "./servers/server1/cgi/python3";
-}
-
-std::string getScript()
-{
-    return "print ('Hello, world!')";
-}
 
 // execve() selbst gibt dir keinen normalen Funktions-Output zurück.
 // Wenn execve() erfolgreich ist, ersetzt es den aktuellen Prozess komplett — der Code danach wird nie ausgeführt.
