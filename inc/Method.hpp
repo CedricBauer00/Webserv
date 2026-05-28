@@ -19,6 +19,7 @@ class Method
     private:
         std::string _path;
         std::string _query;
+        std::string _postedFile;
     public:
         Method();
         ~Method();
@@ -26,7 +27,7 @@ class Method
         void    getMethod( std::string newPath, Response &res, bool _isCgiFile );
         void    postMethod( std::string newPath, Response &res, std::string contentBody, bool _isCgiFile ); // status codes 200, 402, 404
         void    deleteMethod( std::string newPath, Response &res ); // status codes 200, 402, 404
-        void    runCgi();
+        void    runCgi( std::string &content, bool isPost );
         std::string getCgiPath();
         std::string getScript();
 
