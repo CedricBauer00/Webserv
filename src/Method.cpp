@@ -250,7 +250,7 @@ void    Method::deleteMethod( std::string newPath, Response &res ) // status cod
     }
 }
 
-// test: printf 'POST /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
+// test: printf 'POST /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nprint ("Hello POST METHOD!!!")\r\n\r\n' | nc 127.0.0.2 3490
 void    Method::postMethod( std::string newPath, Response &res, std::string contentBody, bool _isCgiFile ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
@@ -320,6 +320,8 @@ void    Method::postMethod( std::string newPath, Response &res, std::string cont
         
         if ( _isCgiFile )
         {
+            std::cout << "here" << std::endl;
+
             std::string content;
             runCgi( content, true ); // put CGI output to response
             
