@@ -11,6 +11,8 @@
 #include <iostream>
 #include <ctime>
 #include <unistd.h>
+#include <sys/wait.h>
+#include <sys/wait.h>
 
 class Method
 {
@@ -26,6 +28,8 @@ class Method
         void    deleteMethod( std::string newPath, Response &res ); // status codes 200, 402, 404
         void    runCgi();
         std::string getCgiPath();
+        std::string getScript();
+
 
 
 };
