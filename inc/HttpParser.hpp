@@ -78,7 +78,8 @@ class HttpParser
         whichMethod                 getMethod() const;
         std::string                 getHostName();
         std::string                 getHostPort();
-        bool                        getIsCgiFile() const;
+        bool                        isCgifile();
+
         ~HttpParser();
 };
 

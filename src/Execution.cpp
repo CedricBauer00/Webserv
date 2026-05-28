@@ -24,9 +24,10 @@ void    Execution::execution(
         
         // 2)   SERVER_REWRITE
         //      server{} rw
+        std::cout << "BEFORE" << std::endl;
+        serverRewrite( parser.getUri(), servers, parser.getHostName(), parser.getHostPort() );
 
-        (void)servers;
-        // serverRewrite( parser.getUri(), servers, parser.getHostName(), parser.getHostPort() );
+        std::cout << "AFTER" << std::endl;
 
         // 3)   FIND_CONFIG
         //      location{}
@@ -58,13 +59,16 @@ void    Execution::execution(
         std::cout << "newPath:" << newPath << std::endl;
 
         if ( whichMethod == METHOD_GET )
-            m.getMethod( newPath, res, parser.getIsCgiFile() );
+        {
+            std::cout << "HERE" << std::endl;
+            m.getMethod( newPath, res, parser.isCgifile() );
+        }
         else if ( whichMethod == METHOD_DELETE )
             m.deleteMethod( newPath, res );
         if ( whichMethod == METHOD_POST )
         {
             parser.setBody(); // for POST requests - last step of execution
-            m.postMethod( newPath, res, parser.getBody(), parser.getIsCgiFile() );
+            m.postMethod( newPath, res, parser.getBody(), parser.isCgifile() );
             std::cout << ORANGE << parser.getBody() << RESET << std::endl;
         }
         /// Response Buidling 
@@ -234,3 +238,6 @@ void    Execution::execution(
 // location *[.png]
 
 // localhost/api/
+
+
+    //  printf 'GET /servers/server1/cgi/test.py/ HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nhOST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490

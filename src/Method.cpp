@@ -33,7 +33,7 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
     // int i = 0;
     while ( getline( iss, partStr, '/' ) )
     {
-        std::cout << "partStr:" << partStr << std::endl;
+        // std::cout << "partStr:" << partStr << std::endl;
 
         if ( partStr.empty() || partStr == "." ) // "." heisst dieses Verzeichnis
             continue ;
@@ -100,28 +100,31 @@ void    Method::getMethod( std::string newPath, Response &res, bool _isCgiFile )
 
     // std::cout << "newPath:" << newPath << std::endl;
 
+    //  printf 'GET /servers/server1/cgi/test.py HTTP/1.1\r\n\r\n' | nc 127.0.0.2 3490
+
     std::error_code ec;
     if ( !( std::filesystem::exists( newPath, ec ) ) )
         throw NotFound();
 
     if ( std::filesystem::is_regular_file( newPath ) )
     {
-        if ( _isCgiFile )
-        {
-            runCgi(); // put CGI output to response
-            return ;
-        }
-        std::ifstream ifs( newPath ); 
-    
-        if ( !( ifs.is_open() ) ) // permissions check
-            throw NotFound();
-        
         std::string content;
-        std::ostringstream oss;
-        
-        oss << ifs.rdbuf();
 
-        content = oss.str();
+        if ( _isCgiFile )
+            runCgi( content, false ); // put CGI output to response
+        else
+        {
+            std::ifstream ifs( newPath ); 
+        
+            if ( !( ifs.is_open() ) ) // permissions check
+                throw NotFound();
+            
+            std::ostringstream oss;
+            
+            oss << ifs.rdbuf();
+
+            content = oss.str();
+        }
 
         res.setBody( content );
         res.setCodeAndPhrase( "200", "OK" );
@@ -205,7 +208,7 @@ std::string getUploadPath()
 
 std::string getRootPath()
 {
-    return "./servers/server1/uploads";
+    return "./servers/server1/cgi";
 }
 
 // test: printf 'DELETE /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
@@ -252,35 +255,47 @@ void    Method::deleteMethod( std::string newPath, Response &res ) // status cod
 void    Method::postMethod( std::string newPath, Response &res, std::string contentBody, bool _isCgiFile ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
-    std::cout << "newPath:" << newPath << std::endl;
+    // std::cout << "newPath:" << newPath << std::endl;
 
-    std::error_code ec;
-    if ( !( std::filesystem::exists( newPath, ec ) ) ) // wenn file existiert muessen wir checken, ob wir ueberschreiben duerfen? sonst exception?
-        throw NotFound();
+    // std::error_code ec;
+    // if ( !( std::filesystem::exists( newPath, ec ) ) ) // wenn file existiert muessen wir checken, ob wir ueberschreiben duerfen? sonst exception?
+    // {
+    //     std::cout << "here" << std::endl;
+    //     throw NotFound();
+    // }    
 
         
     if ( std::filesystem::is_regular_file( newPath ) )
     {
         std::cout << "Enter delete function" << std::endl;
-        if ( _isCgiFile )
-        {
-            runCgi(); // put CGI output to response
-            return ;
-        }
-
+        
         if ( !getAllowedToOverwrite() )
             throw Forbidden();
         else
         {
-            std::ofstream ofs( newPath, std::ios::binary | std::ios::trunc );
+            _postedFile = newPath;
+            std::ofstream ofs( _postedFile, std::ios::binary | std::ios::trunc );
             if ( !ofs )
                 throw BadRequest();
             //write
             // put content
             ofs << contentBody;
             ofs.close();
+
             res.setCodeAndPhrase( "200", "OK" );
-            res.setHeaders( "Content-Length", "0" );
+
+            if ( _isCgiFile )
+            {
+                std::string content;
+                runCgi( content, true ); // put CGI output to response
+            
+                res.setBody( content );
+                res.setHeaders( "Content-Length", std::to_string( content.size() ) );
+                res.setHeaders( "Content-Type", getFileType( _postedFile ) );
+            }
+            else
+                res.setHeaders( "Content-Length", "0" );
+            
             return ;
         }        
     }
@@ -292,7 +307,8 @@ void    Method::postMethod( std::string newPath, Response &res, std::string cont
         fileName += ".bin";
         
         std::cout << "FileName:" << fileName << "\n" << "JoinedPath:" << newPath + fileName << "\nBody:\n" << contentBody << std::endl;
-        std::ofstream ofs( newPath + fileName );
+        _postedFile =  newPath + fileName;
+        std::ofstream ofs( _postedFile );
         
         if ( !ofs )
             throw BadRequest();
@@ -302,22 +318,24 @@ void    Method::postMethod( std::string newPath, Response &res, std::string cont
         ofs.close();
         
         res.setCodeAndPhrase( "201", "Created" );
-        res.setHeaders( "Content-Length", "0" );
+        
+        if ( _isCgiFile )
+        {
+            std::string content;
+            runCgi( content, true ); // put CGI output to response
+            
+            res.setBody( content );
+            res.setHeaders( "Content-Length", std::to_string( content.size() ) );
+            res.setHeaders( "Content-Type", getFileType( _postedFile ) );
+        }
+        else
+            res.setHeaders( "Content-Length", "0" );
+            
         return ;
     }
 }
 
-std::string Method::getCgiPath()
-{
-    return "./servers/server1/cgi/python3";
-}
-
-std::string getScript()
-{
-    return "print ('Hello, world!')";
-}
-
-void    Method::runCgi()
+void    Method::runCgi( std::string &content, bool isPost ) ///dynamic path form request instead of hardcoded getCgiScript function
 {
     int inPipe[2];
     int outPipe[2];
@@ -331,7 +349,10 @@ void    Method::runCgi()
     {
         std::string cgi = getCgiPath();
         std::string script = getScript();
-        
+
+        if ( isPost )
+            script = _postedFile;
+
         _query += "QUERY_STRING=" + _query;
         char *envp[] = { ( char *)_query.c_str(), NULL };
         char *argv[] = { ( char *)cgi.c_str(), ( char *)script.c_str(), NULL };
@@ -341,6 +362,8 @@ void    Method::runCgi()
         close( inPipe[ 1 ] );
         close( outPipe[ 0 ] );
 
+        // std::cout << "cgi = " << cgi << std::endl;
+        // std::cout << "script = " << script << std::endl;
         execve( cgi.c_str(), argv, envp ); // returned direkt aus function?
 
         perror( "execve failed" );
@@ -351,7 +374,6 @@ void    Method::runCgi()
         close( inPipe[ 0 ] );
         close( outPipe[ 1 ] );
 
-        std::string content;
         char buffer[ 1024 ];
         ssize_t bytesRead;
 
@@ -364,8 +386,6 @@ void    Method::runCgi()
 
         int status;
         waitpid( pid, &status, 0 );
-
-        std::cout << "CGI Output:\n" << content << std::endl;
     }
 }
 
@@ -386,10 +406,10 @@ std::string getTimeStamp()
 
 std::string Method::getCgiPath()
 {
-    return "./servers/server1/cgi/python3";
+    return "/usr/bin/python3";
 }
 
 std::string Method::getScript()
 {
-    return "print ('Hello, world!')";
+    return "./servers/server1/cgi/test.py";
 }

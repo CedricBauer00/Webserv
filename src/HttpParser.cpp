@@ -332,7 +332,7 @@ std::string     HttpParser::getHostPort()
     return _hostPort;
 }
 
-bool            HttpParser::getIsCgiFile() const
+bool            HttpParser::isCgifile()
 {
     return _isCgiFile;
 }
