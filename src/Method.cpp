@@ -348,29 +348,25 @@ void    Method::runCgi()
     }
     else
     {
+        close( inPipe[ 0 ] );
+        close( outPipe[ 1 ] );
+
+        std::string content;
+        char buffer[ 1024 ];
+        ssize_t bytesRead;
+
+        while ( ( bytesRead = read( outPipe[ 0 ], buffer, sizeof( buffer ))) > 0 )
+        {
+            content.append( buffer, bytesRead );
+        }
+
+        close( outPipe[ 0 ] );
+
+        int status;
+        waitpid( pid, &status, 0 );
+
+        std::cout << "CGI Output:\n" << content << std::endl;
     }
-// else
-// {
-//     close(inPipe[0]);   // Parent liest nicht von stdin-pipe
-//     close(outPipe[1]);  // Parent schreibt nicht in stdout-pipe
-
-//     std::string content;
-//     char buffer[1024];
-//     ssize_t bytesRead;
-
-//     while ((bytesRead = read(outPipe[0], buffer, sizeof(buffer))) > 0)
-//     {
-//         content.append(buffer, bytesRead);
-//     }
-
-//     close(outPipe[0]);
-
-//     int status;
-//     waitpid(pid, &status, 0);
-
-//     std::cout << "CGI Output:\n" << content << std::endl;
-// }
-    // }
 }
 
 bool    getAllowDeleteDir()
@@ -388,238 +384,12 @@ std::string getTimeStamp()
     return std::to_string( std::time( 0 ) );
 }
 
-
-// execve() selbst gibt dir keinen normalen Funktions-Output zurück.
-// Wenn execve() erfolgreich ist, ersetzt es den aktuellen Prozess komplett — der Code danach wird nie ausgeführt.
-
-// Den Output des gestarteten Programms bekommst du über die Pipe, die du auf STDOUT_FILENO umgeleitet hast:
-
-// dup2(outPipe[1], STDOUT_FILENO);
-
-// Alles, was das CGI-Script auf stdout schreibt (printf, cout, etc.), kannst du im Parent-Prozess aus outPipe[0] lesen.
-
-// Dein Parent-Teil müsste also ungefähr so aussehen:
-
-// else
-// {
-//     close(inPipe[0]);   // Parent liest nicht von stdin-pipe
-//     close(outPipe[1]);  // Parent schreibt nicht in stdout-pipe
-
-//     std::string content;
-//     char buffer[1024];
-//     ssize_t bytesRead;
-
-//     while ((bytesRead = read(outPipe[0], buffer, sizeof(buffer))) > 0)
-//     {
-//         content.append(buffer, bytesRead);
-//     }
-
-//     close(outPipe[0]);
-
-//     int status;
-//     waitpid(pid, &status, 0);
-
-//     std::cout << "CGI Output:\n" << content << std::endl;
-// }
-
-// Wichtig:
-
-// outPipe[1] ist die Schreibseite des Childs
-// outPipe[0] ist die Leseseite des Parents
-// Das CGI-Programm muss auf stdout schreiben
-
-// Beispiel:
-
-// std::cout << "Hello CGI";
-
-// oder in C:
-
-// printf("Hello CGI");
-
-// landet dann in content.
-
-// Zusätzlich solltest du im Child nach dup2() beide ursprünglichen Pipe-FDs schließen:
-
-// close(inPipe[0]);
-// close(inPipe[1]);
-// close(outPipe[0]);
-// close(outPipe[1]);
-
-// denn nach dup2() werden sie nicht mehr direkt gebraucht.
-
-
-
-// ////////
-
-// Ja, genau so funktioniert fork().
-
-// Nach dem fork() existieren zwei Prozesse, die beide ab der nächsten Zeile weiterlaufen:
-
-// der Child-Prozess
-// der Parent-Prozess
-
-// Beide führen denselben Code weiter aus, aber mit unterschiedlichem Rückgabewert von fork():
-
-// pid_t pid = fork();
-// pid == 0 → du bist im Child
-// pid > 0 → du bist im Parent
-// pid < 0 → Fehler
-
-// Deshalb:
-
-// if (pid == 0)
-// {
-//     // Child-Prozess
-// }
-// else
-// {
-//     // Parent-Prozess
-// }
-
-// laufen gleichzeitig in zwei verschiedenen Prozessen.
-
-// Der Child macht bei dir:
-
-// dup2() → stdout auf Pipe umleiten
-// execve() → startet CGI-Programm
-
-// Das CGI schreibt dann nach stdout.
-
-// Da stdout jetzt auf:
-
-// outPipe[1]
-
-// zeigt, landet alles in der Pipe.
-
-// Der Parent liest parallel aus:
-
-// outPipe[0]
-
-// und bekommt dadurch die Ausgabe des Childs.
-
-// Das ist exakt der klassische UNIX-Weg für:
-
-// Parent ↔ Child Kommunikation
-// CGI
-// Shell Pipes
-// popen()
-// Terminal-Pipelines (ls | grep txt)
-
-// Wichtig zu verstehen:
-
-// Die Pipe ist ein Kernel-Puffer zwischen beiden Prozessen:
-
-// Child stdout ---> outPipe[1]  ===== KERNEL PIPE ===== outPipe[0] ---> Parent read()
-
-// Noch ein wichtiger Punkt:
-
-// execve(...)
-
-// erstellt keinen neuen Prozess.
-
-// fork() erstellt den neuen Prozess.
-
-// execve() ersetzt nur den aktuellen Child-Prozess durch ein anderes Programm.
-
-// Also:
-
-// Parent
-//    |
-// fork()
-//    |
-//    +---- Child
-//              |
-//              +---- execve() -> jetzt läuft CGI statt deines ursprünglichen Codes
-
-// Darum kehrt execve() bei Erfolg nie zurück.
-
-
-// //////////////////////
-
-
-// Fast — ein wichtiger Punkt fehlt:
-
-// execve() returned nicht bei Erfolg.
-
-// Das bedeutet:
-
-// execve(cgi.c_str(), argv, envp);
-
-// macht intern ungefähr:
-
-// "Ersetze diesen Child-Prozess komplett durch das CGI-Programm"
-
-// Wenn das klappt:
-
-// dein bisheriger Child-Code verschwindet
-// stattdessen läuft jetzt das CGI-Programm
-// der Code nach execve() wird NIE ausgeführt
-
-// Darum:
-
-// perror("execve failed");
-
-// läuft nur wenn execve() fehlgeschlagen ist.
-
-// Der wichtige Zusammenhang ist:
-
-// Vor execve() hast du bereits:
-
-// dup2(outPipe[1], STDOUT_FILENO);
-
-// gemacht.
-
-// Dadurch zeigt stdout jetzt nicht mehr auf das Terminal, sondern auf die Pipe.
-
-// Normalerweise:
-
-// stdout --> Terminal
-
-// Nach dup2():
-
-// stdout --> outPipe[1]
-
-// Und genau dieses umgeleitete stdout erbt das neue Programm nach execve().
-
-// Das CGI merkt davon gar nichts.
-
-// Es macht einfach:
-
-// printf("Hello");
-
-// oder:
-
-// std::cout << "Hello";
-
-// und denkt:
-
-// "Ich schreibe auf stdout"
-
-// Aber tatsächlich landet es in:
-
-// outPipe[1]
-
-// Der Parent liest dann aus:
-
-// read(outPipe[0], ...)
-
-// und bekommt "Hello".
-
-// Also die Reihenfolge ist:
-// fork()
-//    |
-//    +-- Child
-//          |
-//          +-- dup2(pipe -> stdout)
-//          |
-//          +-- execve(CGI)
-//                  |
-//                  +-- CGI schreibt auf stdout
-//                          |
-//                          +-- landet in outPipe[1]
-
-// Parent
-//    |
-//    +-- read(outPipe[0])
-//            |
-//            +-- bekommt CGI-Output
+std::string Method::getCgiPath()
+{
+    return "./servers/server1/cgi/python3";
+}
+
+std::string Method::getScript()
+{
+    return "print ('Hello, world!')";
+}
