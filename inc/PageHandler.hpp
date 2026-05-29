@@ -17,8 +17,8 @@ class PageHandler
         PageHandler( int statusCode, std::string reasonPhrase );
         ~PageHandler();
         
-        void        setErrorPage( Response &Res );
-        void        setRedirectPage( Response &Res, std::string uri );
+        void        setErrorPage( Response &res );
+        void        setRedirectPage( Response &res, std::string uri );
         std::string getErrorPage() const;
 
 };
