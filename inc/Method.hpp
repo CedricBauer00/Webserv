@@ -12,7 +12,6 @@
 #include <ctime>
 #include <unistd.h>
 #include <sys/wait.h>
-#include <sys/wait.h>
 
 class Method
 {
