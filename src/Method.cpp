@@ -7,7 +7,8 @@ Method::~Method() {}
 std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
 {
         // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
-
+    
+    // Normalizing
     std::string::size_type pos = uri.find( '?' );
     std::string path = uri;
     
@@ -22,7 +23,7 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
         if ( path[ i ] == '%' && i + 2 < path.size() )
         {
             std::string hex = path.substr( i + 1, 2 );
-            char c = static_cast<char>( std::strtol( hex.c_str(), 0, 16 ) ); // 
+            char c = static_cast<char>( std::strtol( hex.c_str(), 0, 16 ) ); // Normalisierung
             path.replace( i, 3, 1, c );
         }
     }
@@ -33,11 +34,9 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
     // int i = 0;
     while ( getline( iss, partStr, '/' ) )
     {
-        // std::cout << "partStr:" << partStr << std::endl;
-
-        if ( partStr.empty() || partStr == "." ) // "." heisst dieses Verzeichnis
+        if ( partStr.empty() || partStr == "." ) // "." - dieses Verzeichnis
             continue ;
-        if ( partStr == ".." )
+        if ( partStr == ".." ) // Traversal-Check 
         {
             if ( wholePath.empty() )
                 throw BadRequest();
@@ -46,8 +45,6 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
         }
         else
             wholePath.push_back( partStr );
-        // std::cout << "wholePath:" << wholePath[ i ] << std::endl;
-        // i++;
     }
 
     std::string newPath;
@@ -59,7 +56,7 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
             newPath += "/";
     }
     
-    // std::cout << "newPath == " << newPath << std::endl; 
+    std::cout << "newPath == " << newPath << std::endl; 
 
     std::string mockLocation = "/images";
     std::string mockRoot = getRootPath();
@@ -70,7 +67,7 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
             throw Forbidden();
         if( !( path.empty() ) )
             mockRoot = getUploadPath().empty() ? mockRoot : getUploadPath();
-        std::cout << mockRoot << std::endl;
+        std::cout << "Upload Path: " << mockRoot << std::endl;
     }
 
     newPath = mockLocation + newPath;
@@ -81,7 +78,7 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
         newPath = newPath.substr( 1 );
     if ( mockRoot.back() != '/' )
         mockRoot += '/';
-    newPath = mockRoot + newPath;
+    newPath = mockRoot + newPath; // join root + uri 
 
     // std::cout << "newPath:" << newPath << std::endl;
     
@@ -98,7 +95,7 @@ void    Method::getMethod( std::string newPath, Response &res, bool _isCgiFile )
     stack.push_back("index2.html");
     stack.push_back("index3.html");
 
-    // std::cout << "newPath:" << newPath << std::endl;
+    std::cout << "newPath:" << newPath << std::endl;
 
     //  printf 'GET /servers/server1/cgi/test.py HTTP/1.1\r\n\r\n' | nc 127.0.0.2 3490
 
@@ -110,7 +107,7 @@ void    Method::getMethod( std::string newPath, Response &res, bool _isCgiFile )
     {
         std::string content;
 
-        if ( _isCgiFile )
+        if ( _isCgiFile ) // || getIsCgiLocation()
             runCgi( content, false ); // put CGI output to response
         else
         {
@@ -196,27 +193,10 @@ void    Method::getMethod( std::string newPath, Response &res, bool _isCgiFile )
 
 }
 
-bool    getUploadEnabled()
-{
-    return true;
-}
-
-std::string getUploadPath()
-{
-    return "./servers/server1/uploads";
-}
-
-std::string getRootPath()
-{
-    return "./servers/server1/cgi";
-}
-
 // test: printf 'DELETE /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
 void    Method::deleteMethod( std::string newPath, Response &res ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
-    std::cout << "newPath:" << newPath << std::endl;
-
 
     std::error_code ec;
     if ( !( std::filesystem::exists( newPath, ec ) ) )
@@ -235,6 +215,9 @@ void    Method::deleteMethod( std::string newPath, Response &res ) // status cod
 
         res.setCodeAndPhrase( "204", "No Content" );
         res.setHeaders( "Content-Length", "0" );
+        
+        // eventuell message in Body: File deleted successfully - dann aber andere Codes und Phrase
+
         return ;
     }
     else // is directory, 403 Forbidden oder wenn delete directory explizit erlaubt ist
@@ -244,6 +227,9 @@ void    Method::deleteMethod( std::string newPath, Response &res ) // status cod
             std::filesystem::remove_all( newPath );
             res.setCodeAndPhrase( "204", "No Content" );
             res.setHeaders( "Content-Length", "0" );
+            
+            // eventuell message in Body: Folder deleted successfully
+
             return ;
         }
 
@@ -252,23 +238,12 @@ void    Method::deleteMethod( std::string newPath, Response &res ) // status cod
 }
 
 // test: printf 'POST /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
-void    Method::postMethod( std::string newPath, Response &res, std::string contentBody, bool _isCgiFile ) // status codes 200, 402, 404
+void    Method::postMethod( std::string newPath, Response &res, std::string contentBody ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
-    // std::cout << "newPath:" << newPath << std::endl;
-
-    // std::error_code ec;
-    // if ( !( std::filesystem::exists( newPath, ec ) ) ) // wenn file existiert muessen wir checken, ob wir ueberschreiben duerfen? sonst exception?
-    // {
-    //     std::cout << "here" << std::endl;
-    //     throw NotFound();
-    // }    
-
         
     if ( std::filesystem::is_regular_file( newPath ) )
     {
-        std::cout << "Enter delete function" << std::endl;
-        
         if ( !getAllowedToOverwrite() )
             throw Forbidden();
         else
@@ -277,14 +252,14 @@ void    Method::postMethod( std::string newPath, Response &res, std::string cont
             std::ofstream ofs( _postedFile, std::ios::binary | std::ios::trunc );
             if ( !ofs )
                 throw BadRequest();
-            //write
+
             // put content
             ofs << contentBody;
             ofs.close();
 
             res.setCodeAndPhrase( "200", "OK" );
 
-            if ( _isCgiFile )
+            if ( getIsCgiLocation() ) //_isCgiFile fuer .py endungen 
             {
                 std::string content;
                 runCgi( content, true ); // put CGI output to response
@@ -299,14 +274,21 @@ void    Method::postMethod( std::string newPath, Response &res, std::string cont
             return ;
         }        
     }
-    else // is directory, 403 Forbidden oder wenn delete directory explizit erlaubt ist
+    else
     {
+        if ( newPath.back() != '/' )
+        {
+            size_t pos = newPath.find_last_of( '/' );
+            if ( pos != std::string::npos )
+                newPath.erase( pos + 1 );
+            
+        }
         // create file 
         std::string fileName = "upload";
         fileName += getTimeStamp();
         fileName += ".bin";
         
-        std::cout << "FileName:" << fileName << "\n" << "JoinedPath:" << newPath + fileName << "\nBody:\n" << contentBody << std::endl;
+        std::cout << "FileName: " << fileName << "\n" << "JoinedPath: " << newPath + fileName << "\n\nPosted Body:\n" << contentBody << std::endl;
         _postedFile =  newPath + fileName;
         std::ofstream ofs( _postedFile );
         
@@ -319,7 +301,7 @@ void    Method::postMethod( std::string newPath, Response &res, std::string cont
         
         res.setCodeAndPhrase( "201", "Created" );
         
-        if ( _isCgiFile )
+        if ( getIsCgiLocation() )
         {
             std::string content;
             runCgi( content, true ); // put CGI output to response
@@ -396,7 +378,7 @@ bool    getAllowDeleteDir()
 
 bool    getAllowedToOverwrite()
 {
-    return false;
+    return true;
 }
 
 std::string getTimeStamp()
@@ -412,4 +394,24 @@ std::string Method::getCgiPath()
 std::string Method::getScript()
 {
     return "./servers/server1/cgi/test.py";
+}
+
+bool    getIsCgiLocation()
+{
+    return true;
+}
+
+bool    getUploadEnabled()
+{
+    return true;
+}
+
+std::string getUploadPath()
+{
+    return "./servers/server1/uploads";
+}
+
+std::string getRootPath()
+{
+    return "./servers/server1/";
 }

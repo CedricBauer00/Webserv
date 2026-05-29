@@ -24,10 +24,8 @@ void    Execution::execution(
         
         // 2)   SERVER_REWRITE
         //      server{} rw
-        std::cout << "BEFORE" << std::endl;
         serverRewrite( parser.getUri(), servers, parser.getHostName(), parser.getHostPort() );
 
-        std::cout << "AFTER" << std::endl;
 
         // 3)   FIND_CONFIG
         //      location{}
@@ -56,19 +54,16 @@ void    Execution::execution(
         Method  m;
         // m.checkMethodAllowed()/
         std::string newPath = m.modifyPath( parser.getUri(), whichMethod );
-        std::cout << "newPath:" << newPath << std::endl;
+        std::cout << "newPath: " << newPath << std::endl;
 
         if ( whichMethod == METHOD_GET )
-        {
-            std::cout << "HERE" << std::endl;
             m.getMethod( newPath, res, parser.isCgifile() );
-        }
         else if ( whichMethod == METHOD_DELETE )
             m.deleteMethod( newPath, res );
         if ( whichMethod == METHOD_POST )
         {
             parser.setBody(); // for POST requests - last step of execution
-            m.postMethod( newPath, res, parser.getBody(), parser.isCgifile() );
+            m.postMethod( newPath, res, parser.getBody() );
             std::cout << ORANGE << parser.getBody() << RESET << std::endl;
         }
         /// Response Buidling 
@@ -156,32 +151,32 @@ void    Execution::execution(
 //     //      Server rewrite rules
     
 
-//     std::cout << "\nURI before = " << _uri << std::endl;
-//     // 3)   Reading rules
-//     //      checking if rules can be applied
-//     for ( size_t i = 0; i < srv.rewriteRules.size(); ++i )
-//     {
-//         const RewriteRule& rule = srv.rewriteRules[ i ];
-//         if ( _uri.compare( 0, rule.pattern.size(), rule.pattern ) == 0 )
-//         {
-//             std::string newUri = rule.replacement + _uri.substr( rule.pattern.size() ); // 4) modifying new URI 
-//             std::cout << "newUri=" << newUri << std::endl;
-//             if ( rule.redirect ) // if rule is redirect - build response (301/302) - exit
-//             {
-//                 if ( rule.code == 301 )
-//                     throw MovedPermanently( newUri );
-//                 else if ( rule.code == 302 )
-//                     throw Found( newUri );
-//                 // "request should not be handled here!"
-//                 // Client has to request different URL
-//             }
-//             else // if only internally - modify URI - continue
-//                 _uri = newUri; // 5) continue with new URI
-//             break;    
-//         }
-//     }
-//     std::cout << "URI after = " << _uri << std::endl;
-// }
+    // std::cout << "\nURI before = " << _uri << std::endl;
+    // 3)   Reading rules
+    //      checking if rules can be applied
+    for ( size_t i = 0; i < srv.rewriteRules.size(); ++i )
+    {
+        const RewriteRule& rule = srv.rewriteRules[ i ];
+        if ( _uri.compare( 0, rule.pattern.size(), rule.pattern ) == 0 )
+        {
+            std::string newUri = rule.replacement + _uri.substr( rule.pattern.size() ); // 4) modifying new URI 
+            std::cout << "newUri=" << newUri << std::endl;
+            if ( rule.redirect ) // if rule is redirect - build response (301/302) - exit
+            {
+                if ( rule.code == 301 )
+                    throw MovedPermanently( newUri );
+                else if ( rule.code == 302 )
+                    throw Found( newUri );
+                // "request should not be handled here!"
+                // Client has to request different URL
+            }
+            else // if only internally - modify URI - continue
+                _uri = newUri; // 5) continue with new URI
+            break;    
+        }
+    }
+    // std::cout << "URI after = " << _uri << std::endl;
+}
 
 // server {
 //     listen 3490;
