@@ -21,6 +21,13 @@ class AEventHandler {
 		void	_setNonBlocking(int fd);
         void    _printSocketError();
     public:
+		class	wouldBlockException: public std::exception {
+			public:
+				const char* what() const throw() {
+					return "File operation would block";
+				}
+		};
+
 		AEventHandler() = delete;
         AEventHandler(const int fd,
 			const std::vector<const IWebservModule::SrvNode*>& servers,

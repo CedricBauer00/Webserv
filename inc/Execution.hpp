@@ -22,7 +22,7 @@ class Execution
         //     const std::vector<const IWebservModule::SrvNode*>& servers,
         //     std::string hostName, std::string hostPort);
         // std::string getUri();
-        void    execution(std::string request,
+        void    execution(const std::string& request,
             Response &Res,
             const std::vector<const IWebservModule::SrvNode*>&  servers );
 };

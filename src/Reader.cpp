@@ -1,15 +1,13 @@
 #include "../inc/Reader.hpp"
 #include "../inc/Epoller.hpp"
 #include "../inc/constants.h"
-#include "../inc/Execution.hpp"
 #include "../inc/Writer.hpp"
 
 Reader::Reader(const Listener& listener)
-    : AEventHandler(fd,
+    : AEventHandler(_acceptConn(listener.getFd()),
         listener.getServers(),
         listener.getEpoller(),
-        EPOLLIN | EPOLLRDHUP | EPOLLET),
-        _clientSockAddr(std::move(sockAddr)) {
+        EPOLLIN | EPOLLRDHUP | EPOLLET) {
 }
 
 Reader::~Reader() {
@@ -17,17 +15,27 @@ Reader::~Reader() {
 }
 
 int	Reader::_acceptConn(int listenFd) {
-	struct sockaddr_storage	sockAddr;
-	socklen_t				addrLen{sizeof sockAddr};
+	struct sockaddr_storage	st;
+	socklen_t				addrLen{sizeof st};
+	char					s[INET_ADDRSTRLEN];
 	int						fd;
 
 	fd = accept(
-		listenFd, reinterpret_cast<struct sockaddr*>(&sockAddr), &addrLen);
-	
+		listenFd, reinterpret_cast<struct sockaddr*>(&st), &addrLen);
+    if (fd == -1) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			throw wouldBlockException(); // No more incoming connections to accept
+		throw std::runtime_error(std::string("FD ")
+		+ std::to_string(listenFd) + ": [Reader] " + strerror(errno));
+	}
+	inet_ntop(st.ss_family, getInAddr(st), s, sizeof s);
+	std::cout << "FD " << fd << ": [Reader] accepted connection from "
+	<< s << ":" << ntohs(getPort(st)) << std::endl;
+	return fd;
 
 }
 
-int Reader::_receiveFromClient() {
+void	Reader::_receiveFromClient() {
      std::cout << BLUE << "FD " << _fd << ": [Reader] Reading from client.." 
      << RESET << std::endl;
     char buffer[BUFFER_SIZE];
@@ -35,84 +43,54 @@ int Reader::_receiveFromClient() {
         ssize_t count = recv(_fd, buffer, sizeof(buffer), 0);
         if (0 < count)
         {
+			size_t	prevLen = _request.size();
             _request.append(buffer, static_cast<size_t>(count));
-            if( _request.find("\r\n\r\n") != std::string::npos )
+            if ( _request.find("\r\n\r\n", prevLen) != std::string::npos ) {
                 _complHeader = true;
+				return;
+			}
         }
         else if (-1 < count)
-            return 0;
+            throw std::runtime_error(
+				std::string("FD ") + std::to_string(_fd) 
+				+ ": [Reader] Client disconnected before completing header");
         else {
-            if (errno == EINTR)
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
+				throw wouldBlockException();
+			if (errno == EINTR)
                 continue;
-            return -1;
+            throw std::runtime_error(
+				std::string("FD ") + std::to_string(_fd) 
+				+ ": [Reader] Error receiving from client, " + strerror(errno));
         }
     }
 }
 
-Response	Reader::getResponse() const {
-	if (!_complHeader)
-		throw std::runtime_error(
-            "[Reader] Header not complete, can't build response");
-    return _buildResponse();
+const std::string&	Reader::getRequest() const {
+	return _request;
 }
 
-Response    Reader::_buildResponse() const {
-    Response    res;
-    Execution   e;
-
-    e.execution(_request, res, _servers);
-    return res;
-}
-
-void    Reader::_createWriter() {
-    int writerFd = dup(_fd);
-
-    if (writerFd == -1) {
-        std::cerr << "FD " << _fd << ": [Reader] Error creating Writer, "
-        << strerror(errno) << std::endl;
-        return;
-    }
-    std::cout << "FD " << writerFd << ": [Reader] Writer FD created" << std::endl;
-    try {
-        new Writer(writerFd, *this);
-    }
-    catch (const std::exception& e) {
-        std::cerr << "FD " << getFd() << ": [Reader] Error creating Writer, " 
-        << e.what() << std::endl;
-        closeFd(writerFd);
-    }
+bool	Reader::getcomplHeader() const {
+	return _complHeader;
 }
 
 void    Reader::process(uint32_t events) {
     if (events & (EPOLLERR | EPOLLHUP)) {
-        int fd = getFd();
 		_printSocketError();
+		std::cerr << "FD " << _fd
+		<< ": [Reader] Client disconnected unexpectedly" << std::endl;
 		delete this;
-		throw std::runtime_error(
-            "FD " + std::to_string(fd) + ": Client disconnected unexpectedly");
     }
 
-    if (_receiveFromClient() < 0) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-			if (!_complHeader)
-				return; // No more data to read right now
-			_createWriter();
-		}
-        else {
-            delete this; // Will also remove from epoll
-            throw std::runtime_error(
-                std::string("recv: ") + strerror(errno));
-        }
-    }
-    else {
-		if (!_complHeader) {
-            int fd = getFd();
-			delete this; // Will also remove from epoll
-			throw std::runtime_error(
-                std::string("FD ") + std::to_string(fd) 
-                + ": Client disconnected before completing header");
-		}
-        _createWriter();
-    }
-    delete this;
+	try {
+		_receiveFromClient();
+		new Writer(*this);
+	}
+	catch (const wouldBlockException& e) {
+		return; // Nothing more to read now
+	}
+	catch (const std::exception& e) {
+		std::cerr << e.what() << std::endl;
+	}
+	delete this; // Will also remove from epoll
 }

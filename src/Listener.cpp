@@ -83,14 +83,6 @@ void	Listener::_recover() {
 	delete this;
 }
 
-void	Listener::_printAccept(int clientFd, struct sockaddr_storage& st) {
-	char	s[INET_ADDRSTRLEN];
-
-	inet_ntop(st.ss_family, getInAddr(st), s, sizeof s);
-	std::cout << "FD " << clientFd << ": [Listener] accepted connection from "
-	<< s << ":" << ntohs(getPort(st)) << std::endl;
-}
-
 void	Listener::process(uint32_t events) {
 	
 
@@ -98,25 +90,15 @@ void	Listener::process(uint32_t events) {
 		_recover();
 
 	while (true) {
-		clientFd = accept(
-			_fd, reinterpret_cast<struct sockaddr*>(&sockAddr), &addrLen);
-		if (clientFd == -1) {
-			if (errno == EAGAIN || errno == EWOULDBLOCK)
-				break; // No more incoming connections to accept
-			std::cerr << "FD " << _fd << ": " << strerror(errno) << std::endl;
-			break;
-		}
-		_printAccept(clientFd, sockAddr);		
-
-		//Create Reader
 		try {
-			new Reader(clientFd, sockAddr, *this);
+			new Reader(*this); //Create Reader
+		}
+		catch (const wouldBlockException& e) {
+			break; // No more incoming connections to accept
 		}
 		catch (const std::exception& e) {
 			std::cerr << "FD " << getFd() 
-			<< ": [Listener] Error creating Reader for fd " 
-			<< clientFd << ", " << e.what() << std::endl;
-			closeFd(clientFd);
+			<< ": [Listener] Error creating Reader, " << e.what() << std::endl;
 		}
 	}
 }

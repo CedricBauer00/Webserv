@@ -8,9 +8,11 @@ class Writer: public AEventHandler {
         Response	_res;
         size_t		_sentBytes{0};
 
+        int		_dupFd(int readerFd);
+		void	_sendToClient();
     public:
         Writer() = delete;
-        Writer(const int fd, const Reader& reader);
+        Writer(const Reader& reader);
         virtual ~Writer();
 
         void	process(uint32_t events) override;

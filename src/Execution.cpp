@@ -8,7 +8,7 @@ Execution::~Execution() {}
 // This function is ment to contain all relevant steps for the execution - ich bin mir noch nicht sicher ob das hier Sinn macht...
 // Hier kannst du gerne deine execution Logic skizzieren
 void    Execution::execution(
-    std::string request,
+    const std::string& request,
     Response &res,
     const std::vector<const IWebservModule::SrvNode*>& servers)
 {

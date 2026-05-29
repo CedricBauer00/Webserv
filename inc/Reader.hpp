@@ -8,18 +8,16 @@ class Reader: public AEventHandler {
 		const size_t	        		BUFFER_SIZE{4096};
 		std::string		        		_request;
 		bool			        		_complHeader{false};
-        const struct sockaddr_storage	_clientSockAddr;
 
 		int			_acceptConn(int listenFd);
-		int		    _receiveFromClient();
-        Response    _buildResponse() const;
-        void    	_createWriter();
+		void		_receiveFromClient();
 
 	public:
 		Reader() = delete;
 		Reader(const Listener& listener);
 		virtual ~Reader();
 
-		Response	getResponse() const;
-		void		process(uint32_t events) override;
+		const std::string&	getRequest() const;
+		bool				getcomplHeader() const;
+		void				process(uint32_t events) override;
 };
