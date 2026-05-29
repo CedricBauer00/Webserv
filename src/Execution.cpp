@@ -57,7 +57,7 @@ void    Execution::execution(
         std::cout << "newPath: " << newPath << std::endl;
 
         if ( whichMethod == METHOD_GET )
-            m.getMethod( newPath, res, parser.isCgifile() );
+            m.getMethod( newPath, res );
         else if ( whichMethod == METHOD_DELETE )
             m.deleteMethod( newPath, res );
         if ( whichMethod == METHOD_POST )

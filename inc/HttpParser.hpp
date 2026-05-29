@@ -50,7 +50,6 @@ class HttpParser
         std::string _hostPort;
         std::string _hostName;
         whichMethod _method;
-        bool        _isCgiFile;
 
     public:
         HttpParser();

@@ -4,7 +4,7 @@ PageHandler::PageHandler( int statusCode, std::string reasonPhrase ) : _statusCo
 
 PageHandler::~PageHandler() {}
 
-void    PageHandler::setErrorPage( Response &Res )
+void    PageHandler::setErrorPage( Response &res )
 {
     std::string path = "pages/defaultErrorPage.html"; 
     
@@ -66,16 +66,15 @@ void    PageHandler::setErrorPage( Response &Res )
             break ;
     }
 
-    Res.setCodeAndPhrase( std::to_string( _statusCode), _reasonPhrase );
-    Res.setHeaders( "Content-Length", std::to_string( buffer.size() ) );
-    Res.setHeaders( "Content-Type", getFileType( path ) );
-    Res.setBody( buffer );
+    res.setCodeAndPhrase( std::to_string( _statusCode), _reasonPhrase );
+    res.setHeaders( "Content-Length", std::to_string( buffer.size() ) );
+    res.setHeaders( "Content-Type", getFileType( path ) );
+    res.setBody( buffer );
 }
 
 
-void    PageHandler::setRedirectPage( Response &Res, std::string uri )
+void    PageHandler::setRedirectPage( Response &res, std::string uri )
 {
-    std::cout << "ENTER" << std::endl;
     std::string path = "pages/redirectPage.html";
 
     std::cout << _statusCode << " : " << _reasonPhrase << std::endl;
@@ -124,11 +123,9 @@ void    PageHandler::setRedirectPage( Response &Res, std::string uri )
             break ;
     }
 
-    Res.setCodeAndPhrase( std::to_string( _statusCode), _reasonPhrase );
-    Res.setHeaders( "Location", uri );
-    Res.setHeaders( "Content-Length", std::to_string( buffer.size() ) );
-    Res.setHeaders( "Content-Type", getFileType( path ) );
-    Res.setBody( buffer );
+    res.setCodeAndPhrase( std::to_string( _statusCode), _reasonPhrase );
+    res.setHeaders( "Location", uri );
+    res.setHeaders( "Content-Length", std::to_string( buffer.size() ) );
+    res.setHeaders( "Content-Type", getFileType( path ) );
+    res.setBody( buffer );
 }
-
-

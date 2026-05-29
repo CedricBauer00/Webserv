@@ -1,6 +1,6 @@
 #include "../inc/Method.hpp"
 
-Method::Method() {}
+Method::Method() : _isCgiFile( false ) {}
 
 Method::~Method() {}
 
@@ -9,29 +9,38 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
         // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
     
     // Normalizing
+    std::cout << "uri: " << uri << std::endl;
+
     std::string::size_type pos = uri.find( '?' );
-    std::string path = uri;
+
+    _path = uri;
     
     if ( pos != std::string::npos )
     {
-        path = uri.substr( 0, pos );
+        _path = uri.substr( 0, pos );
         _query = uri.substr( pos + 1 );
+        std::cout << "_Path Before: " << _path << std::endl;
+
     }
 
-    for ( size_t i = 0; i < path.size(); ++i )
+    checkCgiExtension();
+
+    for ( size_t i = 0; i < _path.size(); ++i )
     {
-        if ( path[ i ] == '%' && i + 2 < path.size() )
+        if ( _path[ i ] == '%' && i + 2 < _path.size() )
         {
-            std::string hex = path.substr( i + 1, 2 );
-            char c = static_cast<char>( std::strtol( hex.c_str(), 0, 16 ) ); // Normalisierung
-            path.replace( i, 3, 1, c );
+            std::string hex = _path.substr( i + 1, 2 );
+            char c = static_cast<char>( std::strtol( hex.c_str(), 0, 16 ) );
+            _path.replace( i, 3, 1, c );
         }
     }
+    std::cout << "_Path After: " << _path << std::endl;
+    std::cout << "Query: " << _query << std::endl;
 
     std::vector<std::string> wholePath;
-    std::istringstream iss(path);
+    std::istringstream iss( _path );
     std::string partStr;
-    // int i = 0;
+
     while ( getline( iss, partStr, '/' ) )
     {
         if ( partStr.empty() || partStr == "." ) // "." - dieses Verzeichnis
@@ -65,7 +74,7 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
     {
         if ( !getUploadEnabled() )
             throw Forbidden();
-        if( !( path.empty() ) )
+        if( !( _path.empty() ) )
             mockRoot = getUploadPath().empty() ? mockRoot : getUploadPath();
         std::cout << "Upload Path: " << mockRoot << std::endl;
     }
@@ -87,7 +96,7 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
 }
 
 
-void    Method::getMethod( std::string newPath, Response &res, bool _isCgiFile ) // status codes 200, 402, 404
+void    Method::getMethod( std::string newPath, Response &res ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
     std::vector<std::string> stack;
@@ -99,18 +108,26 @@ void    Method::getMethod( std::string newPath, Response &res, bool _isCgiFile )
 
     //  printf 'GET /servers/server1/cgi/test.py HTTP/1.1\r\n\r\n' | nc 127.0.0.2 3490
 
-    std::error_code ec;
-    if ( !( std::filesystem::exists( newPath, ec ) ) )
-        throw NotFound();
-
+    
     if ( std::filesystem::is_regular_file( newPath ) )
     {
+        std::error_code ec;
+        std::cout << "is a file1" << std::endl;
+
+        if ( !( std::filesystem::exists( newPath, ec ) ) )
+        {
+            std::cout << "Geht hier raus" << std::endl;
+            throw NotFound();
+        }
+
         std::string content;
 
         if ( _isCgiFile ) // || getIsCgiLocation()
             runCgi( content, false ); // put CGI output to response
         else
         {
+            std::cout << "is a file2" << std::endl;
+
             std::ifstream ifs( newPath ); 
         
             if ( !( ifs.is_open() ) ) // permissions check
@@ -123,6 +140,8 @@ void    Method::getMethod( std::string newPath, Response &res, bool _isCgiFile )
             content = oss.str();
         }
 
+        std::cout << "is a file3" << std::endl;
+
         res.setBody( content );
         res.setCodeAndPhrase( "200", "OK" );
         res.setHeaders( "Content-Length", std::to_string( content.size() ) );
@@ -131,6 +150,7 @@ void    Method::getMethod( std::string newPath, Response &res, bool _isCgiFile )
     }
     else //    if ( std::filesystem::is_directory( newPath ) )
     {
+        std::cout << "newP: " << newPath << std::endl;
         if ( newPath.back() != '/' )
         {
             std::string newStr = newPath + "/";
@@ -139,6 +159,9 @@ void    Method::getMethod( std::string newPath, Response &res, bool _isCgiFile )
         for ( auto x : stack ) // replace stack with all files in directory - indexes from location 
         {
             std::string joinedPath = newPath + x;
+
+            std::error_code ec;
+
             if ( std::filesystem::exists( joinedPath, ec ) )
             {
                 std::ifstream ifs( joinedPath ); 
@@ -171,26 +194,6 @@ void    Method::getMethod( std::string newPath, Response &res, bool _isCgiFile )
         else
             throw NotFound();
     }
-
-    // 1) Method permissions pruefen passiert in execution func - check ob syntax korrekt?
-    //  wenn ein body bei GET method - ignoreiren
-
-    // 2) URI - Filesystem-path ( join root + uri, Normalisierung, Traversal-Check )
-    // Exists - nein? - 404
-    
-    // 3) is a directory?
-        // ja -> Indexsuche 
-        // if found - follow file path
-        // if not - check autoindex
-        // otherwise 403
-    
-    // 4) Is a file? 
-        // yes - read file
-        // get content-type
-        // set content-length
-        // build response
-    // 5) I/O-Fehler - 500
-
 }
 
 // test: printf 'DELETE /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
@@ -337,6 +340,7 @@ void    Method::runCgi( std::string &content, bool isPost ) ///dynamic path form
 
         _query += "QUERY_STRING=" + _query;
         char *envp[] = { ( char *)_query.c_str(), NULL };
+        std::cout << "Evnp: " << envp[0] << std::endl;
         char *argv[] = { ( char *)cgi.c_str(), ( char *)script.c_str(), NULL };
 
         dup2( inPipe[ 0 ], STDIN_FILENO );
@@ -414,4 +418,12 @@ std::string getUploadPath()
 std::string getRootPath()
 {
     return "./servers/server1/";
+}
+
+void    Method::checkCgiExtension()
+{
+    size_t size = _path.size(); 
+
+    if ( size >= 3 && _path.compare( size - 3, 3, ".py" ) == 0 )
+        _isCgiFile = true;
 }

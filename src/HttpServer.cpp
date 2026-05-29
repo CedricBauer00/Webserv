@@ -161,6 +161,8 @@ int HttpServer::eventLoop( std::vector<int> listenFds, std::vector<Server> serve
                 if ( client.getComplHeader() ) // if false && now - lastActivity > header_timeout -> close connection
                 {                    
                     Execution exec;
+                        std::cout << "Here" << std::endl;
+
                     exec.execution( client.getRequest(), res, servers );
                 }
                 if (events[n].events & EPOLLIN || ((events[n].events & EPOLLOUT) && client.getSendPos()))

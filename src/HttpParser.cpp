@@ -3,7 +3,7 @@
 
 HttpParser::HttpParser() {}
 
-HttpParser::HttpParser( std::string reqeust ) : _startLine(), _headers(), _body(), _bodyLength( 0 ), _foundContlen( false ), _foundHost( false ), _contentLength( 0 ), _chunked( false ), _iss( reqeust ), _method( METHOD_GET ), _isCgiFile( false )
+HttpParser::HttpParser( std::string reqeust ) : _startLine(), _headers(), _body(), _bodyLength( 0 ), _foundContlen( false ), _foundHost( false ), _contentLength( 0 ), _chunked( false ), _iss( reqeust ), _method( METHOD_GET )
 {
     std::cout << "\n--- HttpParsing BEGIN ---\n" << std::endl;
 }
@@ -31,7 +31,6 @@ void    HttpParser::setHeaders()
             checkStartLine();
             setMethod();
             setUri();
-            checkCgiExtension();
         }
         else
         {
@@ -289,16 +288,6 @@ void    HttpParser::checkHostHeader( std::string value )
 // ~$ printf 'GET /legacy/location/ HTTP/1.1\r\nHOST: [::ccc]\r\nHEAEDER1: A A \r\n\r\n' | nc 127.0.0.2 3490
 // ~$ printf 'GET /legacy/location/ HTTP/1.1\r\nHOST: [::]:6553\r\nHEAEDER1: A A \r\n\r\n' | nc 127.0.0.2 3490
 
-void    HttpParser::checkCgiExtension()
-{
-    size_t size = _uri.size(); 
-
-    if ( size >= 3 && _uri.compare( size - 3, 3, ".py" ) == 0 )
-    {
-        _isCgiFile = true;
-    }
-}
-
 bool    isInRange( int num, int min, int max )
 {
     return ( num >= min && num <= max );
@@ -329,10 +318,9 @@ std::string     HttpParser::getHostPort()
     return _hostPort;
 }
 
-bool            HttpParser::isCgifile()
-{
-    return _isCgiFile;
-}
-
+// bool            HttpParser::isCgifile()
+// {
+//     return _isCgiFile;
+// }
 // test for carriage return
 // printf 'GET /Something HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
