@@ -5,7 +5,7 @@ Writer::Writer(const int fd, const Reader& reader)
     : AEventHandler(fd,
         reader.getServers(),
         reader.getEpoller(),
-        EPOLLOUT | EPOLLET),
+        EPOLLOUT | EPOLLRDHUP | EPOLLET),
         _res(reader.getResponse()) {
 }
 
@@ -15,9 +15,11 @@ Writer::~Writer() {
 
 void    Writer::process(uint32_t events) {
     if (events & (EPOLLERR | EPOLLHUP)) {
+        int fd = getFd();
  		_printSocketError();
         delete this;
-        return;
+        throw std::runtime_error(
+            "FD " + std::to_string(fd) + ": Client disconnected unexpectedly");
     }
 
     if (events & EPOLLOUT) {
@@ -36,7 +38,8 @@ void    Writer::process(uint32_t events) {
                 << ": [Writer] Error sending response, "
                 << strerror(errno) << std::endl;
                 delete this; // Will also remove from epoll
-                throw;
+                throw std::runtime_error(
+                    "FD " + std::to_string(getFd()) + ": Error sending response");
             }
             _sentBytes += static_cast<size_t>(count);
         }

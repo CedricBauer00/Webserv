@@ -8,8 +8,14 @@ AEventHandler::AEventHandler(
 	const Epoller& epoller,
 	const uint32_t events)
     : _fd(fd), _servers(servers), _epoller(epoller) {
-	_setNonBlocking(_fd);
-	_epoller.addEventHandler(this, events);
+    try {
+        _setNonBlocking(_fd);
+        _epoller.addEventHandler(this, events);
+    }
+    catch (const std::exception& e) {
+        closeFd(_fd);
+        throw;
+    }
 }
 
 AEventHandler::~AEventHandler() {

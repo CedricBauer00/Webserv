@@ -14,9 +14,10 @@ Listener::~Listener() {
 }
 
 int	Listener::_createListenFd(const std::string& addr) {
-	int fd, rv, yes=1;
-    struct addrinfo hints, *p;
-	std::string	ip;
+    const unsigned int	BACKLOG{8192};
+	int 				fd, rv, yes=1;
+    struct addrinfo 	hints, *p;
+	std::string			ip;
 
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_INET;
@@ -42,24 +43,29 @@ int	Listener::_createListenFd(const std::string& addr) {
 		throw std::runtime_error(std::string("socket: ") + strerror(errno));
 	}
 
-	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
+	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
+        close(fd);
 		freeaddrinfo(p);
 		throw std::runtime_error(std::string("setsockopt: ") + strerror(errno));
 	}
 
-	if (setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &yes, sizeof(int)) == -1) {
+	if (setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &yes, sizeof(yes)) == -1) {
+        close(fd);
 		freeaddrinfo(p);
 		throw std::runtime_error(std::string("setsockopt: ") + strerror(errno));
 	}
 
 	if (bind(fd, p->ai_addr, p->ai_addrlen) == -1) {
+        close(fd);
 		freeaddrinfo(p);
 		throw std::runtime_error(std::string("bind: ") + strerror(errno));
 	}
 	freeaddrinfo(p);
 
-	if (listen(fd, BACKLOG) == -1)
+	if (listen(fd, BACKLOG) == -1) {
+		close(fd);
 		throw std::runtime_error(std::string("listen: ") + strerror(errno));
+	}
 	
 	std::cout << "FD " << fd << ": [Listener] Listening on " << addr << std::endl;
 	return fd;
@@ -70,13 +76,11 @@ void	Listener::_recover() {
 
 	try {
 		new Listener(_addr, _servers, _epoller);
-		delete this;
 	}
 	catch (const std::exception& e) {
-		delete this;
-		throw std::runtime_error(
-			std::string("Error creating Listener: ") + e.what());
+		std::cerr << e.what() << std::endl;
 	}
+	delete this;
 }
 
 void	Listener::_printAccept(int clientFd, struct sockaddr_storage& st) {
@@ -88,9 +92,7 @@ void	Listener::_printAccept(int clientFd, struct sockaddr_storage& st) {
 }
 
 void	Listener::process(uint32_t events) {
-	struct sockaddr_storage	sockAddr;
-	socklen_t				addrLen{sizeof sockAddr};
-	int						clientFd;
+	
 
     if (events & (EPOLLERR | EPOLLHUP))
 		_recover();
@@ -101,7 +103,8 @@ void	Listener::process(uint32_t events) {
 		if (clientFd == -1) {
 			if (errno == EAGAIN || errno == EWOULDBLOCK)
 				break; // No more incoming connections to accept
-			throw std::runtime_error(std::string("accept: ") + strerror(errno));
+			std::cerr << "FD " << _fd << ": " << strerror(errno) << std::endl;
+			break;
 		}
 		_printAccept(clientFd, sockAddr);		
 

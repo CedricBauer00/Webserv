@@ -14,6 +14,14 @@ Epoller::~Epoller() {
 	std::cout << "FD " << _epollfd << ": epoll closed" << std::endl;
 }
 
+const char*	Epoller::_eventsToStr(uint32_t events) const {
+	for (size_t i = 0; i < evToStr.size(); ++i) {
+		if (events == evToStr[i].first)
+			return evToStr[i].second;
+	}
+	return "UNKNOWN";
+}
+
 int	Epoller::getFd() const {
 	return _epollfd;
 }
@@ -29,7 +37,21 @@ void    Epoller::addEventHandler(
 			+ std::to_string(handler->getFd())
             + ": <epoll_ctl[add]> " + strerror(errno));
 	std::cout << "FD " << handler->getFd()
-	<< ": added to epoll with events " << events << std::endl;
+	<< ": added to epoll with events " << _eventsToStr(events) << std::endl;
+}
+
+void    Epoller::modifyEventHandler(
+	AEventHandler* handler, const uint32_t events) const {
+	struct epoll_event ev;
+
+	ev.events = events;
+	ev.data.ptr = handler;
+	if (epoll_ctl(_epollfd, EPOLL_CTL_MOD, handler->getFd(), &ev) == -1)
+		throw std::runtime_error(std::string("FD ")
+			+ std::to_string(handler->getFd())
+			+ ": <epoll_ctl[mod]> " + strerror(errno));
+	std::cout << "FD " << handler->getFd()
+	<< ": modified in epoll with events " << _eventsToStr(events) << std::endl;
 }
 
 void    Epoller::deleteEventHandler(AEventHandler* handler) const {
@@ -56,13 +78,8 @@ void	Epoller::runEventLoop() const {
 			// is avoided here to speed up event processing.
 		}
 		for (int n = 0; n < nfds; ++n) {
-			try {
-				static_cast<AEventHandler*>(events[n].data.ptr)->process(
+			static_cast<AEventHandler*>(events[n].data.ptr)->process(
 					events[n].events);
-			}
-			catch (const std::exception& e) {
-				std::cerr << e.what() << std::endl;
-			}
 		}
 	}
 }

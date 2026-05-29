@@ -10,14 +10,14 @@ class Reader: public AEventHandler {
 		bool			        		_complHeader{false};
         const struct sockaddr_storage	_clientSockAddr;
 
+		int			_acceptConn(int listenFd);
 		int		    _receiveFromClient();
         Response    _buildResponse() const;
         void    	_createWriter();
 
 	public:
 		Reader() = delete;
-		Reader(const int fd, struct sockaddr_storage& sockAddr,
-            const Listener& listener);
+		Reader(const Listener& listener);
 		virtual ~Reader();
 
 		Response	getResponse() const;

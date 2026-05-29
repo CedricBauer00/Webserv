@@ -5,7 +5,6 @@
 class Listener: public AEventHandler
 {
 	private:
-		const unsigned int	BACKLOG{8192};
 		const std::string&	_addr;
 
 		int		_createListenFd(const std::string& addr);

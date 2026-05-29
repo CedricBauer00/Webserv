@@ -4,8 +4,7 @@
 #include "../inc/Execution.hpp"
 #include "../inc/Writer.hpp"
 
-Reader::Reader(const int fd, struct sockaddr_storage& sockAddr,
-    const Listener& listener)
+Reader::Reader(const Listener& listener)
     : AEventHandler(fd,
         listener.getServers(),
         listener.getEpoller(),
@@ -15,6 +14,17 @@ Reader::Reader(const int fd, struct sockaddr_storage& sockAddr,
 
 Reader::~Reader() {
     std::cout << "FD " << _fd << ": [Reader] destroyed" << std::endl;
+}
+
+int	Reader::_acceptConn(int listenFd) {
+	struct sockaddr_storage	sockAddr;
+	socklen_t				addrLen{sizeof sockAddr};
+	int						fd;
+
+	fd = accept(
+		listenFd, reinterpret_cast<struct sockaddr*>(&sockAddr), &addrLen);
+	
+
 }
 
 int Reader::_receiveFromClient() {
@@ -75,9 +85,11 @@ void    Reader::_createWriter() {
 
 void    Reader::process(uint32_t events) {
     if (events & (EPOLLERR | EPOLLHUP)) {
+        int fd = getFd();
 		_printSocketError();
 		delete this;
-		throw;
+		throw std::runtime_error(
+            "FD " + std::to_string(fd) + ": Client disconnected unexpectedly");
     }
 
     if (_receiveFromClient() < 0) {
@@ -94,11 +106,11 @@ void    Reader::process(uint32_t events) {
     }
     else {
 		if (!_complHeader) {
-			std::cerr << "FD " << _fd 
-			<< ": [Reader] Client disconnected before completing header"
-			<< std::endl;
+            int fd = getFd();
 			delete this; // Will also remove from epoll
-			throw;
+			throw std::runtime_error(
+                std::string("FD ") + std::to_string(fd) 
+                + ": Client disconnected before completing header");
 		}
         _createWriter();
     }
