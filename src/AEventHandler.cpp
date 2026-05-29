@@ -13,7 +13,6 @@ AEventHandler::AEventHandler(
         _epoller.addEventHandler(this, events);
     }
     catch (const std::exception& e) {
-        closeFd(_fd);
         throw;
     }
 }

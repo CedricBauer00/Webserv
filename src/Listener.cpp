@@ -11,6 +11,7 @@ Listener::Listener(const std::string& addr,
 }
 
 Listener::~Listener() {
+	std::cout << "FD " << _fd << ": [Listener] destroyed" << std::endl;
 }
 
 int	Listener::_createListenFd(const std::string& addr) {

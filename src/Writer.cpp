@@ -16,7 +16,6 @@ Writer::Writer(const Reader& reader)
 	}
 	catch (const std::exception& e) {
 		int fd = getFd();
-		delete this;
 		throw std::runtime_error("FD " + std::to_string(fd)
 		+ ": [Writer] Error executing request," + e.what());
 	}
