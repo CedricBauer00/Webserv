@@ -43,11 +43,6 @@ Tokens  ConfigParser::_tokenize() {
     if (!word.empty()) tokens.push_back(word);
 	if (tokens.empty())
         throw std::runtime_error("Empty config file");
-    int i = 0;
-    for (auto& token: tokens) {
-        std::cout << i << ": " << token << std::endl;
-        ++i;
-    }
     return tokens;
 }
 

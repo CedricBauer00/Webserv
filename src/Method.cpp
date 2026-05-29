@@ -19,8 +19,6 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
     {
         _path = uri.substr( 0, pos );
         _query = uri.substr( pos + 1 );
-        std::cout << "_Path Before: " << _path << std::endl;
-
     }
 
     checkCgiExtension();
@@ -34,8 +32,8 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
             _path.replace( i, 3, 1, c );
         }
     }
-    std::cout << "_Path After: " << _path << std::endl;
-    std::cout << "Query: " << _query << std::endl;
+    // std::cout << "_Path After: " << _path << std::endl;
+    // std::cout << "Query: " << _query << std::endl;
 
     std::vector<std::string> wholePath;
     std::istringstream iss( _path );
@@ -87,9 +85,10 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
         newPath = newPath.substr( 1 );
     if ( mockRoot.back() != '/' )
         mockRoot += '/';
+    
+    std::cout << "root:" << mockRoot << "newPath:" << newPath << std::endl;
     newPath = mockRoot + newPath; // join root + uri 
 
-    // std::cout << "newPath:" << newPath << std::endl;
     
     std::cout << "finished modify path" << std::endl;
     return newPath;
