@@ -92,6 +92,8 @@ int HttpServer::eventLoop( std::vector<int> listenFds, std::vector<Server> serve
                     continue;
                 }
                 
+                std::cout << "\n\n------------- new Request -------------" << std::endl;
+
                 std::cout << GREEN << "new_fd = " << RESET << new_fd << std::endl;
 
                 //printing

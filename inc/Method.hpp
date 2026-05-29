@@ -25,7 +25,7 @@ class Method
         ~Method();
         std::string    modifyPath( std::string uri, whichMethod whichMethod );
         void    getMethod( std::string newPath, Response &res, bool _isCgiFile );
-        void    postMethod( std::string newPath, Response &res, std::string contentBody, bool _isCgiFile ); // status codes 200, 402, 404
+        void    postMethod( std::string newPath, Response &res, std::string contentBody ); // status codes 200, 402, 404
         void    deleteMethod( std::string newPath, Response &res ); // status codes 200, 402, 404
         void    runCgi( std::string &content, bool isPost );
         std::string getCgiPath();
@@ -44,3 +44,4 @@ std::string getUploadPath();
 bool        getAllowDeleteDir();
 bool        getAllowedToOverwrite();
 std::string getTimeStamp();
+bool        getIsCgiLocation();

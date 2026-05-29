@@ -4,8 +4,6 @@ Execution::Execution() {}
 
 Execution::~Execution() {}
 
-// This function is ment to contain all relevant steps for the execution - ich bin mir noch nicht sicher ob das hier Sinn macht...
-// Hier kannst du gerne deine execution Logic skizzieren
 void    Execution::execution( std::string request, Response &res, std::vector<Server> servers )
 {
     try
@@ -20,10 +18,8 @@ void    Execution::execution( std::string request, Response &res, std::vector<Se
         
         // 2)   SERVER_REWRITE
         //      server{} rw
-        std::cout << "BEFORE" << std::endl;
         serverRewrite( parser.getUri(), servers, parser.getHostName(), parser.getHostPort() );
 
-        std::cout << "AFTER" << std::endl;
 
         // 3)   FIND_CONFIG
         //      location{}
@@ -52,19 +48,16 @@ void    Execution::execution( std::string request, Response &res, std::vector<Se
         Method  m;
         // m.checkMethodAllowed()/
         std::string newPath = m.modifyPath( parser.getUri(), whichMethod );
-        std::cout << "newPath:" << newPath << std::endl;
+        std::cout << "newPath: " << newPath << std::endl;
 
         if ( whichMethod == METHOD_GET )
-        {
-            std::cout << "HERE" << std::endl;
             m.getMethod( newPath, res, parser.isCgifile() );
-        }
         else if ( whichMethod == METHOD_DELETE )
             m.deleteMethod( newPath, res );
         if ( whichMethod == METHOD_POST )
         {
             parser.setBody(); // for POST requests - last step of execution
-            m.postMethod( newPath, res, parser.getBody(), parser.isCgifile() );
+            m.postMethod( newPath, res, parser.getBody() );
             std::cout << ORANGE << parser.getBody() << RESET << std::endl;
         }
         /// Response Buidling 
@@ -148,7 +141,7 @@ void    Execution::serverRewrite( std::string uri, std::vector<Server> servers, 
     //      Server rewrite rules
     
 
-    std::cout << "\nURI before = " << _uri << std::endl;
+    // std::cout << "\nURI before = " << _uri << std::endl;
     // 3)   Reading rules
     //      checking if rules can be applied
     for ( size_t i = 0; i < srv.rewriteRules.size(); ++i )
@@ -172,7 +165,7 @@ void    Execution::serverRewrite( std::string uri, std::vector<Server> servers, 
             break;    
         }
     }
-    std::cout << "URI after = " << _uri << std::endl;
+    // std::cout << "URI after = " << _uri << std::endl;
 }
 
 // server {

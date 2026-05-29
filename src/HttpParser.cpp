@@ -2,18 +2,16 @@
 
 HttpParser::HttpParser() {}
 
-
-HttpParser::~HttpParser() { std::cout << "HttpParsing END" << std::endl; }
-
-
 HttpParser::HttpParser( std::string reqeust ) : _startLine(), _headers(), _body(), _bodyLength( 0 ), _foundContlen( false ), _foundHost( false ), _contentLength( 0 ), _chunked( false ), _iss( reqeust ), _method( METHOD_GET ), _isCgiFile( false )
 {
-    std::cout << "HttpParsing BEGIN" << std::endl;
+    std::cout << "\n--- HttpParsing BEGIN ---\n" << std::endl;
 }
+
+HttpParser::~HttpParser() { std::cout << RED << "--- HttpParsing END ---" << RESET << std::endl; }
 
 void    HttpParser::setHeaders()
 {
-    std::string         line;
+    std::string line;
 
     int whichline = 0;
     while ( std::getline( _iss, line ) )
@@ -76,15 +74,14 @@ void    HttpParser::setHeaders()
     }
     if ( _foundHost == false ) // oder default server - meist erster Serverblock
         throw BadRequest(); // anscheinend muss! dann default server; keine Bad Request!
-    std::cout << "found Host Header:" << _foundHost << std::endl;
-    
-    std::cout << BLUE << whichline << RESET << std::endl;
-    std::cout << BLUE << "Map printing" << std::endl;
+
+    // std::cout << "found Host Header:" << _foundHost << " in line: "<< BLUE << whichline << RESET << std::endl;
+    std::cout << BLUE << "- Map printing- \n" << std::endl;
     for ( const auto& pair : _headers )
     {
         std::cout << pair.first << " : " << pair.second << std::endl;
     }
-    std::cout << "Map End" << RESET << std::endl;
+    std::cout << "\n- Map End -\n" << RESET << std::endl;
 }
 
 void    HttpParser::setStartLine( std::string line )
