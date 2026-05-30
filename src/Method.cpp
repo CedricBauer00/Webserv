@@ -12,9 +12,11 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
     std::cout << "uri: " << uri << std::endl;
 
     std::string::size_type pos = uri.find( '?' );
-
+    
     _path = uri;
     
+    bool endsWithSlash = !_path.empty() && _path.back() == '/';
+
     if ( pos != std::string::npos )
     {
         _path = uri.substr( 0, pos );
@@ -63,6 +65,8 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
             newPath += "/";
     }
     
+    if ( endsWithSlash && newPath.back() != '/' )
+        newPath += '/';
     std::cout << "newPath == " << newPath << std::endl; 
 
     // std::string mockLocation = "/images";
@@ -82,6 +86,8 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
     std::cout << "newPath == " << newPath << std::endl; 
     
     // /DO.PNG
+    std::cout << "nP: " << newPath << std::endl;
+
     if ( !( newPath.empty() ) && newPath[ 0 ] == '/' )
     {
         std::cout << "nP: " << newPath << std::endl;
@@ -102,6 +108,7 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
 void    Method::getMethod( std::string newPath, Response &res ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
+    std::error_code ec;
     std::vector<std::string> stack;
     stack.push_back("index1.html");
     stack.push_back("index2.html");
@@ -114,7 +121,6 @@ void    Method::getMethod( std::string newPath, Response &res ) // status codes 
     
     if ( std::filesystem::is_regular_file( newPath ) )
     {
-        std::error_code ec;
         std::cout << "is a file1" << std::endl;
 
         if ( !( std::filesystem::exists( newPath, ec ) ) )
@@ -159,14 +165,16 @@ void    Method::getMethod( std::string newPath, Response &res ) // status codes 
             std::string newStr = newPath + "/";
             throw MovedPermanently( newStr );
         }
+        
         for ( auto x : stack ) // replace stack with all files in directory - indexes from location 
         {
             std::string joinedPath = newPath + x;
-
-            std::error_code ec;
+            
+            std::cout << "joinedPath: " << joinedPath << std::endl;
 
             if ( std::filesystem::exists( joinedPath, ec ) )
             {
+                std::cout << "entered" << std::endl;
                 std::ifstream ifs( joinedPath ); 
                 std::cout  << joinedPath << std::endl;
 
@@ -189,8 +197,9 @@ void    Method::getMethod( std::string newPath, Response &res ) // status codes 
             }
         }
 
-        if ( autoIndexActive() ) // not implemented yet   
+        if ( autoIndexActive() && std::filesystem::exists( newPath, ec ) ) // not implemented yet   
         {
+            std::cout << "autoindex" << std::endl;
             createAutoIndex( newPath, res ); // not implemented yet
             return ;
         }
@@ -198,6 +207,8 @@ void    Method::getMethod( std::string newPath, Response &res ) // status codes 
             throw NotFound();
     }
 }
+// /servers/server1/uplodas/data/index1.html
+// /servers/server1/uploads/data/index1.html
 
 // test: printf 'DELETE /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
 void    Method::deleteMethod( std::string newPath, Response &res ) // status codes 200, 402, 404
@@ -385,7 +396,7 @@ bool    getAllowDeleteDir()
 
 bool    getAllowedToOverwrite()
 {
-    return true;
+    return false;
 }
 
 std::string getTimeStamp()
@@ -405,7 +416,7 @@ std::string Method::getScript()
 
 bool    getIsCgiLocation()
 {
-    return true;
+    return false;
 }
 
 bool    getUploadEnabled()

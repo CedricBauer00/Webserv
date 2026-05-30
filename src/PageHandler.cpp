@@ -8,9 +8,9 @@ void    PageHandler::setErrorPage( Response &res )
 {
     std::string path;
 
-    if ( errorPages.count( _statusCode ) )
-        path = errorPages[ _statusCode ]; 
-    else
+    // if ( errorPages.count( _statusCode ) )
+    //     path = errorPages[ _statusCode ]; 
+    // else
         path = "pages/defaultErrorPage.html"; 
     
     // if ( errorPages are given by config file )

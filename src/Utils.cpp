@@ -105,7 +105,7 @@ void createAutoIndex( std::string mockUri, Response &res )
     buffer += "<hr>\n";
     buffer += "<pre>\n";
 
-    for ( auto x : std::filesystem::directory_iterator( mockUri ) )
+    for ( auto x : std::filesystem::directory_iterator( mockUri ) ) /// filesystem issues
     {
         std::filesystem::path path = x.path();    
         if ( std::filesystem::is_regular_file( path ) )
@@ -118,6 +118,7 @@ void createAutoIndex( std::string mockUri, Response &res )
     buffer += "</hr>\n";
     buffer += "</body>\n";
     buffer += "</html>\n";
+
     res.setBody( buffer );
     res.setCodeAndPhrase( "200", "OK" );
     res.setHeaders( "Content-Length", std::to_string( buffer.size() ) );
