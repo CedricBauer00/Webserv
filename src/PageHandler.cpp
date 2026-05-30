@@ -7,10 +7,12 @@ PageHandler::~PageHandler() {}
 void    PageHandler::setErrorPage( Response &res )
 {
     std::string path;
+    std::error_code ec;
 
     // if ( errorPages.count( _statusCode ) )
-    //     path = errorPages[ _statusCode ]; 
-    // else
+    
+    path = errorPages[ _statusCode ];
+    if ( path.empty() || std::filesystem::exists( path, ec ))
         path = "pages/defaultErrorPage.html"; 
     
     // if ( errorPages are given by config file )
@@ -21,8 +23,7 @@ void    PageHandler::setErrorPage( Response &res )
     // else
         
     // {
-
-    
+ 
     
     // -------- default error page --------
     std::cout << _statusCode << " : " << _reasonPhrase << std::endl;
