@@ -36,7 +36,10 @@ void    HttpParser::setHeaders()
         {
             std::string::size_type pos = line.find( ":" ); 
             if ( pos == std::string::npos || pos == 0 )
+            {
+                std::cout << RED << "no ':' found, or as first character" << RESET << std::endl;////
                 throw BadRequest();
+            }
 
             if ( line[ pos - 1 ] == ' ' ) // vor ":" darf kein Space stehen
                 throw BadRequest();
@@ -96,15 +99,27 @@ void    HttpParser::setStartLine( std::string line )
 void    HttpParser::checkStartLine() // eventuell direkt Execution instance createn, die URI speichert
 {
     if ( _startLine.size() != 3 )
+    {
+        std::cout << RED << "not 3 args in starline" << RESET << std::endl;////
         throw BadRequest();
+    }
     if ( _startLine[ 0 ][ 0 ] == '/' )
+    {
+        std::cout << RED << "'/' as first char" << RESET << std::endl;////
         throw BadRequest();
+    }
     if ( _startLine[ 0 ] != "GET" && _startLine[ 0 ] != "POST" && _startLine[ 0 ] != "DELETE" )
         throw MethodNotAllowed();    
     if ( _startLine[ 2 ].substr( 0, 4 ) != "HTTP" )
+    {
+        std::cout << RED << "Not an HTTP protocol" << RESET << std::endl;////
         throw BadRequest();
+    }
     if ( _startLine[ 2 ] != "HTTP/1.0" && _startLine[ 2 ] != "HTTP/1.1" )
+    {
+        std::cout << RED << "HTTP Version not supported" << RESET << std::endl; ////
         throw HttpVersionNotSupported();
+    }
 }
 
 void    HttpParser::setUri()

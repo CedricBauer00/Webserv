@@ -6,7 +6,12 @@ PageHandler::~PageHandler() {}
 
 void    PageHandler::setErrorPage( Response &res )
 {
-    std::string path = "pages/defaultErrorPage.html"; 
+    std::string path;
+
+    if ( errorPages.count( _statusCode ) )
+        path = errorPages[ _statusCode ]; 
+    else
+        path = "pages/defaultErrorPage.html"; 
     
     // if ( errorPages are given by config file )
     // {
@@ -129,3 +134,30 @@ void    PageHandler::setRedirectPage( Response &res, std::string uri )
     res.setHeaders( "Content-Type", getFileType( path ) );
     res.setBody( buffer );
 }
+
+void    PageHandler::initErrorPages( const std::map<int, std::string>& configErroPages )
+{
+    errorPages.clear();
+    for ( std::map<int, std::string>::const_iterator it = configErroPages.begin(); it != configErroPages.end(); ++it )
+    {
+        errorPages[ it->first ] = it->second;
+    }
+}
+
+// call fuer error pages auf server ebene
+// std::map<int, std::string> configErrorPages;
+// std::ifstream config( "webserv.config" );
+// std::string line;
+// while ( std::getline( config, line ) )
+// {
+//     if ( line.find( "error_page" ) == 0 )
+//     {
+//         std::istringstream iss( line );
+//         std:;string directive;
+//         int code;
+//         std::string path;
+//         iss >> directive >> code >> path;
+//         configErrorPages[ code ] = path;
+//     }
+// }
+// PageHandler.initErrorPages( configErrorPages );

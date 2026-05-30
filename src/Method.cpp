@@ -65,7 +65,7 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
     
     std::cout << "newPath == " << newPath << std::endl; 
 
-    std::string mockLocation = "/images";
+    // std::string mockLocation = "/images";
     std::string mockRoot = getRootPath();
 
     if ( whichMethod == METHOD_POST )
@@ -77,16 +77,20 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
         std::cout << "Upload Path: " << mockRoot << std::endl;
     }
 
-    newPath = mockLocation + newPath;
+    // newPath = mockLocation + newPath;
     // newPath = newPath.substr( mockLocation.size() );
+    std::cout << "newPath == " << newPath << std::endl; 
     
     // /DO.PNG
     if ( !( newPath.empty() ) && newPath[ 0 ] == '/' )
+    {
+        std::cout << "nP: " << newPath << std::endl;
         newPath = newPath.substr( 1 );
+    }
     if ( mockRoot.back() != '/' )
         mockRoot += '/';
     
-    std::cout << "root:" << mockRoot << "newPath:" << newPath << std::endl;
+    std::cout << "root:" << mockRoot << "\nnewPath:" << newPath << std::endl;
     newPath = mockRoot + newPath; // join root + uri 
 
     
