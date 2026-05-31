@@ -280,7 +280,7 @@ void    Method::postMethod( std::string newPath, Response &res, std::string cont
             {
                 std::string content;
                 runCgi( content, true ); // put CGI output to response
-            
+
                 res.setBody( content );
                 res.setHeaders( "Content-Length", std::to_string( content.size() ) );
                 res.setHeaders( "Content-Type", getFileType( _postedFile ) );
@@ -396,7 +396,7 @@ bool    getAllowDeleteDir()
 
 bool    getAllowedToOverwrite()
 {
-    return false;
+    return true;
 }
 
 std::string getTimeStamp()
