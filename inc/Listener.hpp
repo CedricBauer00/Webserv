@@ -13,7 +13,7 @@ class Listener: public AEventHandler
 	public:
 		Listener() = delete;
 		Listener(const std::string& addr,
-			const std::vector<const IWebservModule::SrvNode*>& servers,
+			const std::vector<const IWebservModule::Srv*>& servers,
 			const Epoller& epoller);
 		virtual ~Listener();
 

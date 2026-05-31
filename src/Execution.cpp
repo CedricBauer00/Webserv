@@ -10,7 +10,7 @@ Execution::~Execution() {}
 void    Execution::execution(
     const std::string& request,
     Response &res,
-    const std::vector<const IWebservModule::SrvNode*>& servers)
+    const std::vector<const IWebservModule::Srv*>& servers)
 {
     (void)servers;
     try
@@ -105,7 +105,7 @@ void    Execution::execution(
 
 // void    Execution::serverRewrite(
 //     std::string uri,
-//     const std::vector<const IWebservModule::SrvNode*>&  servers,
+//     const std::vector<const IWebservModule::Srv*>&  servers,
 //     std::string hostName,
 //     std::string hostPort ) // wird vorher gecheckt, welcher Serverblock die Request verarbeitet?
 // {

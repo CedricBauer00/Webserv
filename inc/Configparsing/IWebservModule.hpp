@@ -26,9 +26,11 @@ class IWebservModule {
             VecOfPtrs<LocNode>	locations;
         };
 
-        struct  SrvNode {
-            VecOfPtrs<SrvConf>	srvConfs;
-            LocNode				location;
+        struct  Srv {
+            VecOfPtrs<SrvConf>			srvConfs;
+            std::unique_ptr<LocNode>	location;
+            Srv() : location(std::make_unique<IWebservModule::LocNode>()) {
+			}
         };
 
         struct	ConfCtx {

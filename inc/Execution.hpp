@@ -19,10 +19,10 @@ class Execution
         ~Execution();
 
         // void    serverRewrite(std::string uri,
-        //     const std::vector<const IWebservModule::SrvNode*>& servers,
+        //     const std::vector<const IWebservModule::Srv*>& servers,
         //     std::string hostName, std::string hostPort);
         // std::string getUri();
         void    execution(const std::string& request,
             Response &Res,
-            const std::vector<const IWebservModule::SrvNode*>&  servers );
+            const std::vector<const IWebservModule::Srv*>&  servers );
 };

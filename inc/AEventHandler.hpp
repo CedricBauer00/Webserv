@@ -15,7 +15,7 @@ class Epoller;
 class AEventHandler {
 	protected:
 		const int											_fd;
-		const std::vector<const IWebservModule::SrvNode*>&	_servers;
+		const std::vector<const IWebservModule::Srv*>&		_servers;
 		const Epoller&										_epoller;
 
 		void	_setNonBlocking(int fd);
@@ -30,12 +30,12 @@ class AEventHandler {
 
 		AEventHandler() = delete;
         AEventHandler(const int fd,
-			const std::vector<const IWebservModule::SrvNode*>& servers,
+			const std::vector<const IWebservModule::Srv*>& servers,
 			const Epoller& epoller,
 			const uint32_t events);
         virtual ~AEventHandler();
 
-		const std::vector<const IWebservModule::SrvNode*>&	getServers() const;
+		const std::vector<const IWebservModule::Srv*>&	getServers() const;
 		int				getFd() const;
 		const Epoller&	getEpoller() const;
 		void			closeFd(int fd);

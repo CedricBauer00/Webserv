@@ -134,7 +134,7 @@ void	WebservCoreParser::_initConfIfEmptyAtLevel(
 			_ensureConfExists(confCtx.srvConfs,
 							[]()
 							{ return std::make_unique<SrvCoreConf>(); });
-			break;
+			[[fallthrough]];
 		case WebservConfLevel::LOCATION:
 			_ensureConfExists(confCtx.locConfs,
 							[]()
@@ -193,9 +193,9 @@ void	WebservCoreParser::_parseListen(Tokens& t, const ConfCtx& c,
 		throw std::runtime_error("Invalid listen port '" + port + "'");
 
     if (ip != IP || port != PORT) {
-        parser.mapAddrToServer(ip + ":" + port, parser.getLastSrvNode());
+        parser.mapAddrToServer(ip + ":" + port, parser.getLastSrv());
         parser.eraseMappingAddrToServer(std::string(IP) + ":" + PORT,
-            parser.getLastSrvNode());
+            parser.getLastSrv());
     }
 	SrvCoreConf* srvConf = dynamic_cast<SrvCoreConf*>(getSrvConfPtr(c));
 	srvConf->flags = LISTEN;

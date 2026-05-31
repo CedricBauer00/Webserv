@@ -64,10 +64,10 @@ void	ConfigParser::_parseBlock(
 		_confCtx.httpConfs = &_httpConfs;
 	}
 	else if (name == "server") {
-		_servers.emplace_back(std::make_unique<IWebservModule::SrvNode>());
-		mapAddrToServer(std::string(IP) + ":" + PORT, _servers.back().get());
-		_confCtx.srvConfs = &_servers.back().get()->srvConfs;
-		_curLocNode = &_servers.back().get()->location;
+		_servers.emplace_back();
+		mapAddrToServer(std::string(IP) + ":" + PORT, _servers.back());
+		_confCtx.srvConfs = &_servers.back().srvConfs;
+		_curLocNode = _servers.back().location.get();
 		_confCtx.locConfs = &_curLocNode->locConfs;
 	}
 	else if (name == "location") {
@@ -159,11 +159,11 @@ const std::string&	ConfigParser::getLevelName(WebservConfLevel level) const {
 		throw std::runtime_error("Unknown configuration level");
 }
 
-const IWebservModule::SrvNode*	ConfigParser::getLastSrvNode() const {
+const IWebservModule::Srv&	ConfigParser::getLastSrv() const {
     if (_servers.empty())
         throw std::runtime_error(
             "Can't fetch the last server node as none available yet");
-    return _servers.back().get();
+    return _servers.back();
 }
 
 const ConfigParser::AddrToServersMap&	ConfigParser::getAddrToServersMap() const
@@ -172,19 +172,19 @@ const ConfigParser::AddrToServersMap&	ConfigParser::getAddrToServersMap() const
 }
 
 void	ConfigParser::mapAddrToServer(const std::string& addr,
-	const IWebservModule::SrvNode* node) {
+	const IWebservModule::Srv& srv) {
 	if (!_addrToServersMap.count(addr)
 		|| (std::find(_addrToServersMap[addr].begin(),
 			_addrToServersMap[addr].end(),
-			node) == _addrToServersMap[addr].end())
-	) _addrToServersMap[addr].push_back(node);
+			&srv) == _addrToServersMap[addr].end())
+	) _addrToServersMap[addr].push_back(&srv);
 }
 
 void	ConfigParser::eraseMappingAddrToServer(const std::string& addr,
-	const IWebservModule::SrvNode* node) {
+	const IWebservModule::Srv& srv) {
 	if (_addrToServersMap.count(addr)) {
 		auto it = std::find(_addrToServersMap[addr].begin(),
-		_addrToServersMap[addr].end(), node);
+		_addrToServersMap[addr].end(), &srv);
 		if (it != _addrToServersMap[addr].end())
 			_addrToServersMap[addr].erase(it);
 		if (_addrToServersMap[addr].empty())

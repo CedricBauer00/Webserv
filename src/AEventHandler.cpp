@@ -4,7 +4,7 @@
 
 AEventHandler::AEventHandler(
 	const int fd,
-	const std::vector<const IWebservModule::SrvNode*>& servers,
+	const std::vector<const IWebservModule::Srv*>& servers,
 	const Epoller& epoller,
 	const uint32_t events)
     : _fd(fd), _servers(servers), _epoller(epoller) {
@@ -39,7 +39,7 @@ void    AEventHandler::_printSocketError() {
     std::cerr << "FD " << _fd << ": " << strerror(err) << std::endl;
 }
 
-const std::vector<const IWebservModule::SrvNode*>&	AEventHandler::getServers(
+const std::vector<const IWebservModule::Srv*>&	AEventHandler::getServers(
 ) const {
 	return _servers;
 }
