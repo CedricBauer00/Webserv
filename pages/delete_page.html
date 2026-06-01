@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>DELETE File/Directory</title>
+</head>
+<body>
+    <h1>Datei oder Verzeichnis löschen (DELETE)</h1>
+    <form method="POST" action="/delete_file" onsubmit="this._method.value='DELETE'">
+        <label for="deletepath">Pfad zum Löschen:</label>
+        <input type="text" id="deletepath" name="deletepath" required>
+        <input type="hidden" name="_method" value="DELETE">
+        <button type="submit">DELETE</button>
+    </form>
+    <br>
+    <a href="index.html">Zurück</a>
+</body>
+</html>
