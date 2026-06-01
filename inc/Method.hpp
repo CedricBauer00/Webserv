@@ -12,6 +12,7 @@
 #include <ctime>
 #include <unistd.h>
 #include <sys/wait.h>
+#include "../inc/Configparsing/WebservCoreModule.hpp"
 
 class Method
 {
@@ -24,7 +25,7 @@ class Method
     public:
         Method();
         ~Method();
-        std::string    joinRootAndPath( std::string uri, whichMethod whichMethod );
+        std::string    joinRootAndPath(std::string uri, whichMethod whichMethod, const IWebservModule::LocNode& location);
         void    getMethod( std::string newPath, Response &res );
         void    postMethod( std::string newPath, Response &res, std::string contentBody ); // status codes 200, 402, 404
         void    deleteMethod( std::string newPath, Response &res ); // status codes 200, 402, 404

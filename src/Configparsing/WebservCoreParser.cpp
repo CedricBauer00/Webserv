@@ -299,7 +299,7 @@ void WebservCoreParser::_parseAllow(const std::string& directive,
             values,
             dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
 	else
-		(void)mask;
+		dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->allowedMethods = mask;
 }
 
 void WebservCoreParser::_parseAlias(const std::string& directive,

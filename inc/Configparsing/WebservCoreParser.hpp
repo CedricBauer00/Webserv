@@ -28,7 +28,7 @@ class WebservCoreParser : public AWebservParser {
 			// std::vector<WebservLocCoreConf*>	regexLocations;
 
 			// WebservPhase			phases[10];
-			unsigned int			allowedMethods; // bitmask of allowed methods
+			unsigned int			allowedMethods{63}; // bitmask of allowed methods
 			WebservHandler			handler; // handler for this location
 			std::string				root; // root directory for this location
 			size_t					alias{0}; // length of the location prefix to be replaced by root when serving files

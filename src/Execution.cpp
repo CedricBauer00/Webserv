@@ -1,6 +1,5 @@
 #include "../inc/Execution.hpp"
 #include "../inc/Method.hpp"
-#include "../inc/Configparsing/WebservCoreModule.hpp"
 
 Execution::Execution() {}
 
@@ -34,7 +33,7 @@ const IWebservModule::LocNode*	Execution::selectLocation(const std::string& uri,
 		queue.pop_front();
 		if (node->matchType == 0 && node->name == uri)
 			return node;
-		else if (node->matchType == 1 && uri.compare(0, node->name.size(), node->name) == 0) {
+		else if (uri.compare(0, node->name.size(), node->name) == 0) {
 			if (bestMatch == nullptr || node->name.size() > bestMatch->name.size())
 				bestMatch = node;
 		}
@@ -65,17 +64,27 @@ void    Execution::execution(
 		std::cout << "Normalized Uri: " << normalizedUri << std::endl;
 
         server = selectServer(parser.getHostName(), servers); // select server based on Host name
-		for (const auto& item :
-			dynamic_cast<WebservCoreParser::SrvCoreConf*>(
-				server->srvConfs[0].get())->serverNames) {
-			std::cout << item << ", ";
-		}
-		std::cout << '\n';
-		const IWebservModule::LocNode* location = selectLocation(normalizedUri, *server->location); // select location based on URI
-        std::cout << "Selected location: '" << location->name << "' with match type " << location->matchType << "\n";
+        if (!server->srvConfs.empty()) {
+            for (const auto& item :
+                dynamic_cast<WebservCoreParser::SrvCoreConf*>(
+                    server->srvConfs[0].get())->serverNames) {
+                std::cout << item << ", ";
+            }
+            std::cout << '\n';
+        }
+		const IWebservModule::LocNode* loc = selectLocation(
+            normalizedUri, *server->location.get()); // select location based on URI
+        std::cout << "Selected location: '" << loc->name 
+        << "' with match type " << loc->matchType << "\n";
 
 		whichMethod whichMethod = parser.getMethod();
-        
+        WebservCoreParser::LocCoreConf* locConf =\
+        dynamic_cast<WebservCoreParser::LocCoreConf*>(loc->locConfs[0].get());
+        if (!(parser.getReqMethod() & locConf->allowedMethods)) {
+            std::cerr << "Requested method not allowed" << "\n";
+            throw MethodNotAllowed();
+        }
+
         // 2)   SERVER_REWRITE
         //      server{} rw
         // serverRewrite( parser.getUri(), servers, parser.getHostName(), parser.getHostPort() );
@@ -105,7 +114,7 @@ void    Execution::execution(
         //validate path
         
 
-        std::string joinedPath = m.joinRootAndPath( normalizedUri, whichMethod );
+        std::string joinedPath = m.joinRootAndPath(normalizedUri, whichMethod, *loc);
         std::cout << "joinedPath: " << joinedPath << std::endl;
 
         if ( whichMethod == METHOD_GET )

@@ -36,6 +36,9 @@
 class HttpParser
 {
     private:
+        const std::unordered_map<std::string, unsigned int> m = {
+        {"GET", 1u<<0}, {"POST", 1u<<1}, {"PUT", 1u<<2},
+        {"DELETE", 1u<<3}, {"HEAD", 1u<<4}, {"OPTIONS", 1u<<5}};
         std::vector<std::string>                        _startLine;
         std::unordered_map<std::string, std::string>    _headers;
         std::string _httpVersion;
@@ -50,6 +53,7 @@ class HttpParser
         std::string _hostPort;
         std::string _hostName;
         whichMethod _method;
+        unsigned int    _reqMethodMask;
 
     public:
         HttpParser();
@@ -75,6 +79,7 @@ class HttpParser
         const std::string&					getBody() const;
         const std::string&					getUri();
         whichMethod							getMethod() const;
+        unsigned int						getReqMethod() const;
         const std::string&					getHostName() const;
         const std::string&					getHostPort() const;
 

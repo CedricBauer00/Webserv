@@ -137,6 +137,7 @@ void    HttpParser::setMethod() // eventuell hier Execution class instance creat
         _method = METHOD_POST;
     else if ( _startLine[ 0 ] == "DELETE" )
         _method = METHOD_DELETE;
+    _reqMethodMask = m.at(_startLine[ 0 ]);
     std::cout << "_method:" << _method << std::endl;
     
 }
@@ -311,6 +312,11 @@ bool    isInRange( int num, int min, int max )
 whichMethod  HttpParser::getMethod() const
 {
     return _method;
+}
+
+unsigned int    HttpParser::getReqMethod() const
+{
+    return _reqMethodMask;
 }
 
 const std::string&     HttpParser::getUri()

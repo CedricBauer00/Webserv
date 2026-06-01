@@ -4,11 +4,15 @@ Method::Method() : _isCgiFile( false ) {}
 
 Method::~Method() {}
 
-std::string    Method::joinRootAndPath( std::string newPath, whichMethod whichMethod )
+std::string    Method::joinRootAndPath(
+    std::string newPath, whichMethod whichMethod, const IWebservModule::LocNode& location)
 {
 
     // std::string mockLocation = "/images";
-    std::string mockRoot = getRootPath();
+    // std::string mockRoot = getRootPath();
+    WebservCoreParser::LocCoreConf* locConf =\
+    dynamic_cast<WebservCoreParser::LocCoreConf*>(location.locConfs[0].get());
+    std::string mockRoot = locConf->root.empty() ? getRootPath() : locConf->root;
 
     if ( whichMethod == METHOD_POST )
     {
