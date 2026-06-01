@@ -291,7 +291,7 @@ void WebservCoreParser::_parseAllow(const std::string& directive,
             throw std::runtime_error("Invalid value '" + t.front()
                 + "'for directive '" + directive + "'");
 		t.pop_front();
-        if (t.empty() && _isDelimiter(t.front()))
+        if (t.empty() || _isDelimiter(t.front()))
             break;
 	}
 	if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
@@ -371,7 +371,7 @@ void WebservCoreParser::_parseIndex(const std::string& directive,
 	while (1) {
 		values.push_back(t.front());
 		t.pop_front();
-        if (t.empty() && _isDelimiter(t.front()))
+        if (t.empty() || _isDelimiter(t.front()))
             break;
 	}
     if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))

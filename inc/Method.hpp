@@ -24,7 +24,7 @@ class Method
     public:
         Method();
         ~Method();
-        std::string    modifyPath( std::string uri, whichMethod whichMethod );
+        std::string    joinRootAndPath( std::string uri, whichMethod whichMethod );
         void    getMethod( std::string newPath, Response &res );
         void    postMethod( std::string newPath, Response &res, std::string contentBody ); // status codes 200, 402, 404
         void    deleteMethod( std::string newPath, Response &res ); // status codes 200, 402, 404
@@ -32,6 +32,7 @@ class Method
         std::string getCgiPath();
         std::string getScript();
         void    checkCgiExtension();
+        std::string    normalizePath(std::string uri);
 
 };
 

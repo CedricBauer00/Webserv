@@ -72,11 +72,11 @@ class HttpParser
         
         std::vector<std::string>    getStartLine();
         std::unordered_map<std::string, std::string>  getHeaders();
-        std::string                 getBody() const;
-        std::string                 getUri();
-        whichMethod                 getMethod() const;
-        std::string                 getHostName();
-        std::string                 getHostPort();
+        const std::string&					getBody() const;
+        const std::string&					getUri();
+        whichMethod							getMethod() const;
+        const std::string&					getHostName() const;
+        const std::string&					getHostPort() const;
 
         ~HttpParser();
 };

@@ -4,7 +4,43 @@ Method::Method() : _isCgiFile( false ) {}
 
 Method::~Method() {}
 
-std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
+std::string    Method::joinRootAndPath( std::string newPath, whichMethod whichMethod )
+{
+
+    // std::string mockLocation = "/images";
+    std::string mockRoot = getRootPath();
+
+    if ( whichMethod == METHOD_POST )
+    {
+        if ( !getUploadEnabled() )
+            throw Forbidden();
+        if( !( _path.empty() ) )
+            mockRoot = getUploadPath().empty() ? mockRoot : getUploadPath();
+        std::cout << "Upload Path: " << mockRoot << std::endl;
+    }
+
+    // newPath = mockLocation + newPath;
+    // newPath = newPath.substr( mockLocation.size() );
+    
+    // /DO.PNG
+
+    if ( !( newPath.empty() ) && newPath[ 0 ] == '/' )
+    {
+        std::cout << "nP: " << newPath << std::endl;
+        newPath = newPath.substr( 1 );
+    }
+    if ( mockRoot.back() != '/' )
+        mockRoot += '/';
+    
+    std::cout << "root:" << mockRoot << "\nnewPath:" << newPath << std::endl;
+    newPath = mockRoot + newPath; // join root + uri 
+
+    
+    std::cout << "finished modify path" << std::endl;
+    return newPath;
+}
+
+std::string    Method::normalizePath(std::string uri)
 {
         // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
     
@@ -67,40 +103,6 @@ std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
     
     if ( endsWithSlash && newPath.back() != '/' )
         newPath += '/';
-    std::cout << "newPath == " << newPath << std::endl; 
-
-    // std::string mockLocation = "/images";
-    std::string mockRoot = getRootPath();
-
-    if ( whichMethod == METHOD_POST )
-    {
-        if ( !getUploadEnabled() )
-            throw Forbidden();
-        if( !( _path.empty() ) )
-            mockRoot = getUploadPath().empty() ? mockRoot : getUploadPath();
-        std::cout << "Upload Path: " << mockRoot << std::endl;
-    }
-
-    // newPath = mockLocation + newPath;
-    // newPath = newPath.substr( mockLocation.size() );
-    std::cout << "newPath == " << newPath << std::endl; 
-    
-    // /DO.PNG
-    std::cout << "nP: " << newPath << std::endl;
-
-    if ( !( newPath.empty() ) && newPath[ 0 ] == '/' )
-    {
-        std::cout << "nP: " << newPath << std::endl;
-        newPath = newPath.substr( 1 );
-    }
-    if ( mockRoot.back() != '/' )
-        mockRoot += '/';
-    
-    std::cout << "root:" << mockRoot << "\nnewPath:" << newPath << std::endl;
-    newPath = mockRoot + newPath; // join root + uri 
-
-    
-    std::cout << "finished modify path" << std::endl;
     return newPath;
 }
 

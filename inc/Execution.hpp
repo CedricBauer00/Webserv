@@ -22,6 +22,10 @@ class Execution
         //     const std::vector<const IWebservModule::Srv*>& servers,
         //     std::string hostName, std::string hostPort);
         // std::string getUri();
+        static const IWebservModule::Srv*	selectServer(const std::string& hostname,
+			const std::vector<const IWebservModule::Srv*>& servers);
+        static const IWebservModule::LocNode*	selectLocation(const std::string& uri,
+            const IWebservModule::LocNode& root);
         void    execution(const std::string& request,
             Response &Res,
             const std::vector<const IWebservModule::Srv*>&  servers );

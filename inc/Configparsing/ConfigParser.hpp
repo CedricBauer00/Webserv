@@ -50,7 +50,7 @@ class ConfigParser {
 		IWebservModule::ConfCtx				_confCtx;
 		IWebservModule::LocNode*			_curLocNode{nullptr};
         VecOfPtrs<IWebservModule::HttpConf>	_httpConfs;
-		std::vector<IWebservModule::Srv>	_servers;
+		VecOfPtrs<IWebservModule::Srv>		_servers;
         AddrToServersMap					_addrToServersMap;
 
         Tokens  _tokenize();

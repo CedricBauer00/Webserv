@@ -313,22 +313,22 @@ whichMethod  HttpParser::getMethod() const
     return _method;
 }
 
-std::string     HttpParser::getUri()
+const std::string&     HttpParser::getUri()
 {
     return _uri;
 }
 
-std::string    HttpParser::getBody() const
+const std::string&    HttpParser::getBody() const
 {
     return _body;
 }
 
-std::string     HttpParser::getHostName()
+const std::string&     HttpParser::getHostName() const
 {
     return _hostName;
 }
 
-std::string     HttpParser::getHostPort()
+const std::string&     HttpParser::getHostPort() const
 {
     return _hostPort;
 }

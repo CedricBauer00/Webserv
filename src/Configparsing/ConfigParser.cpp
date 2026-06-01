@@ -64,10 +64,10 @@ void	ConfigParser::_parseBlock(
 		_confCtx.httpConfs = &_httpConfs;
 	}
 	else if (name == "server") {
-		_servers.emplace_back();
-		mapAddrToServer(std::string(IP) + ":" + PORT, _servers.back());
-		_confCtx.srvConfs = &_servers.back().srvConfs;
-		_curLocNode = _servers.back().location.get();
+		_servers.emplace_back(std::make_unique<IWebservModule::Srv>());
+		mapAddrToServer(std::string(IP) + ":" + PORT, *_servers.back().get());
+		_confCtx.srvConfs = &_servers.back().get()->srvConfs;
+		_curLocNode = _servers.back().get()->location.get();
 		_confCtx.locConfs = &_curLocNode->locConfs;
 	}
 	else if (name == "location") {
@@ -163,7 +163,7 @@ const IWebservModule::Srv&	ConfigParser::getLastSrv() const {
     if (_servers.empty())
         throw std::runtime_error(
             "Can't fetch the last server node as none available yet");
-    return _servers.back();
+    return *_servers.back().get();
 }
 
 const ConfigParser::AddrToServersMap&	ConfigParser::getAddrToServersMap() const

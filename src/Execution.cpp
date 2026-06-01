@@ -1,9 +1,48 @@
 #include "../inc/Execution.hpp"
 #include "../inc/Method.hpp"
+#include "../inc/Configparsing/WebservCoreModule.hpp"
 
 Execution::Execution() {}
 
 Execution::~Execution() {}
+
+const IWebservModule::Srv*	Execution::selectServer(
+    const std::string& hostname,
+	const std::vector<const IWebservModule::Srv*>& servers) {
+	const IWebservModule::Srv* defaultSrv = nullptr;
+	for (const IWebservModule::Srv* srv : servers) {
+		if (srv->srvConfs.empty())
+			continue;
+		const WebservCoreParser::SrvCoreConf* srvConf =\
+		dynamic_cast<WebservCoreParser::SrvCoreConf*>(srv->srvConfs[0].get());
+		const std::unordered_set<std::string>& names = srvConf->serverNames;
+		if (names.find(hostname) != names.end())
+			return srv;
+		if (srvConf->flags & DEFAULT_SERVER)
+			defaultSrv = srv;
+	}
+	return defaultSrv != nullptr ? defaultSrv : servers[0];
+}
+
+const IWebservModule::LocNode*	Execution::selectLocation(const std::string& uri,
+	const IWebservModule::LocNode& root) {
+	const IWebservModule::LocNode* bestMatch = nullptr;
+	std::deque<const IWebservModule::LocNode*> queue;
+	queue.push_back(&root);
+	while (!queue.empty()) {
+		const IWebservModule::LocNode* node = queue.front();
+		queue.pop_front();
+		if (node->matchType == 0 && node->name == uri)
+			return node;
+		else if (node->matchType == 1 && uri.compare(0, node->name.size(), node->name) == 0) {
+			if (bestMatch == nullptr || node->name.size() > bestMatch->name.size())
+				bestMatch = node;
+		}
+		for (const auto& loc : node->locations)
+			queue.push_back(loc.get());
+	}
+	return bestMatch;
+}
 
 // This function is ment to contain all relevant steps for the execution - ich bin mir noch nicht sicher ob das hier Sinn macht...
 // Hier kannst du gerne deine execution Logic skizzieren
@@ -12,7 +51,7 @@ void    Execution::execution(
     Response &res,
     const std::vector<const IWebservModule::Srv*>& servers)
 {
-    (void)servers;
+    const IWebservModule::Srv* server = nullptr;
     try
     {
         HttpParser parser( request );
@@ -20,8 +59,22 @@ void    Execution::execution(
         // 1) parse request
         parser.setHeaders();
 
-        whichMethod whichMethod = parser.getMethod();
-        
+        Method  m;
+		
+        std::string normalizedUri = m.normalizePath( parser.getUri() );
+		std::cout << "Normalized Uri: " << normalizedUri << std::endl;
+
+        server = selectServer(parser.getHostName(), servers); // select server based on Host name
+		for (const auto& item :
+			dynamic_cast<WebservCoreParser::SrvCoreConf*>(
+				server->srvConfs[0].get())->serverNames) {
+			std::cout << item << ", ";
+		}
+		std::cout << '\n';
+		const IWebservModule::LocNode* location = selectLocation(normalizedUri, *server->location); // select location based on URI
+        std::cout << "Selected location: '" << location->name << "' with match type " << location->matchType << "\n";
+
+		whichMethod whichMethod = parser.getMethod();
         
         // 2)   SERVER_REWRITE
         //      server{} rw
@@ -51,20 +104,18 @@ void    Execution::execution(
 
         //validate path
         
-        
-        Method  m;
-        // m.checkMethodAllowed()/
-        std::string newPath = m.modifyPath( parser.getUri(), whichMethod );
-        std::cout << "newPath: " << newPath << std::endl;
+
+        std::string joinedPath = m.joinRootAndPath( normalizedUri, whichMethod );
+        std::cout << "joinedPath: " << joinedPath << std::endl;
 
         if ( whichMethod == METHOD_GET )
-            m.getMethod( newPath, res );
+            m.getMethod( joinedPath, res );
         else if ( whichMethod == METHOD_DELETE )
-            m.deleteMethod( newPath, res );
+            m.deleteMethod( joinedPath, res );
         if ( whichMethod == METHOD_POST )
         {
             parser.setBody(); // for POST requests - last step of execution
-            m.postMethod( newPath, res, parser.getBody() );
+            m.postMethod( joinedPath, res, parser.getBody() );
             std::cout << ORANGE << parser.getBody() << RESET << std::endl;
         }
         /// Response Buidling 

@@ -92,6 +92,7 @@ void	Listener::process(uint32_t events) {
 
 	while (true) {
 		try {
+			std::cout << "FD " << getFd() << ": [Listener] Accepting new connection\n";
 			new Reader(*this); //Create Reader
 		}
 		catch (const wouldBlockException& e) {
