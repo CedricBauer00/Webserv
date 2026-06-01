@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_set>
 #include "AWebservParser.hpp"
 #include "ConfigParser.hpp"
 
@@ -11,14 +12,14 @@ class WebservCoreParser : public AWebservParser {
         };
 
 		struct SrvCoreConf : SrvConf {
-			std::vector<std::string>			serverNames; // virtual server name entries
-			// std::string							filename, serverName;
-			// unsigned int						lineNum;
-			unsigned long						numReqExpected{1000}; // number of simultaneous requests expected
-			WebservMsec							clientHeaderTimeout{1000}; // maximum time to wait for client request headers in milliseconds (408 Request Timeout)
-			bool								ignore_invalid_headers{true}, \
+			std::unordered_set<std::string>	serverNames; // virtual server name entries
+			// std::string					filename, serverName;
+			// unsigned int					lineNum;
+			unsigned long					numReqExpected{1000}; // number of simultaneous requests expected
+			WebservMsec						clientHeaderTimeout{1000}; // maximum time to wait for client request headers in milliseconds (408 Request Timeout)
+			bool							ignore_invalid_headers{true}, \
 			merge_slashes{true}, underscore_is_valid{false};
-			unsigned int						flags{0};
+			unsigned int					flags{0};
 		};
 
 		struct LocCoreConf : LocConf {

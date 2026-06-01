@@ -206,7 +206,7 @@ void	WebservCoreParser::_parseListen(Tokens& t, const ConfCtx& c,
 void	WebservCoreParser::_parseServerNames(Tokens& t, const ConfCtx& c) {
 	SrvCoreConf* srvConf = dynamic_cast<SrvCoreConf*>(getSrvConfPtr(c));
 	while (1) {
-		srvConf->serverNames.push_back(t.front());
+		srvConf->serverNames.insert(t.front());
 		t.pop_front();
         if (t.empty() || _isDelimiter(t.front()))
             break;
