@@ -113,6 +113,7 @@ void    Method::getMethod( std::string newPath, Response &res ) // status codes 
     stack.push_back("index1.html");
     stack.push_back("index2.html");
     stack.push_back("index3.html");
+    stack.push_back("index.html");
 
     std::cout << "newPath:" << newPath << std::endl;
 
