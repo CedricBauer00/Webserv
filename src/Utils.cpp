@@ -88,11 +88,6 @@ std::string getFileType( std::string path )
         return "application/octet-stream";
 }
 
-bool autoIndexActive() // still to implement: return bool for autoindex
-{
-    return true;
-}
-
 void createAutoIndex( std::string mockUri, Response &res )
 {
     std::vector<std::string> all;

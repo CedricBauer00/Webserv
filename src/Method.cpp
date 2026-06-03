@@ -9,18 +9,18 @@ std::string    Method::joinRootAndPath(
 {
 
     // std::string mockLocation = "/images";
-    // std::string mockRoot = getRootPath();
+    // std::string root = getRootPath();
     WebservCoreParser::LocCoreConf* locConf =\
     dynamic_cast<WebservCoreParser::LocCoreConf*>(location.locConfs[0].get());
-    std::string mockRoot = locConf->root.empty() ? getRootPath() : locConf->root;
+    std::string root = locConf->root.empty() ? getRootPath() : locConf->root;
 
     if ( whichMethod == METHOD_POST )
     {
         if ( !getUploadEnabled() )
             throw Forbidden();
         if( !( _path.empty() ) )
-            mockRoot = getUploadPath().empty() ? mockRoot : getUploadPath();
-        std::cout << "Upload Path: " << mockRoot << std::endl;
+            root = getUploadPath().empty() ? root : getUploadPath();
+        std::cout << "Upload Path: " << root << std::endl;
     }
 
     // newPath = mockLocation + newPath;
@@ -33,11 +33,11 @@ std::string    Method::joinRootAndPath(
         std::cout << "nP: " << newPath << std::endl;
         newPath = newPath.substr( 1 );
     }
-    if ( mockRoot.back() != '/' )
-        mockRoot += '/';
+    if ( root.back() != '/' )
+        root += '/';
     
-    std::cout << "root:" << mockRoot << "\nnewPath:" << newPath << std::endl;
-    newPath = mockRoot + newPath; // join root + uri 
+    std::cout << "root:" << root << "\nnewPath:" << newPath << std::endl;
+    newPath = root + newPath; // join root + uri 
 
     
     std::cout << "finished modify path" << std::endl;
@@ -111,9 +111,10 @@ std::string    Method::normalizePath(std::string uri)
 }
 
 
-void    Method::getMethod( std::string newPath, Response &res ) // status codes 200, 402, 404
+void    Method::getMethod( std::string newPath, Response &res, const IWebservModule::LocNode& location ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
+    (void)location;
     std::error_code ec;
     std::vector<std::string> stack;
     stack.push_back("index1.html");
@@ -218,9 +219,10 @@ void    Method::getMethod( std::string newPath, Response &res ) // status codes 
 // /servers/server1/uploads/data/index1.html
 
 // test: printf 'DELETE /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
-void    Method::deleteMethod( std::string newPath, Response &res ) // status codes 200, 402, 404
+void    Method::deleteMethod( std::string newPath, Response &res, const IWebservModule::LocNode& location ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
+    (void)location;
 
     std::error_code ec;
     if ( !( std::filesystem::exists( newPath, ec ) ) )
@@ -262,9 +264,10 @@ void    Method::deleteMethod( std::string newPath, Response &res ) // status cod
 }
 
 // test: printf 'POST /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
-void    Method::postMethod( std::string newPath, Response &res, std::string contentBody ) // status codes 200, 402, 404
+void    Method::postMethod( std::string newPath, Response &res, std::string contentBody, const IWebservModule::LocNode& location ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
+    (void)location;
         
     if ( std::filesystem::is_regular_file( newPath ) )
     {
@@ -439,6 +442,11 @@ std::string getUploadPath()
 std::string getRootPath()
 {
     return "./servers/server1/";
+}
+
+bool autoIndexActive() // still to implement: return bool for autoindex
+{
+    return true;
 }
 
 void    Method::checkCgiExtension()

@@ -9,5 +9,5 @@ class Response;
 
 std::string setStatus(int code);
 std::string getFileType( std::string path );
-bool        autoIndexActive();
+// bool        autoIndexActive();
 void        createAutoIndex( std::string mockUri, Response &res );

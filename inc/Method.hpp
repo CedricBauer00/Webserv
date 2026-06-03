@@ -26,9 +26,9 @@ class Method
         Method();
         ~Method();
         std::string    joinRootAndPath(std::string uri, whichMethod whichMethod, const IWebservModule::LocNode& location);
-        void    getMethod( std::string newPath, Response &res );
-        void    postMethod( std::string newPath, Response &res, std::string contentBody ); // status codes 200, 402, 404
-        void    deleteMethod( std::string newPath, Response &res ); // status codes 200, 402, 404
+        void    getMethod( std::string newPath, Response &res, const IWebservModule::LocNode& location );
+        void    postMethod( std::string newPath, Response &res, std::string contentBody, const IWebservModule::LocNode& location ); // status codes 200, 402, 404
+        void    deleteMethod( std::string newPath, Response &res, const IWebservModule::LocNode& location ); // status codes 200, 402, 404
         void    runCgi( std::string &content, bool isPost );
         std::string getCgiPath();
         std::string getScript();
@@ -47,3 +47,4 @@ bool        getAllowDeleteDir();
 bool        getAllowedToOverwrite();
 std::string getTimeStamp();
 bool        getIsCgiLocation();
+bool        autoIndexActive(); // still to implement: return bool for autoindex
