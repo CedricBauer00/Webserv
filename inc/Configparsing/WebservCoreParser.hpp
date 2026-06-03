@@ -54,14 +54,8 @@ class WebservCoreParser : public AWebservParser {
 			WebservConfLevel level) override;
 
 	private:
-		void	_initConfIfEmptyAtLevel(
-			const ConfCtx& confCtx, WebservConfLevel level);
-		bool	_isDelimiter(const std::string& tok);
-		bool	_parseBooleanValue(const std::string& directive,
-            const std::string& tok);
-		void	_addLowerLevelDirective(const std::string& directive,
-			std::vector<std::string> vals,
-            std::vector<std::vector<std::string>>& arr);
+		// void	_initConfIfEmptyAtLevel(
+		// 	const ConfCtx& confCtx, WebservConfLevel level);
 		void	_parseListen(Tokens& tokens, const ConfCtx& confCtx,
 			ConfigParser& parser);
 		void	_parseServerNames(Tokens& tokens, const ConfCtx& confCtx);
@@ -87,10 +81,6 @@ class WebservCoreParser : public AWebservParser {
 		void	_parseSendTimeout(const std::string& directive,
 			Tokens& tokens, const ConfCtx& confCtx, WebservConfLevel level);
 		void	_parseErrorPage(const std::string& directive,
-			Tokens& tokens, const ConfCtx& confCtx, WebservConfLevel level);
-		void	_parseIndex(const std::string& directive,
-			Tokens& tokens, const ConfCtx& confCtx, WebservConfLevel level);
-		void	_parseAutoindex(const std::string& directive,
 			Tokens& tokens, const ConfCtx& confCtx, WebservConfLevel level);
 		void	_parseTryFiles(const std::string& directive,
 			Tokens& tokens, const ConfCtx& confCtx, WebservConfLevel level);

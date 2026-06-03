@@ -1,10 +1,12 @@
 #include <algorithm>
 #include "../../inc/Configparsing/ConfigParser.hpp"
 #include "../../inc/Configparsing/WebservCoreModule.hpp"
+#include "../../inc/Configparsing/WebservIndexModule.hpp"
 
 ConfigParser::ConfigParser(char* filename): _configFilename(filename) {
 	int ctxIndex = 0;
     _modules.push_back(std::make_unique<WebservCoreModule>(ctxIndex));
+	_modules.push_back(std::make_unique<WebservIndexModule>(ctxIndex));
     _tokens = _tokenize();
 }
 

@@ -8,12 +8,27 @@ class AWebservParser : virtual public IWebservModule {
     private:
         template<typename T>
 		void	_insertConf(VecOfPtrs<T>* confs, std::unique_ptr<T> conf);
+
     protected:
         const int	_ctxIndex;
         const std::unordered_map<std::string, WebservConfLevel>
 			_directiveValLevelMap;
+
         template<typename T, typename Factory>
         void	_ensureConfExists(VecOfPtrs<T>* confs, Factory makeConf);
+
+		template<typename HttpConfType,
+				typename SrvConfType,
+				typename LocConfType>
+		void	_initConfIfEmptyAtLevel(
+			const ConfCtx& confCtx, WebservConfLevel level);
+
+		bool	_isDelimiter(const std::string& tok);
+		bool	_parseBooleanValue(const std::string& tok);
+		void	_addLowerLevelDirective(const std::string& directive,
+			std::vector<std::string> vals,
+            std::vector<std::vector<std::string>>& arr);
+
     public:
         AWebservParser() = delete;
         AWebservParser(int& ctxIndex,
@@ -21,11 +36,13 @@ class AWebservParser : virtual public IWebservModule {
                 directiveValLevelMap
 		);
         virtual ~AWebservParser() = default;
-        int	isDirectiveValid(const std::string& directive,
+
+        int			isDirectiveValid(const std::string& directive,
 			WebservConfLevel level) override;
         HttpConf*	getHttpConfPtr(const ConfCtx& confCtx) override;
 		SrvConf*	getSrvConfPtr(const ConfCtx& confCtx) override;
 		LocConf*	getLocConfPtr(const ConfCtx& confCtx) override;
+
 };
 
 template<typename T>
@@ -39,4 +56,29 @@ template<typename T, typename Factory>
 void AWebservParser::_ensureConfExists(VecOfPtrs<T>* confs, Factory makeConf) {
 	if (confs->size() <= static_cast<size_t>(_ctxIndex))
 		_insertConf<T>(confs, makeConf());
+};
+
+template<typename HttpConfType, typename SrvConfType, typename LocConfType>
+void AWebservParser::_initConfIfEmptyAtLevel(
+	const ConfCtx& confCtx, WebservConfLevel level) {
+	switch (level) {
+		case WebservConfLevel::HTTP:
+			_ensureConfExists(confCtx.httpConfs,
+							[]()
+							{ return std::make_unique<HttpConfType>(); });
+			break;
+		case WebservConfLevel::SERVER:
+			_ensureConfExists(confCtx.srvConfs,
+							[]()
+							{ return std::make_unique<SrvConfType>(); });
+			[[fallthrough]];
+		case WebservConfLevel::LOCATION:
+			_ensureConfExists(confCtx.locConfs,
+							[]()
+							{ return std::make_unique<LocConfType>(); });
+			break;
+		default:
+			throw std::runtime_error("Invalid configuration level");
+			break;
+	};
 };

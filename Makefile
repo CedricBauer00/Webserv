@@ -5,6 +5,8 @@ SRC	=	main.cpp \
 		Configparsing/AWebservParser.cpp \
 		Configparsing/WebservCoreParser.cpp \
 		Configparsing/WebservCoreModule.cpp \
+		Configparsing/WebservIndexParser.cpp \
+		Configparsing/WebservIndexModule.cpp \
 		Configparsing/ConfigParser.cpp \
 		Configparsing/modules.cpp \
 		PageHandler.cpp \
