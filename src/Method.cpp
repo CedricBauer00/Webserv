@@ -12,32 +12,24 @@ std::string    Method::joinRootAndPath(
     // std::string root = getRootPath();
     WebservCoreParser::LocCoreConf* locConf =\
     dynamic_cast<WebservCoreParser::LocCoreConf*>(location.locConfs[0].get());
-    std::string root = locConf->root.empty() ? getRootPath() : locConf->root;
+    _root = locConf->root.empty() ? getRootPath() : locConf->root;
 
     if ( whichMethod == METHOD_POST )
     {
         if ( !getUploadEnabled() )
             throw Forbidden();
         if( !( _path.empty() ) )
-            root = getUploadPath().empty() ? root : getUploadPath();
-        std::cout << "Upload Path: " << root << std::endl;
+            _root = getUploadPath().empty() ? _root : getUploadPath();
+        std::cout << "Upload Path: " << _root << std::endl;
     }
 
     // newPath = mockLocation + newPath;
     // newPath = newPath.substr( mockLocation.size() );
     
     // /DO.PNG
-
-    if ( !( newPath.empty() ) && newPath[ 0 ] == '/' )
-    {
-        std::cout << "nP: " << newPath << std::endl;
-        newPath = newPath.substr( 1 );
-    }
-    if ( root.back() != '/' )
-        root += '/';
     
-    std::cout << "root:" << root << "\nnewPath:" << newPath << std::endl;
-    newPath = root + newPath; // join root + uri 
+    std::cout << "root:" << _root << "\nnewPath:" << newPath << std::endl;
+    newPath = _root + newPath; // join root + uri 
 
     
     std::cout << "finished modify path" << std::endl;
@@ -97,15 +89,14 @@ std::string    Method::normalizePath(std::string uri)
     }
 
     std::string newPath;
-    newPath = "/";
     for ( size_t i = 0; i < wholePath.size(); ++i )
     {
+        newPath = "/" + newPath;
         newPath += wholePath[ i ];
-        if ( i + 1 < wholePath.size() )
-            newPath += "/";
     }
+    std::cout << "new Path: " << newPath << std::endl;
     
-    if ( endsWithSlash && newPath.back() != '/' )
+    if ( endsWithSlash )
         newPath += '/';
     return newPath;
 }
@@ -114,13 +105,12 @@ std::string    Method::normalizePath(std::string uri)
 void    Method::getMethod( std::string newPath, Response &res, const IWebservModule::LocNode& location ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
-    (void)location;
     std::error_code ec;
-    std::vector<std::string> stack;
-    stack.push_back("index1.html");
-    stack.push_back("index2.html");
-    stack.push_back("index3.html");
-    stack.push_back("index.html");
+    // std::vector<std::string> stack;
+    // stack.push_back("index1.html");
+    // stack.push_back("index2.html");
+    // stack.push_back("index3.html");
+    // stack.push_back("index.html");
 
     std::cout << "newPath:" << newPath << std::endl;
 
@@ -165,16 +155,17 @@ void    Method::getMethod( std::string newPath, Response &res, const IWebservMod
         res.setHeaders( "Content-Type", getFileType( newPath ) );
         return ;
     }
-    else //    if ( std::filesystem::is_directory( newPath ) )
+    else if ( std::filesystem::is_directory( newPath ) )
     {
         std::cout << "newP: " << newPath << std::endl;
         if ( newPath.back() != '/' )
         {
-            std::string newStr = newPath + "/";
+            std::cout << "_root : " << _root << std::endl; 
+            std::string newStr = newPath.substr( _root.size() ) + "/";
             throw MovedPermanently( newStr );
         }
-        
-        for ( auto x : stack ) // replace stack with all files in directory - indexes from location 
+    
+        for ( auto x : dynamic_cast<WebservIndexParser::LocIndexConf*>(location.locConfs[1].get())->indexFiles) // replace stack with all files in directory - indexes from location 
         {
             std::string joinedPath = newPath + x;
             
@@ -205,15 +196,16 @@ void    Method::getMethod( std::string newPath, Response &res, const IWebservMod
             }
         }
 
-        if ( autoIndexActive() && std::filesystem::exists( newPath, ec ) ) // not implemented yet   
+        if (dynamic_cast<WebservIndexParser::LocIndexConf*>(location.locConfs[1].get())->autoindex)
         {
             std::cout << "autoindex" << std::endl;
             createAutoIndex( newPath, res ); // not implemented yet
             return ;
         }
-        else
-            throw NotFound();
+        throw NotFound();
     }
+    else
+        throw NotFound();
 }
 // /servers/server1/uplodas/data/index1.html
 // /servers/server1/uploads/data/index1.html

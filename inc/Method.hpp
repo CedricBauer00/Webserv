@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include "../inc/Configparsing/WebservCoreModule.hpp"
+#include "../inc/Configparsing/WebservIndexModule.hpp"
 
 class Method
 {
@@ -21,6 +22,7 @@ class Method
         std::string _query;
         std::string _postedFile;
         bool        _isCgiFile;
+        std::string _root;
 
     public:
         Method();

@@ -118,13 +118,13 @@ void    Execution::execution(
         std::cout << "joinedPath: " << joinedPath << std::endl;
 
         if ( whichMethod == METHOD_GET )
-            m.getMethod( joinedPath, res );
+            m.getMethod( joinedPath, res, *loc ); // && if GET method is allowed
         else if ( whichMethod == METHOD_DELETE )
-            m.deleteMethod( joinedPath, res );
+            m.deleteMethod( joinedPath, res, *loc ); // && if DELETE method is allowed
         if ( whichMethod == METHOD_POST )
         {
             parser.setBody(); // for POST requests - last step of execution
-            m.postMethod( joinedPath, res, parser.getBody() );
+            m.postMethod( joinedPath, res, parser.getBody(), *loc ); // && if POST method is allowed
             std::cout << ORANGE << parser.getBody() << RESET << std::endl;
         }
         /// Response Buidling 
