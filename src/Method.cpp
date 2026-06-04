@@ -10,9 +10,12 @@ std::string    Method::joinRootAndPath(
 
     // std::string mockLocation = "/images";
     // std::string root = getRootPath();
-    WebservCoreParser::LocCoreConf* locConf =\
-    dynamic_cast<WebservCoreParser::LocCoreConf*>(location.locConfs[0].get());
-    _root = locConf->root.empty() ? getRootPath() : locConf->root;
+    if (!location.locConfs.empty()) {
+        const auto* locConf =\
+        dynamic_cast<WebservCoreParser::LocCoreConf*>(location.locConfs[0].get());
+        _root = locConf->root.empty() ? getRootPath() : locConf->root;
+    }
+    else _root = getRootPath();
 
     if ( whichMethod == METHOD_POST )
     {
@@ -165,42 +168,45 @@ void    Method::getMethod( std::string newPath, Response &res, const IWebservMod
             throw MovedPermanently( newStr );
         }
     
-        for ( auto x : dynamic_cast<WebservIndexParser::LocIndexConf*>(location.locConfs[1].get())->indexFiles) // replace stack with all files in directory - indexes from location 
-        {
-            std::string joinedPath = newPath + x;
-            
-            std::cout << "joinedPath: " << joinedPath << std::endl;
-
-            if ( std::filesystem::exists( joinedPath, ec ) )
+        if (2 <= location.locConfs.size()) {
+            std::cout << location.locConfs.size() << std::endl;
+            for ( auto x : dynamic_cast<WebservIndexParser::LocIndexConf*>(location.locConfs[1].get())->indexFiles) // replace stack with all files in directory - indexes from location 
             {
-                std::cout << "entered" << std::endl;
-                std::ifstream ifs( joinedPath ); 
-                std::cout  << joinedPath << std::endl;
-
-                if ( !( ifs.is_open() ) ) // permissions check
-                    throw NotFound();
-                std::string content;
-                std::ostringstream oss;
-        
-                oss << ifs.rdbuf();
-
-                content = oss.str();
-
-                res.setBody( content );
-                res.setCodeAndPhrase( "200", "OK" );
-                res.setHeaders( "Content-Length", std::to_string( content.size() ) );
-                res.setHeaders( "Content-Type", getFileType( joinedPath ) );
-                std::cout << "GET function is done" << std::endl;
-
+                std::string joinedPath = newPath + x;
+                
+                std::cout << "joinedPath: " << joinedPath << std::endl;
+    
+                if ( std::filesystem::exists( joinedPath, ec ) )
+                {
+                    std::cout << "entered" << std::endl;
+                    std::ifstream ifs( joinedPath ); 
+                    std::cout  << joinedPath << std::endl;
+    
+                    if ( !( ifs.is_open() ) ) // permissions check
+                        throw NotFound();
+                    std::string content;
+                    std::ostringstream oss;
+            
+                    oss << ifs.rdbuf();
+    
+                    content = oss.str();
+    
+                    res.setBody( content );
+                    res.setCodeAndPhrase( "200", "OK" );
+                    res.setHeaders( "Content-Length", std::to_string( content.size() ) );
+                    res.setHeaders( "Content-Type", getFileType( joinedPath ) );
+                    std::cout << "GET function is done" << std::endl;
+    
+                    return ;
+                }
+            }
+    
+            if (dynamic_cast<WebservIndexParser::LocIndexConf*>(location.locConfs[1].get())->autoindex)
+            {
+                std::cout << "autoindex" << std::endl;
+                createAutoIndex( newPath, res ); // not implemented yet
                 return ;
             }
-        }
-
-        if (dynamic_cast<WebservIndexParser::LocIndexConf*>(location.locConfs[1].get())->autoindex)
-        {
-            std::cout << "autoindex" << std::endl;
-            createAutoIndex( newPath, res ); // not implemented yet
-            return ;
         }
         throw NotFound();
     }

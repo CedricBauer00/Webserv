@@ -12,7 +12,7 @@ const IWebservModule::Srv*	Execution::selectServer(
 	for (const IWebservModule::Srv* srv : servers) {
 		if (srv->srvConfs.empty())
 			continue;
-		const WebservCoreParser::SrvCoreConf* srvConf =\
+		const auto* srvConf =\
 		dynamic_cast<WebservCoreParser::SrvCoreConf*>(srv->srvConfs[0].get());
 		const std::unordered_set<std::string>& names = srvConf->serverNames;
 		if (names.find(hostname) != names.end())
@@ -68,7 +68,7 @@ void    Execution::execution(
             for (const auto& item :
                 dynamic_cast<WebservCoreParser::SrvCoreConf*>(
                     server->srvConfs[0].get())->serverNames) {
-                std::cout << item << ", ";
+                std::cout << item << " ";
             }
             std::cout << '\n';
         }
@@ -78,11 +78,14 @@ void    Execution::execution(
         << "' with match type " << loc->matchType << "\n";
 
 		whichMethod whichMethod = parser.getMethod();
-        WebservCoreParser::LocCoreConf* locConf =\
-        dynamic_cast<WebservCoreParser::LocCoreConf*>(loc->locConfs[0].get());
-        if (!(parser.getReqMethod() & locConf->allowedMethods)) {
-            std::cerr << "Requested method not allowed" << "\n";
-            throw MethodNotAllowed();
+
+        if (!loc->locConfs.empty()) {
+            const auto* locConf =\
+            dynamic_cast<WebservCoreParser::LocCoreConf*>(loc->locConfs[0].get());
+            if (!(parser.getReqMethod() & locConf->allowedMethods)) {
+                std::cerr << "Requested method not allowed" << "\n";
+                throw MethodNotAllowed();
+            }
         }
 
         // 2)   SERVER_REWRITE
