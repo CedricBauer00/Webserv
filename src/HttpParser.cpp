@@ -1,21 +1,22 @@
 #include "../inc/HttpParser.hpp"
 #include "../inc/Exceptions.hpp"
 
-HttpParser::HttpParser() {}
-
-HttpParser::HttpParser( std::string reqeust ) : _startLine(), _headers(), _body(), _bodyLength( 0 ), _foundContlen( false ), _foundHost( false ), _contentLength( 0 ), _chunked( false ), _iss( reqeust ), _method( METHOD_GET )
+HttpParser::HttpParser( std::string request ) 
+: _startLine(), _headers(), _body(), _bodyLength( 0 ), _foundContlen( false ),
+_foundHost( false ), _contentLength( 0 ), _chunked( false ), _request( request ),
+_method( METHOD_GET )
 {
     std::cout << "\n--- HttpParsing BEGIN ---\n" << std::endl;
 }
 
 HttpParser::~HttpParser() { std::cout << RED << "--- HttpParsing END ---" << RESET << std::endl; }
 
-void    HttpParser::setHeaders()
+void    HttpParser::parse()
 {
     std::string line;
 
     int whichline = 0;
-    while ( std::getline( _iss, line ) )
+    while ( std::getline( _request, line ) )
     {
         whichline++;
         std::cout << GREEN << line << RESET << std::endl;
@@ -27,25 +28,18 @@ void    HttpParser::setHeaders()
 
         if ( _startLine.empty() )
         {
-            setStartLine( line );
-            checkStartLine();
-            setMethod();
-            setUri();
+            _setStartLine(std::istringstream{line});
+            _checkStartLine();
+            _setMethod();
+            _decodeRequestTarget(_startLine[1]);
+            _splitRequestTarget(_startLine[1]);
+            _normalizePath();
         }
         else
         {
-            std::string::size_type pos = line.find( ":" ); 
-            if ( pos == std::string::npos || pos == 0 )
-            {
-                std::cout << RED << "no ':' found, or as first character" << RESET << std::endl;////
-                throw BadRequest();
-            }
-
-            if ( line[ pos - 1 ] == ' ' ) // vor ":" darf kein Space stehen
-                throw BadRequest();
-
-            std::string key = line.substr( 0, pos );
-            std::string value = line.substr( pos + 1 );
+			std::string key;
+			std::string value;
+			_getKeyAndValue(line, key, value);
 
             // key und value entweder komplett lowercase oder uppercase machen, wegen einheitlichem handling - case sensitive 
             for ( auto& x : key )
@@ -87,16 +81,15 @@ void    HttpParser::setHeaders()
     std::cout << "\n- Map End -\n" << RESET << std::endl;
 }
 
-void    HttpParser::setStartLine( std::string line )
+void    HttpParser::_setStartLine(std::istringstream line)
 {
-    std::istringstream  iss( line );
     std::string         token;
 
-    while ( iss >> token )
+    while ( line >> token )
         _startLine.push_back( token );
 }
 
-void    HttpParser::checkStartLine() // eventuell direkt Execution instance createn, die URI speichert
+void    HttpParser::_checkStartLine() // eventuell direkt Execution instance createn, die URI speichert
 {
     if ( _startLine.size() != 3 )
     {
@@ -122,13 +115,7 @@ void    HttpParser::checkStartLine() // eventuell direkt Execution instance crea
     }
 }
 
-void    HttpParser::setUri()
-{
-    _uri = _startLine[ 1 ];
-}
-
-
-void    HttpParser::setMethod() // eventuell hier Execution class instance createn, die die Method selbst speichert
+void    HttpParser::_setMethod() // eventuell hier Execution class instance createn, die die Method selbst speichert
 {
     std::cout << "startline:" << _startLine[ 0 ] << std::endl;
     if ( _startLine[ 0 ] == "GET" )
@@ -176,7 +163,7 @@ void    HttpParser::setBody()
     }
     else
     {
-        while ( std::getline( _iss, line ) )
+        while ( std::getline( _request, line ) )
         {
             _body.append( line + "\n" );
         }
@@ -319,11 +306,6 @@ unsigned int    HttpParser::getReqMethod() const
     return _reqMethodMask;
 }
 
-const std::string&     HttpParser::getUri()
-{
-    return _uri;
-}
-
 const std::string&    HttpParser::getBody() const
 {
     return _body;
@@ -339,6 +321,85 @@ const std::string&     HttpParser::getHostPort() const
     return _hostPort;
 }
 
+const std::string&     HttpParser::getPath() const
+{
+    return _path;
+}
+
+void    HttpParser::_decodeRequestTarget(std::string& requestTarget)
+{
+    for ( size_t i = 0; i < requestTarget.size(); ++i )
+    {
+        if ( requestTarget[ i ] == '%' && i + 2 < requestTarget.size() )
+        {
+            std::string hex = requestTarget.substr( i + 1, 2 );
+            char c = static_cast<char>( std::strtol( hex.c_str(), 0, 16 ) );
+            requestTarget.replace( i, 3, 1, c );
+        }
+    }
+}
+
+void    HttpParser::_splitRequestTarget(std::string& requestTarget) {
+    std::string::size_type pos = requestTarget.find( '?' );
+
+    if ( pos != std::string::npos )
+    {
+        _path = std::move(requestTarget.substr( 0, pos ));
+        _query = std::move(requestTarget.substr( pos + 1 ));
+    }
+    else
+        _path = std::move(requestTarget);
+
+}
+
+void    HttpParser::_normalizePath() {
+    std::istringstream iss( _path );
+    std::vector<std::string> wholePath;
+    std::string partStr;
+    std::string nPath;
+
+    bool endsWithSlash = !_path.empty() && _path.back() == '/';
+    while ( getline( iss, partStr, '/' ) )
+    {
+        if ( partStr.empty() || partStr == "." ) // "." - dieses Verzeichnis
+            continue ;
+        if ( partStr == ".." ) // Traversal-Check 
+        {
+            if ( wholePath.empty() )
+                throw BadRequest();
+                
+            wholePath.pop_back(); // one directory out  
+        }
+        else
+            wholePath.push_back( partStr );
+    }
+    for ( size_t i = 0; i < wholePath.size(); ++i )
+    {
+        nPath = "/" + nPath;
+        nPath += wholePath[ i ];
+    }
+    if ( endsWithSlash )
+        nPath += '/';
+    std::cout << "Normalized path: " << nPath << std::endl;
+    _path = std::move(nPath);
+}
+
+void	HttpParser::_getKeyAndValue(
+		const std::string& line, std::string& key, std::string& value )
+{
+	std::string::size_type colonPos = line.find( ":" ); 
+	if ( colonPos == std::string::npos || colonPos == 0 )
+	{
+		std::cout << RED << "no ':' found, or as first character" << RESET << std::endl;////
+		throw BadRequest();
+	}
+
+	if ( line[ colonPos - 1 ] == ' ' ) // vor ":" darf kein Space stehen
+		throw BadRequest();
+
+	key = line.substr( 0, colonPos );
+	value = line.substr( colonPos + 1 );
+}
 // bool            HttpParser::isCgifile()
 // {
 //     return _isCgiFile;

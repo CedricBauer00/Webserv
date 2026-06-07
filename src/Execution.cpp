@@ -56,12 +56,12 @@ void    Execution::execution(
         HttpParser parser( request );
 
         // 1) parse request
-        parser.setHeaders();
+        parser.parse();
 
         Method  m;
 		
-        std::string normalizedUri = m.normalizePath( parser.getUri() );
-		std::cout << "Normalized Uri: " << normalizedUri << std::endl;
+        // std::string normalizedUri = m.normalizePath( parser.getUri() );
+		// std::cout << "Normalized Uri: " << normalizedUri << std::endl;
 
         server = selectServer(parser.getHostName(), servers); // select server based on Host name
         if (!server->srvConfs.empty()) {
@@ -73,7 +73,7 @@ void    Execution::execution(
             std::cout << '\n';
         }
 		const IWebservModule::LocNode* loc = selectLocation(
-            normalizedUri, *server->location.get()); // select location based on URI
+            parser.getPath(), *server->location.get()); // select location based on URI
         std::cout << "Selected location: '" << loc->name 
         << "' with match type " << loc->matchType << "\n";
 
@@ -117,7 +117,7 @@ void    Execution::execution(
         //validate path
         
 
-        std::string joinedPath = m.joinRootAndPath(normalizedUri, whichMethod, *loc);
+        std::string joinedPath = m.joinRootAndPath(parser.getPath(), whichMethod, *loc);
         std::cout << "joinedPath: " << joinedPath << std::endl;
 
         if ( whichMethod == METHOD_GET )

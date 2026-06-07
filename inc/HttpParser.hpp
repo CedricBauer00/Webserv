@@ -4,15 +4,6 @@
 #include <string>
 #include <cstring>
 #include <iostream>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <sys/wait.h>
-#include <sys/epoll.h>
-#include <signal.h>
-#include <fcntl.h>
 #include <vector>
 #include <unordered_map>
 #include <sstream>
@@ -39,32 +30,40 @@ class HttpParser
         const std::unordered_map<std::string, unsigned int> m = {
         {"GET", 1u<<0}, {"POST", 1u<<1}, {"PUT", 1u<<2},
         {"DELETE", 1u<<3}, {"HEAD", 1u<<4}, {"OPTIONS", 1u<<5}};
-        std::vector<std::string>                        _startLine;
-        std::unordered_map<std::string, std::string>    _headers;
-        std::string _httpVersion;
-        std::string _uri;
-        std::string _body;
-        std::size_t _bodyLength;
-        bool        _foundContlen;
-        bool        _foundHost;
-        std::size_t _contentLength;
-        bool        _chunked;
-        std::istringstream  _iss;
-        std::string _hostPort;
-        std::string _hostName;
-        whichMethod _method;
-        unsigned int    _reqMethodMask;
+        std::vector<std::string>						_startLine;
+        std::unordered_map<std::string, std::string>	_headers;
+        std::string			_httpVersion;
+        std::string			_path;
+		std::string			_query;
+        std::string 		_body;
+        std::size_t			_bodyLength;
+        bool				_foundContlen;
+        bool				_foundHost;
+        std::size_t			_contentLength;
+        bool				_chunked;
+        std::istringstream	_request;
+        std::string 		_hostPort;
+        std::string 		_hostName;
+        whichMethod 		_method;
+        unsigned int    	_reqMethodMask;
+
+        void	_setMethod();
+        void	_setStartLine(std::istringstream line);
+        void	_checkStartLine();
+		void	_decodeRequestTarget(std::string& requestTarget);
+		void	_splitRequestTarget(std::string& requestTarget);
+		void	_normalizePath();
+		void	_getKeyAndValue(
+			const std::string& line, std::string& key, std::string& value);
+		// void    _setHttpVersion();
 
     public:
-        HttpParser();
+        HttpParser() = delete;
         HttpParser( std::string reqeust );
-        
-        void        setHeaders( );
+		~HttpParser();
+ 
+        void        parse();
         void        setBody();
-        void        setMethod();
-        void        setUri();
-        void        setStartLine( std::string line );
-        void        checkStartLine();
         std::string trim( const std::string& value );
         bool        isAllDigits( const std::string& word );
         void        initIss( std::string request );
@@ -74,16 +73,14 @@ class HttpParser
 
         // void    setHttpVersion();
         
-        std::vector<std::string>    getStartLine();
-        std::unordered_map<std::string, std::string>  getHeaders();
-        const std::string&					getBody() const;
-        const std::string&					getUri();
-        whichMethod							getMethod() const;
-        unsigned int						getReqMethod() const;
-        const std::string&					getHostName() const;
-        const std::string&					getHostPort() const;
-
-        ~HttpParser();
+        std::vector<std::string>						getStartLine();
+        std::unordered_map<std::string, std::string>	getHeaders();
+        const std::string&								getBody() const;
+        whichMethod										getMethod() const;
+        unsigned int									getReqMethod() const;
+        const std::string&								getHostName() const;
+        const std::string&								getHostPort() const;
+		const std::string&								getPath() const;
 };
 
 bool    isInRange( int num, int min, int max );
