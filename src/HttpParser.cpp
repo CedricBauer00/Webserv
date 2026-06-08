@@ -69,8 +69,8 @@ void    HttpParser::parse()
             _headers[ key ] = value;
         }
     }
-    if ( _foundHost == false ) // oder default server - meist erster Serverblock
-        throw BadRequest(); // anscheinend muss! dann default server; keine Bad Request!
+    // if ( _foundHost == false ) // oder default server - meist erster Serverblock
+    //     throw BadRequest(); // anscheinend muss! dann default server; keine Bad Request!
 
     // std::cout << "found Host Header:" << _foundHost << " in line: "<< BLUE << whichline << RESET << std::endl;
     std::cout << BLUE << "- Map printing- \n" << std::endl;
@@ -153,38 +153,72 @@ bool    HttpParser::isAllDigits( const std::string& word )
 
 void    HttpParser::setBody()
 {
-    std::string line;
-
-    if ( _chunked == true )
+    if (_chunked == true)
     {
-        std::cout << "CHUNKED ENCODING" << std::endl;
-        // chunked encoding
-        // until body lenght == 0; -> End of chunked encoding
+        _body.reserve(MAX_BODY_SIZE);
+        std::string sizeLine;
+        while (std::getline(_request, sizeLine))
+        {
+            if (sizeLine.empty() || sizeLine.back() != '\r')
+                throw BadRequest();
+            sizeLine.pop_back();
+
+            char* endptr = NULL;
+            unsigned long chunkSize = std::strtoul(
+                sizeLine.c_str(), &endptr, 16);
+            if (endptr != sizeLine.c_str() + sizeLine.size())
+                throw BadRequest();
+
+            if (chunkSize == 0)
+            {
+                // consume trailing trailer headers until empty line
+                std::string trailer;
+                while (std::getline(_request, trailer))
+                {
+                    if (!trailer.empty() && trailer.back() == '\r')
+                        trailer.pop_back();
+                    if (trailer.empty())
+                        break;
+                }
+                break;
+            }
+
+            if (static_cast<size_t>(MAX_BODY_SIZE) - _body.size() < chunkSize)
+                throw PayloadTooLarge();
+
+            std::size_t offset = _body.size();
+            _body.append(chunkSize, '\0');
+            _request.read(&_body[offset], chunkSize);
+            if (static_cast<size_t>(_request.gcount()) != chunkSize)
+                throw BadRequest();
+
+            // consume the CRLF after chunk data
+            char c, nl;
+            if (!_request.get(c) || c != '\r')
+                throw BadRequest();
+            if (!_request.get(nl) || nl != '\n')
+                throw BadRequest();
+        }
+    }
+    else if (_foundContlen)
+    {
+        if (static_cast<std::size_t>(MAX_BODY_SIZE) < _contentLength)
+            throw PayloadTooLarge();
+
+        _body.resize(_contentLength);
+        _request.read(_body.data(), static_cast<std::streamsize>(_contentLength));
+        if (static_cast<size_t>(_request.gcount()) != _contentLength)
+            throw BadRequest();
     }
     else
     {
-        while ( std::getline( _request, line ) )
-        {
-            _body.append( line + "\n" );
-        }
-        
-        // max body size checken
-        if ( _foundContlen )
-        {
-            if ( _contentLength > static_cast<std::size_t>( MAX_BODY_SIZE ) )
-                throw PayloadTooLarge();
-            if ( _body.size() != _contentLength )
-                throw BadRequest();
-            // if ( _body.size() < _contentLength )
-            //     throw RequestTimeout();
-            
-        }
-        else if ( _body.size() > static_cast<std::size_t>( MAX_BODY_SIZE ) )
+        // read remaining bytes
+        _body.resize(MAX_BODY_SIZE);
+        _request.read(_body.data(), MAX_BODY_SIZE);
+        _body.resize(static_cast<std::size_t>(_request.gcount()));
+        if (_request.peek() != std::char_traits<char>::eof())
             throw PayloadTooLarge();
-            
     }
-    //check if contentlength and body length are the same
-    // read request body into _body variable after headers were parsed correctly
 }
 
 void    HttpParser::validatePort( std::string port )
@@ -344,12 +378,11 @@ void    HttpParser::_splitRequestTarget(std::string& requestTarget) {
 
     if ( pos != std::string::npos )
     {
-        _path = std::move(requestTarget.substr( 0, pos ));
-        _query = std::move(requestTarget.substr( pos + 1 ));
+        _path = requestTarget.substr( 0, pos );
+        _query = requestTarget.substr( pos + 1 );
     }
     else
-        _path = std::move(requestTarget);
-
+        _path = requestTarget;
 }
 
 void    HttpParser::_normalizePath() {
