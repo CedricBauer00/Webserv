@@ -2,7 +2,7 @@
 #include "../inc/Execution.hpp"
 #include "../inc/Method.hpp"
 
-Execution::Execution() {}
+Execution::Execution(HttpParser& parser) : _parser(parser) {}
 
 Execution::~Execution() {}
 
@@ -28,25 +28,18 @@ const IWebservModule::LocNode*	Execution::selectLocation(const std::string& uri,
 
 // This function is ment to contain all relevant steps for the execution - ich bin mir noch nicht sicher ob das hier Sinn macht...
 // Hier kannst du gerne deine execution Logic skizzieren
-void    Execution::execution(
-    const std::string& request,
-    Response &res,
+void    Execution::execution(Response &res,
     std::function<const IWebservModule::Srv*(const std::string&)> selectServer)
 {
     // const IWebservModule::Srv* server = nullptr;
     try
     {
-        HttpParser parser( request );
-
-        // 1) parse request
-        parser.parse();
-
         Method  m;
 		
         // std::string normalizedUri = m.normalizePath( parser.getUri() );
 		// std::cout << "Normalized Uri: " << normalizedUri << std::endl;
 
-        auto server = selectServer(parser.getHostName()); // select server based on Host name
+        auto server = selectServer(_parser.getHostName()); // select server based on Host name
         if (!server->srvConfs.empty()) {
             for (const auto& item :
                 dynamic_cast<WebservCoreParser::SrvCoreConf*>(
@@ -56,16 +49,16 @@ void    Execution::execution(
             std::cout << '\n';
         }
 		const IWebservModule::LocNode* loc = selectLocation(
-            parser.getPath(), *server->location.get()); // select location based on URI
+            _parser.getPath(), *server->location.get()); // select location based on URI
         std::cout << "Selected location: '" << loc->name 
         << "' with match type " << loc->matchType << "\n";
 
-		whichMethod whichMethod = parser.getMethod();
+		whichMethod whichMethod = _parser.getMethod();
 
         if (!loc->locConfs.empty()) {
             const auto* locConf =\
             dynamic_cast<WebservCoreParser::LocCoreConf*>(loc->locConfs[0].get());
-            if (!(parser.getReqMethod() & locConf->allowedMethods)) {
+            if (!(_parser.getReqMethod() & locConf->allowedMethods)) {
                 std::cerr << "Requested method not allowed" << "\n";
                 throw MethodNotAllowed();
             }
@@ -100,7 +93,7 @@ void    Execution::execution(
         //validate path
         
 
-        std::string joinedPath = m.joinRootAndPath(parser.getPath(), whichMethod, *loc);
+        std::string joinedPath = m.joinRootAndPath(_parser.getPath(), whichMethod, *loc);
         std::cout << "joinedPath: " << joinedPath << std::endl;
 
         if ( whichMethod == METHOD_GET )
@@ -109,9 +102,9 @@ void    Execution::execution(
             m.deleteMethod( joinedPath, res, *loc ); // && if DELETE method is allowed
         if ( whichMethod == METHOD_POST )
         {
-            parser.setBody(); // for POST requests - last step of execution
-            m.postMethod( joinedPath, res, parser.getBody(), *loc ); // && if POST method is allowed
-            std::cout << ORANGE << parser.getBody() << RESET << std::endl;
+            _parser.setBody(); // for POST requests - last step of execution
+            m.postMethod( joinedPath, res, _parser.getBody(), *loc ); // && if POST method is allowed
+            std::cout << ORANGE << _parser.getBody() << RESET << std::endl;
         }
         /// Response Buidling 
         res.build();

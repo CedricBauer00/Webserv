@@ -113,7 +113,12 @@ void    Reader::process(uint32_t events) {
 
 	try {
 		_receiveFromClient();
-		new Writer(*this, _selectServerFactory());
+		if (!getcomplHeader())
+			throw std::runtime_error("FD " + std::to_string(_fd)
+			+ ": [Reader] Header not complete");
+		HttpParser parser(getRequest());
+		parser.parse();
+		new Writer(*this, std::move(parser), _selectServerFactory());
 	}
 	catch (const wouldBlockException& e) {
 		return; // Nothing more to read now

@@ -3,17 +3,17 @@
 #include "../inc/constants.h"
 #include "../inc/Execution.hpp"
 
-Writer::Writer(const Reader& reader,
+Writer::Writer(const AEventHandler& handler,
+	HttpParser&& parser,
 	std::function<const IWebservModule::Srv*(const std::string&)> selectServer)
-    : AEventHandler(_dupFd(reader.getFd()),
-        reader.getServers(),
-        reader.getEpoller(),
-        EPOLLOUT | EPOLLRDHUP | EPOLLET) {
+    : AEventHandler(_dupFd(handler.getFd()),
+        handler.getServers(),
+        handler.getEpoller(),
+        EPOLLOUT | EPOLLRDHUP | EPOLLET),
+		_parser(std::move(parser)) {
 	try {
-		if(!reader.getcomplHeader())
-			throw std::runtime_error("Header not complete");
-		Execution e;
-		e.execution(reader.getRequest(), _res, selectServer);
+		Execution e(_parser);
+		e.execution(_res, selectServer);
 	}
 	catch (const std::exception& e) {
 		int fd = getFd();

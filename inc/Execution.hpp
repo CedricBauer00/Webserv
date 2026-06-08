@@ -12,10 +12,11 @@
 class Execution
 {
     private:
-        std::string _uri;
+        HttpParser& _parser;
 
     public:
-        Execution();
+        Execution() = delete;
+        Execution(HttpParser& parser);
         ~Execution();
 
         // void    serverRewrite(std::string uri,
@@ -24,7 +25,6 @@ class Execution
         // std::string getUri();
         static const IWebservModule::LocNode*	selectLocation(const std::string& uri,
             const IWebservModule::LocNode& root);
-        void    execution(const std::string& request,
-            Response &Res,
+        void    execution(Response &Res,
             std::function<const IWebservModule::Srv*(const std::string&)> selectServer);
 };

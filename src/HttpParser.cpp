@@ -1,7 +1,7 @@
 #include "../inc/HttpParser.hpp"
 #include "../inc/Exceptions.hpp"
 
-HttpParser::HttpParser( std::string request ) 
+HttpParser::HttpParser(const std::string& request ) 
 : _startLine(), _headers(), _body(), _bodyLength( 0 ), _foundContlen( false ),
 _foundHost( false ), _contentLength( 0 ), _chunked( false ), _request( request ),
 _method( METHOD_GET )
@@ -9,7 +9,29 @@ _method( METHOD_GET )
     std::cout << "\n--- HttpParsing BEGIN ---\n" << std::endl;
 }
 
-HttpParser::~HttpParser() { std::cout << RED << "--- HttpParsing END ---" << RESET << std::endl; }
+HttpParser::HttpParser(HttpParser&& other) noexcept
+: _startLine( std::move( other._startLine ) )
+, _headers( std::move( other._headers ) )
+, _httpVersion( std::move( other._httpVersion ) )
+, _path( std::move( other._path ) )
+, _query( std::move( other._query ) )
+, _body( std::move( other._body ) )
+, _bodyLength( other._bodyLength )
+, _foundContlen( other._foundContlen )
+, _foundHost( other._foundHost )
+, _contentLength( other._contentLength )
+, _chunked( other._chunked )
+, _request( std::move( other._request ) )
+, _hostPort( std::move( other._hostPort ) )
+, _hostName( std::move( other._hostName ) )
+, _method( other._method )
+, _reqMethodMask( other._reqMethodMask )
+{
+}
+
+HttpParser::~HttpParser() {
+    std::cout << "size: " << _startLine.size() << std::endl;
+    std::cout << RED << "--- HttpParsing END ---" << RESET << std::endl; }
 
 void    HttpParser::parse()
 {

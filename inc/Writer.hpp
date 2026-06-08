@@ -7,12 +7,14 @@ class Writer: public AEventHandler {
     private:
         Response	_res;
         size_t		_sentBytes{0};
+        HttpParser	_parser;
 
         int		_dupFd(int readerFd);
 		void	_sendToClient();
     public:
         Writer() = delete;
-        Writer(const Reader& reader,
+        Writer(const AEventHandler& handler,
+			HttpParser&& parser,
             std::function<const IWebservModule::Srv*(const std::string&)>
             selectServer);
         virtual ~Writer();

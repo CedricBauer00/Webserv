@@ -3,6 +3,7 @@
 #include <functional>
 #include "Listener.hpp"
 #include "Response.hpp"
+#include "HttpParser.hpp"
 
 class Reader: public AEventHandler {
 	private:

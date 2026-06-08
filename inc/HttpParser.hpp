@@ -27,7 +27,7 @@
 class HttpParser
 {
     private:
-        const std::unordered_map<std::string, unsigned int> m = {
+        inline static const std::unordered_map<std::string, unsigned int> m = {
         {"GET", 1u<<0}, {"POST", 1u<<1}, {"PUT", 1u<<2},
         {"DELETE", 1u<<3}, {"HEAD", 1u<<4}, {"OPTIONS", 1u<<5}};
         std::vector<std::string>						_startLine;
@@ -59,8 +59,10 @@ class HttpParser
 
     public:
         HttpParser() = delete;
-        HttpParser( std::string reqeust );
-		~HttpParser();
+        HttpParser(const std::string& request);
+        HttpParser(HttpParser&& other) noexcept;
+        HttpParser& operator=(HttpParser&& other) noexcept = default;
+        ~HttpParser();
  
         void        parse();
         void        setBody();
