@@ -5,24 +5,6 @@ Execution::Execution() {}
 
 Execution::~Execution() {}
 
-const IWebservModule::Srv*	Execution::selectServer(
-    const std::string& hostname,
-	const std::vector<const IWebservModule::Srv*>& servers) {
-	const IWebservModule::Srv* defaultSrv = nullptr;
-	for (const IWebservModule::Srv* srv : servers) {
-		if (srv->srvConfs.empty())
-			continue;
-		const auto* srvConf =\
-		dynamic_cast<WebservCoreParser::SrvCoreConf*>(srv->srvConfs[0].get());
-		const std::unordered_set<std::string>& names = srvConf->serverNames;
-		if (names.find(hostname) != names.end())
-			return srv;
-		if (srvConf->flags & DEFAULT_SERVER)
-			defaultSrv = srv;
-	}
-	return defaultSrv != nullptr ? defaultSrv : servers[0];
-}
-
 const IWebservModule::LocNode*	Execution::selectLocation(const std::string& uri,
 	const IWebservModule::LocNode& root) {
 	const IWebservModule::LocNode* bestMatch = nullptr;
@@ -48,9 +30,9 @@ const IWebservModule::LocNode*	Execution::selectLocation(const std::string& uri,
 void    Execution::execution(
     const std::string& request,
     Response &res,
-    const std::vector<const IWebservModule::Srv*>& servers)
+    std::function<const IWebservModule::Srv*(const std::string&)> selectServer)
 {
-    const IWebservModule::Srv* server = nullptr;
+    // const IWebservModule::Srv* server = nullptr;
     try
     {
         HttpParser parser( request );
@@ -63,7 +45,7 @@ void    Execution::execution(
         // std::string normalizedUri = m.normalizePath( parser.getUri() );
 		// std::cout << "Normalized Uri: " << normalizedUri << std::endl;
 
-        server = selectServer(parser.getHostName(), servers); // select server based on Host name
+        auto server = selectServer(parser.getHostName()); // select server based on Host name
         if (!server->srvConfs.empty()) {
             for (const auto& item :
                 dynamic_cast<WebservCoreParser::SrvCoreConf*>(

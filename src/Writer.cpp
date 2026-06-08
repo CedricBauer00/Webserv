@@ -3,7 +3,8 @@
 #include "../inc/constants.h"
 #include "../inc/Execution.hpp"
 
-Writer::Writer(const Reader& reader)
+Writer::Writer(const Reader& reader,
+	std::function<const IWebservModule::Srv*(const std::string&)> selectServer)
     : AEventHandler(_dupFd(reader.getFd()),
         reader.getServers(),
         reader.getEpoller(),
@@ -12,7 +13,7 @@ Writer::Writer(const Reader& reader)
 		if(!reader.getcomplHeader())
 			throw std::runtime_error("Header not complete");
 		Execution e;
-		e.execution(reader.getRequest(), _res, reader.getServers());
+		e.execution(reader.getRequest(), _res, selectServer);
 	}
 	catch (const std::exception& e) {
 		int fd = getFd();

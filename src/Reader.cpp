@@ -2,6 +2,7 @@
 #include "../inc/Epoller.hpp"
 #include "../inc/constants.h"
 #include "../inc/Writer.hpp"
+#include "../inc/Configparsing/WebservCoreModule.hpp"
 
 Reader::Reader(const Listener& listener)
     : AEventHandler(_acceptConn(listener.getFd()),
@@ -66,6 +67,34 @@ void	Reader::_receiveFromClient() {
     }
 }
 
+std::function<const IWebservModule::Srv*(const std::string&)>
+Reader::_selectServerFactory()
+{
+	if (_servers.empty())
+		throw std::runtime_error("No servers configured");
+	if (_servers.size() == 1)
+		return [srv = _servers[0]](const std::string&) {
+			return srv;
+		};
+	else
+		return [&servers = _servers](const std::string& hostname) {
+			const IWebservModule::Srv* defaultSrv = nullptr;
+			for (const IWebservModule::Srv* srv : servers) {
+				if (srv->srvConfs.empty())
+					continue;
+				const auto* srvConf =\
+				dynamic_cast<WebservCoreParser::SrvCoreConf*>(
+                    srv->srvConfs[0].get());
+				const auto& names = srvConf->serverNames;
+				if (names.find(hostname) != names.end())
+					return srv;
+				if (srvConf->flags & DEFAULT_SERVER)
+					defaultSrv = srv;
+			}
+			return defaultSrv != nullptr ? defaultSrv : servers[0];
+		};
+}
+
 const std::string&	Reader::getRequest() const {
 	return _request;
 }
@@ -84,7 +113,7 @@ void    Reader::process(uint32_t events) {
 
 	try {
 		_receiveFromClient();
-		new Writer(*this);
+		new Writer(*this, _selectServerFactory());
 	}
 	catch (const wouldBlockException& e) {
 		return; // Nothing more to read now

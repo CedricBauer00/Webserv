@@ -12,7 +12,9 @@ class Writer: public AEventHandler {
 		void	_sendToClient();
     public:
         Writer() = delete;
-        Writer(const Reader& reader);
+        Writer(const Reader& reader,
+            std::function<const IWebservModule::Srv*(const std::string&)>
+            selectServer);
         virtual ~Writer();
 
         void	process(uint32_t events) override;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include "Listener.hpp"
 #include "Response.hpp"
 
@@ -11,7 +12,8 @@ class Reader: public AEventHandler {
 
 		int			_acceptConn(int listenFd);
 		void		_receiveFromClient();
-
+        std::function<const IWebservModule::Srv*(const std::string&)>
+		_selectServerFactory();
 	public:
 		Reader() = delete;
 		Reader(const Listener& listener);
