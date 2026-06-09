@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <fstream>
+#include <utility>
 #include "Utils.hpp"
 
 class Response
@@ -19,6 +20,8 @@ class Response
 
     public:
         Response();
+        Response(Response&& other) noexcept;
+        Response& operator=(Response&& other) noexcept;
         ~Response();
 
         void        build();

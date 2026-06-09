@@ -1,7 +1,7 @@
 #include "../inc/HeadReader.hpp"
 #include "../inc/Epoller.hpp"
 #include "../inc/constants.h"
-#include "../inc/Writer.hpp"
+#include "../inc/Executor.hpp"
 
 HeadReader::HeadReader(const Listener& listener)
     : AEventHandler(_acceptConn(listener.getFd()),
@@ -82,7 +82,7 @@ void    HeadReader::process(uint32_t events) {
 
 	try {
 		_receiveFromClient();
-		new Writer(*this, std::move(_parser), _selectServerFactory());
+		new Executor(*this, std::move(_parser), std::move(_selectServerFactory()));
 	}
 	catch (const wouldBlockException& e) {
 		return; // Nothing more to read now

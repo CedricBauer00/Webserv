@@ -92,7 +92,7 @@ void	Listener::process(uint32_t events) {
 
 	while (true) {
 		try {
-			std::cout << "FD " << getFd() << ": [Listener] Accepting new connection if available\n";
+			std::cout << "FD " << getFd() << ": [Listener] Checking for incoming connections\n";
 			new HeadReader(*this); //Create Reader
 		}
 		catch (const wouldBlockException& e) {

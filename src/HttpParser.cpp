@@ -31,10 +31,11 @@ HttpParser::HttpParser(HttpParser&& other) noexcept
 , _method( other._method )
 , _reqMethodMask( other._reqMethodMask )
 {
+	std::cout << "HttpParser move constructor called" << std::endl;
 }
 
 HttpParser::~HttpParser() {
-    std::cout << RED << "--- HttpParsing END ---" << RESET << std::endl; }
+}
 
 // void    HttpParser::parse()
 // {

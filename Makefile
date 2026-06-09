@@ -20,6 +20,7 @@ SRC	=	main.cpp \
 		Listener.cpp \
 		HeadReader.cpp \
 		Writer.cpp \
+		Executor.cpp \
 		WebServ.cpp
 
 

@@ -22,6 +22,7 @@ class AEventHandler {
 
 		void	_setNonBlocking(int fd);
         void    _printSocketError();
+        int     _dupFd(int fd);
         std::function<const IWebservModule::Srv*(const std::string&)>
 		_selectServerFactory();
 

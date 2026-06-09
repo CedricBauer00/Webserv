@@ -39,6 +39,17 @@ void    AEventHandler::_printSocketError() {
     std::cerr << "FD " << _fd << ": " << strerror(err) << std::endl;
 }
 
+int	AEventHandler::_dupFd(int fd) {
+	int dupFd = dup(fd);
+
+	if (dupFd == -1) {
+		throw std::runtime_error(std::string("FD ")
+		+ std::to_string(fd) + ": " + strerror(errno));
+	}
+	std::cout << "FD " << fd << ": fd duplicated" << std::endl;
+	return dupFd;
+}
+
 std::function<const IWebservModule::Srv*(const std::string&)>
 AEventHandler::_selectServerFactory()
 {

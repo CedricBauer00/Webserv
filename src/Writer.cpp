@@ -1,41 +1,20 @@
 #include "../inc/Writer.hpp"
 #include "../inc/Epoller.hpp"
 #include "../inc/constants.h"
-#include "../inc/Execution.hpp"
+// #include "../inc/Execution.hpp"
 
 Writer::Writer(const AEventHandler& handler,
-	HttpParser&& parser,
-	std::function<const IWebservModule::Srv*(const std::string&)> selectServer)
+	Response&& res)
     : AEventHandler(_dupFd(handler.getFd()),
         handler.getServers(),
         handler.getEpoller(),
         EPOLLOUT | EPOLLRDHUP | EPOLLET),
-		_parser(std::move(parser)) {
-	try {
-		Execution e(_parser);
-		e.execution(_res, selectServer);
-	}
-	catch (const std::exception& e) {
-		int fd = getFd();
-		throw std::runtime_error("FD " + std::to_string(fd)
-		+ ": [Writer] Error executing request," + e.what());
-	}
+		_res(std::move(res)) {
+	std::cout << "FD " << _fd << ": [Writer] created" << std::endl;
 }
 
 Writer::~Writer() {
     std::cout << "FD " << _fd << ": [Writer] destroyed" << std::endl;
-}
-
-int	Writer::_dupFd(int readerFd) {
-	int fd = dup(readerFd);
-
-	if (fd == -1) {
-		throw std::runtime_error(std::string("FD ")
-		+ std::to_string(readerFd) + ": [Writer] " + strerror(errno));
-	}
-	std::cout << "FD " << fd 
-	<< ": [Writer] Reader fd duplicated" << std::endl;
-	return fd;
 }
 
 void	Writer::_sendToClient() {

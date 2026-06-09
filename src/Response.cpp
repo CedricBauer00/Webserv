@@ -2,6 +2,31 @@
 
 Response::Response() : _response(), _httpVersion(), _statusCode(), _reasonPhrase(), _headers(), _body() {}
 
+Response::Response(Response&& other) noexcept
+    : _response(std::move(other._response))
+    , _httpVersion(std::move(other._httpVersion))
+    , _statusCode(std::move(other._statusCode))
+    , _reasonPhrase(std::move(other._reasonPhrase))
+    , _headers(std::move(other._headers))
+    , _body(std::move(other._body))
+{
+    std::cout << "Response move constructor called" << std::endl;
+}
+
+Response& Response::operator=(Response&& other) noexcept
+{
+    if (this != &other)
+    {
+        _response = std::move(other._response);
+        _httpVersion = std::move(other._httpVersion);
+        _statusCode = std::move(other._statusCode);
+        _reasonPhrase = std::move(other._reasonPhrase);
+        _headers = std::move(other._headers);
+        _body = std::move(other._body);
+    }
+    return *this;
+}
+
 Response::~Response() {}
 
 void    Response::build()
