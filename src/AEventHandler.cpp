@@ -39,6 +39,34 @@ void    AEventHandler::_printSocketError() {
     std::cerr << "FD " << _fd << ": " << strerror(err) << std::endl;
 }
 
+std::function<const IWebservModule::Srv*(const std::string&)>
+AEventHandler::_selectServerFactory()
+{
+	if (_servers.empty())
+		throw std::runtime_error("No servers configured");
+	if (_servers.size() == 1)
+		return [srv = _servers[0]](const std::string&) {
+			return srv;
+		};
+	else
+		return [&servers = _servers](const std::string& hostname) {
+			const IWebservModule::Srv* defaultSrv = nullptr;
+			for (const IWebservModule::Srv* srv : servers) {
+				if (srv->srvConfs.empty())
+					continue;
+				const auto* srvConf =\
+				dynamic_cast<WebservCoreParser::SrvCoreConf*>(
+                    srv->srvConfs[0].get());
+				const auto& names = srvConf->serverNames;
+				if (names.find(hostname) != names.end())
+					return srv;
+				if (srvConf->flags & DEFAULT_SERVER)
+					defaultSrv = srv;
+			}
+			return defaultSrv != nullptr ? defaultSrv : servers[0];
+		};
+}
+
 const std::vector<const IWebservModule::Srv*>&	AEventHandler::getServers(
 ) const {
 	return _servers;

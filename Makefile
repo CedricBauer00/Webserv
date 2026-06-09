@@ -18,7 +18,7 @@ SRC	=	main.cpp \
 		Epoller.cpp \
 		AEventHandler.cpp \
 		Listener.cpp \
-		Reader.cpp \
+		HeadReader.cpp \
 		Writer.cpp \
 		WebServ.cpp
 

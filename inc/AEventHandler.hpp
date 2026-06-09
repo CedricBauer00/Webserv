@@ -8,7 +8,9 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <functional>
 #include "Configparsing/ConfigParser.hpp"
+#include "Configparsing/WebservCoreModule.hpp"
 
 class Epoller;
 
@@ -20,6 +22,9 @@ class AEventHandler {
 
 		void	_setNonBlocking(int fd);
         void    _printSocketError();
+        std::function<const IWebservModule::Srv*(const std::string&)>
+		_selectServerFactory();
+
     public:
 		class	wouldBlockException: public std::exception {
 			public:

@@ -1,7 +1,7 @@
 #include <iostream>
 #include "../inc/Listener.hpp"
 #include "../inc/Epoller.hpp"
-#include "../inc/Reader.hpp"
+#include "../inc/HeadReader.hpp"
 
 Listener::Listener(const std::string& addr, 
 	const std::vector<const IWebservModule::Srv*>& servers,
@@ -92,10 +92,11 @@ void	Listener::process(uint32_t events) {
 
 	while (true) {
 		try {
-			std::cout << "FD " << getFd() << ": [Listener] Accepting new connection\n";
-			new Reader(*this); //Create Reader
+			std::cout << "FD " << getFd() << ": [Listener] Accepting new connection if available\n";
+			new HeadReader(*this); //Create Reader
 		}
 		catch (const wouldBlockException& e) {
+            std::cout << "FD " << getFd() << ": [Listener] No more incoming connections to accept\n";
 			break; // No more incoming connections to accept
 		}
 		catch (const std::exception& e) {

@@ -1,12 +1,16 @@
 #include "../inc/HttpParser.hpp"
 #include "../inc/Exceptions.hpp"
 
+HttpParser::HttpParser() 
+: _startLine(), _headers(), _body(), _bodyLength( 0 ), _complHead( false ),
+_foundContlen( false ), _foundHost( false ), _contentLength( 0 ),
+_chunked( false ), _request(), _method( METHOD_GET ) {
+}
+
 HttpParser::HttpParser(const std::string& request ) 
-: _startLine(), _headers(), _body(), _bodyLength( 0 ), _foundContlen( false ),
-_foundHost( false ), _contentLength( 0 ), _chunked( false ), _request( request ),
-_method( METHOD_GET )
-{
-    std::cout << "\n--- HttpParsing BEGIN ---\n" << std::endl;
+: _startLine(), _headers(), _body(), _bodyLength( 0 ), _complHead( false ),
+_foundContlen( false ), _foundHost( false ), _contentLength( 0 ),
+_chunked( false ), _request(request), _method( METHOD_GET ) {
 }
 
 HttpParser::HttpParser(HttpParser&& other) noexcept
@@ -30,85 +34,103 @@ HttpParser::HttpParser(HttpParser&& other) noexcept
 }
 
 HttpParser::~HttpParser() {
-    std::cout << "size: " << _startLine.size() << std::endl;
     std::cout << RED << "--- HttpParsing END ---" << RESET << std::endl; }
 
-void    HttpParser::parse()
+// void    HttpParser::parse()
+// {
+//     std::istringstream requestStream(_request);
+//     std::string line;
+
+//     while (std::getline(requestStream, line))
+//     {
+//         if (!line.empty() && line.back() == '\r')
+//             line.pop_back();
+//         if (line.empty())
+//             break;
+//         parseHead(line);
+//     }
+// }
+
+bool    HttpParser::parseHead(std::string::size_type pos)
 {
-    std::string line;
+    std::string_view line(_request.data(), pos);
+    if (line.empty() || line.back() != '\r')
+        throw BadRequest();
+    line.remove_suffix(1);
 
-    int whichline = 0;
-    while ( std::getline( _request, line ) )
+    if (line.empty())
     {
-        whichline++;
-        std::cout << GREEN << line << RESET << std::endl;
-        if ( !line.empty() && line.back() == '\r' )
-            line.pop_back();
+        _request.erase(0, pos + 1);
+		for ( const auto& pair : _headers )
+		{
+			std::cout << BLUE << pair.first << " : "
+			<< pair.second << RESET << std::endl;
+		}
+        return true;
+    }
 
-        if ( line.empty() )
-            break ;
+    std::cout << GREEN << std::string(line) << RESET << std::endl;
 
-        if ( _startLine.empty() )
+    if (_startLine.empty())
+    {
+        std::size_t start = 0;
+        std::size_t end = line.find(' ');
+        while (end != std::string_view::npos)
         {
-            _setStartLine(std::istringstream{line});
-            _checkStartLine();
-            _setMethod();
-            _decodeRequestTarget(_startLine[1]);
-            _splitRequestTarget(_startLine[1]);
-            _normalizePath();
+            _startLine.emplace_back(line.substr(start, end - start));
+            start = end + 1;
+            end = line.find(' ', start);
         }
-        else
+        _startLine.emplace_back(line.substr(start));
+        _checkStartLine();
+        _setMethod();
+        _decodeRequestTarget(_startLine[1]);
+        _splitRequestTarget(_startLine[1]);
+        _normalizePath();
+		_complHead = true;
+    }
+    else
+    {
+        std::size_t colon = line.find(':');
+        if (colon == std::string_view::npos || colon == 0)
+            throw BadRequest();
+        if (line[colon - 1] == ' ')
+            throw BadRequest();
+
+        std::string key(line.substr(0, colon));
+        std::string value(line.substr(colon + 1));
+
+        for (auto& x : key)
+            x = tolower(static_cast<unsigned char>(x));
+        for (auto& x : value)
+            x = tolower(static_cast<unsigned char>(x));
+
+        value = trim(value);
+        key = trim(key);
+        if (key == "content-length" && _foundContlen == false)
         {
-			std::string key;
-			std::string value;
-			_getKeyAndValue(line, key, value);
-
-            // key und value entweder komplett lowercase oder uppercase machen, wegen einheitlichem handling - case sensitive 
-            for ( auto& x : key )
-                x = tolower( static_cast<unsigned char>( x ) );
-            for ( auto& x : value )
-                x = tolower( static_cast<unsigned char>( x ) );
-
-            value = trim( value );
-            key = trim( key );
-            if ( key == "content-length" && _foundContlen == false ) // need to be checked when there ist post
-            {
-                _foundContlen = true;
-                if ( isAllDigits( value ) == false )
-                    throw BadRequest(); // fall back to content length from config
-                _contentLength = static_cast<std::size_t>( std::stoi( value ) );
-                // check on content length from config file
-            }
-            else if ( key == "transfer-encoding" && value == "chunked")
-                _chunked = true;// body endet bei \0\r\n
-            
-            if ( _chunked  && _foundContlen )
+            _foundContlen = true;
+            if (!isAllDigits(value))
                 throw BadRequest();
-            
-            if ( key == "host" )
-                checkHostHeader( value );
-            
-            _headers[ key ] = value;
+            _contentLength = static_cast<std::size_t>(std::stoi(value));
         }
+        else if (key == "transfer-encoding" && value == "chunked")
+            _chunked = true;
+
+        if (_chunked && _foundContlen)
+            throw BadRequest();
+
+        if (key == "host")
+            checkHostHeader(value);
+
+        _headers[key] = value;
     }
     // if ( _foundHost == false ) // oder default server - meist erster Serverblock
     //     throw BadRequest(); // anscheinend muss! dann default server; keine Bad Request!
 
     // std::cout << "found Host Header:" << _foundHost << " in line: "<< BLUE << whichline << RESET << std::endl;
-    std::cout << BLUE << "- Map printing- \n" << std::endl;
-    for ( const auto& pair : _headers )
-    {
-        std::cout << pair.first << " : " << pair.second << std::endl;
-    }
-    std::cout << "\n- Map End -\n" << RESET << std::endl;
-}
-
-void    HttpParser::_setStartLine(std::istringstream line)
-{
-    std::string         token;
-
-    while ( line >> token )
-        _startLine.push_back( token );
+	_request.erase(0, pos + 1);
+    return false;
 }
 
 void    HttpParser::_checkStartLine() // eventuell direkt Execution instance createn, die URI speichert
@@ -175,72 +197,30 @@ bool    HttpParser::isAllDigits( const std::string& word )
 
 void    HttpParser::setBody()
 {
+    const std::string::size_type headerEnd = _request.find("\r\n\r\n");
+    if (headerEnd == std::string::npos)
+        throw BadRequest();
+
+    const std::string remaining = _request.substr(headerEnd + 4);
+
     if (_chunked == true)
     {
-        _body.reserve(MAX_BODY_SIZE);
-        std::string sizeLine;
-        while (std::getline(_request, sizeLine))
-        {
-            if (sizeLine.empty() || sizeLine.back() != '\r')
-                throw BadRequest();
-            sizeLine.pop_back();
-
-            char* endptr = NULL;
-            unsigned long chunkSize = std::strtoul(
-                sizeLine.c_str(), &endptr, 16);
-            if (endptr != sizeLine.c_str() + sizeLine.size())
-                throw BadRequest();
-
-            if (chunkSize == 0)
-            {
-                // consume trailing trailer headers until empty line
-                std::string trailer;
-                while (std::getline(_request, trailer))
-                {
-                    if (!trailer.empty() && trailer.back() == '\r')
-                        trailer.pop_back();
-                    if (trailer.empty())
-                        break;
-                }
-                break;
-            }
-
-            if (static_cast<size_t>(MAX_BODY_SIZE) - _body.size() < chunkSize)
-                throw PayloadTooLarge();
-
-            std::size_t offset = _body.size();
-            _body.append(chunkSize, '\0');
-            _request.read(&_body[offset], chunkSize);
-            if (static_cast<size_t>(_request.gcount()) != chunkSize)
-                throw BadRequest();
-
-            // consume the CRLF after chunk data
-            char c, nl;
-            if (!_request.get(c) || c != '\r')
-                throw BadRequest();
-            if (!_request.get(nl) || nl != '\n')
-                throw BadRequest();
-        }
+        (void)remaining;
+        return;
     }
-    else if (_foundContlen)
+    if (_foundContlen)
     {
         if (static_cast<std::size_t>(MAX_BODY_SIZE) < _contentLength)
             throw PayloadTooLarge();
-
-        _body.resize(_contentLength);
-        _request.read(_body.data(), static_cast<std::streamsize>(_contentLength));
-        if (static_cast<size_t>(_request.gcount()) != _contentLength)
+        if (remaining.size() < _contentLength)
             throw BadRequest();
+        _body.assign(remaining.begin(), remaining.begin() + static_cast<std::ptrdiff_t>(_contentLength));
+        return;
     }
-    else
-    {
-        // read remaining bytes
-        _body.resize(MAX_BODY_SIZE);
-        _request.read(_body.data(), MAX_BODY_SIZE);
-        _body.resize(static_cast<std::size_t>(_request.gcount()));
-        if (_request.peek() != std::char_traits<char>::eof())
-            throw PayloadTooLarge();
-    }
+
+    _body = remaining;
+    if (_body.size() > MAX_BODY_SIZE)
+        throw PayloadTooLarge();
 }
 
 void    HttpParser::validatePort( std::string port )
@@ -272,7 +252,7 @@ std::string validateHostName( const std::string &hostName )
     return hostName;
 }
 
-void    HttpParser::checkHostHeader( std::string value )
+void    HttpParser::checkHostHeader(const std::string& value )
 {
     if ( value.empty() )
         throw BadRequest();
@@ -382,6 +362,14 @@ const std::string&     HttpParser::getPath() const
     return _path;
 }
 
+std::string&	HttpParser::getRequest() {
+	return _request;
+}
+
+bool			HttpParser::isComplHead() const {
+	return _complHead;
+}
+
 void    HttpParser::_decodeRequestTarget(std::string& requestTarget)
 {
     for ( size_t i = 0; i < requestTarget.size(); ++i )
@@ -439,22 +427,6 @@ void    HttpParser::_normalizePath() {
     _path = std::move(nPath);
 }
 
-void	HttpParser::_getKeyAndValue(
-		const std::string& line, std::string& key, std::string& value )
-{
-	std::string::size_type colonPos = line.find( ":" ); 
-	if ( colonPos == std::string::npos || colonPos == 0 )
-	{
-		std::cout << RED << "no ':' found, or as first character" << RESET << std::endl;////
-		throw BadRequest();
-	}
-
-	if ( line[ colonPos - 1 ] == ' ' ) // vor ":" darf kein Space stehen
-		throw BadRequest();
-
-	key = line.substr( 0, colonPos );
-	value = line.substr( colonPos + 1 );
-}
 // bool            HttpParser::isCgifile()
 // {
 //     return _isCgiFile;

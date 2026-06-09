@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Reader.hpp"
+#include "HeadReader.hpp"
 #include "Response.hpp"
 
 class Writer: public AEventHandler {
