@@ -37,21 +37,6 @@ HttpParser::HttpParser(HttpParser&& other) noexcept
 HttpParser::~HttpParser() {
 }
 
-// void    HttpParser::parse()
-// {
-//     std::istringstream requestStream(_request);
-//     std::string line;
-
-//     while (std::getline(requestStream, line))
-//     {
-//         if (!line.empty() && line.back() == '\r')
-//             line.pop_back();
-//         if (line.empty())
-//             break;
-//         parseHead(line);
-//     }
-// }
-
 void	HttpParser::parseHead(char* buffer, std::size_t count)
 {
     _request.append(buffer, count);
@@ -436,7 +421,7 @@ void    HttpParser::_normalizePath() {
     }
     for ( size_t i = 0; i < wholePath.size(); ++i )
     {
-        nPath = "/" + nPath;
+        nPath += '/';
         nPath += wholePath[ i ];
     }
     if ( endsWithSlash )
