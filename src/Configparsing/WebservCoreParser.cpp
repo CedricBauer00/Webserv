@@ -1,132 +1,117 @@
 #include <array>
-#include <map>
 #include <algorithm>
 #include <cctype>
 #include "../../inc/Configparsing/WebservCoreParser.hpp"
 #include "../../inc/Configparsing/ConfigParser.hpp"
 
 WebservCoreParser::WebservCoreParser(int& ctxIndex) :
-	AWebservParser(
-        ctxIndex,
-        {{"listen", WebservConfLevel::SERVER},
-        {"server_name", WebservConfLevel::SERVER},
-        {"num_req_expected", WebservConfLevel::HTTP | WebservConfLevel::SERVER},
-        {"client_header_timeout", WebservConfLevel::HTTP | WebservConfLevel::SERVER},
-        {"ignore_invalid_headers", WebservConfLevel::HTTP | WebservConfLevel::SERVER},
-        {"merge_slashes", WebservConfLevel::HTTP | WebservConfLevel::SERVER},
-        {"underscore_in_headers", WebservConfLevel::HTTP | WebservConfLevel::SERVER},
-        {"root", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-        {"allow", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-        {"alias", WebservConfLevel::LOCATION},
-        {"client_body_buffer_size", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-        {"client_body_timeout", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-        {"client_max_body_size", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-        {"send_timeout", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-        {"absolute_redirect", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-        {"log_not_found", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-        {"error_page", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-        {"try_files", WebservConfLevel::LOCATION},
-		}) {
+	AWebservParser(ctxIndex) {
+};
+
+const std::unordered_map<
+std::string,
+std::pair<WebservConfLevel, AWebservParser::parseFunc>>&	WebservCoreParser::_getParseMap() {
+	return _parseMap;
 };
 
 void WebservCoreParser::parseDirective(
 	ConfigParser& parser,
 	WebservConfLevel level) {
-	static const std::unordered_map<
-	std::string,
-	std::function<void(const std::string& d, Tokens& t,
-		const ConfCtx& c, WebservConfLevel l, ConfigParser& p)>
-		> parseMap = {
-			{"listen", [this](const std::string& d, Tokens& t, const ConfCtx& c,
-				WebservConfLevel l, ConfigParser& p) {
-				(void)d; (void)l;
-				_parseListen(t, c, p);
-			}},
-			{"server_name", [this](const std::string& d, Tokens& t, const ConfCtx& c,
-				WebservConfLevel l, ConfigParser& p) {
-				(void)d; (void)l; (void)p;
-				_parseServerNames(t, c);
-			}},
-			{"num_req_expected", [this](const std::string& d, Tokens& t,
-				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
-				(void)p;
-				_parseNumReqExpected(d, t, c, l);
-			}},
-			{"client_header_timeout", [this](const std::string& d, Tokens& t,
-				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
-				(void)p;
-				_parseClientHeaderTimeout(d, t, c, l);
-			}},
-			{"ignore_invalid_headers", [this](const std::string& d, Tokens& t,
-				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
-				(void)p;
-				_parseIgnoreInvalidHeaders(d, t, c, l);
-			}},
-			{"merge_slashes", [this](const std::string& d, Tokens& t,
-				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
-				(void)p;
-				_parseMergeSlashes(d, t, c, l);
-			}},
-			{"underscore_in_headers", [this](const std::string& d, Tokens& t,
-				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
-				(void)p;
-				_parseUnderscoreInHeaders(d, t, c, l);
-			}},
-			{"root", [this](const std::string& d, Tokens& t,
-				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
-				(void)p;
-				_parseRoot(d, t, c, l);
-			}},
-			{"allow", [this](const std::string& d, Tokens& t,
-				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
-				(void)p;
-				_parseAllow(d, t, c, l);
-			}},
-			{"alias", [this](const std::string& d, Tokens& t,
-				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
-				_parseAlias(d, t, c, l, p);
-			}},
-			{"client_body_buffer_size", [this](const std::string& d, Tokens& t,
-				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
-				(void)p;
-				_parseClientBodyBufferSize(d, t, c, l);
-			}},
-			{"client_body_timeout", [this](const std::string& d, Tokens& t,
-				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
-				(void)p;
-				_parseClientBodyTimeout(d, t, c, l);
-			}},
-			{"client_max_body_size", [this](const std::string& d, Tokens& t,
-				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
-				(void)p;
-				_parseClientMaxBodySize(d, t, c, l);
-			}},
-			{"send_timeout", [this](const std::string& d, Tokens& t,
-				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
-				(void)p;
-				_parseSendTimeout(d, t, c, l);
-			}},
-			{"absolute_redirect", [this](const std::string& d, Tokens& t,
-				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
-				(void)p;
-				_parseAbsoluteRedirect(d, t, c, l);
-			}},
-			{"log_not_found", [this](const std::string& d, Tokens& t,
-				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
-				(void)p;
-				_parseLogNotFound(d, t, c, l);
-			}},
-			{"error_page", [this](const std::string& d, Tokens& t,
-				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
-				(void)p;
-				_parseErrorPage(d, t, c, l);
-			}},
-			{"try_files", [this](const std::string& d, Tokens& t,
-				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
-				(void)p;
-				_parseTryFiles(d, t, c, l);
-			}},
-	};
+	// static const std::unordered_map<
+	// std::string,
+	// std::function<void(const std::string& d, Tokens& t,
+	// 	const ConfCtx& c, WebservConfLevel l, ConfigParser& p)>
+	// 	> parseMap = {
+	// 		{"listen", [this](const std::string& d, Tokens& t, const ConfCtx& c,
+	// 			WebservConfLevel l, ConfigParser& p) {
+	// 			(void)d; (void)l;
+	// 			_parseListen(t, c, p);
+	// 		}},
+	// 		{"server_name", [this](const std::string& d, Tokens& t, const ConfCtx& c,
+	// 			WebservConfLevel l, ConfigParser& p) {
+	// 			(void)d; (void)l; (void)p;
+	// 			_parseServerNames(t, c);
+	// 		}},
+	// 		{"num_req_expected", [this](const std::string& d, Tokens& t,
+	// 			const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+	// 			(void)p;
+	// 			_parseNumReqExpected(d, t, c, l);
+	// 		}},
+	// 		{"client_header_timeout", [this](const std::string& d, Tokens& t,
+	// 			const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+	// 			(void)p;
+	// 			_parseClientHeaderTimeout(d, t, c, l);
+	// 		}},
+	// 		{"ignore_invalid_headers", [this](const std::string& d, Tokens& t,
+	// 			const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+	// 			(void)p;
+	// 			_parseIgnoreInvalidHeaders(d, t, c, l);
+	// 		}},
+	// 		{"merge_slashes", [this](const std::string& d, Tokens& t,
+	// 			const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+	// 			(void)p;
+	// 			_parseMergeSlashes(d, t, c, l);
+	// 		}},
+	// 		{"underscore_in_headers", [this](const std::string& d, Tokens& t,
+	// 			const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+	// 			(void)p;
+	// 			_parseUnderscoreInHeaders(d, t, c, l);
+	// 		}},
+	// 		{"root", [this](const std::string& d, Tokens& t,
+	// 			const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+	// 			(void)p;
+	// 			_parseRoot(d, t, c, l);
+	// 		}},
+	// 		{"allow", [this](const std::string& d, Tokens& t,
+	// 			const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+	// 			(void)p;
+	// 			_parseAllow(d, t, c, l);
+	// 		}},
+	// 		{"alias", [this](const std::string& d, Tokens& t,
+	// 			const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+	// 			_parseAlias(d, t, c, l, p);
+	// 		}},
+	// 		{"client_body_buffer_size", [this](const std::string& d, Tokens& t,
+	// 			const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+	// 			(void)p;
+	// 			_parseClientBodyBufferSize(d, t, c, l);
+	// 		}},
+	// 		{"client_body_timeout", [this](const std::string& d, Tokens& t,
+	// 			const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+	// 			(void)p;
+	// 			_parseClientBodyTimeout(d, t, c, l);
+	// 		}},
+	// 		{"client_max_body_size", [this](const std::string& d, Tokens& t,
+	// 			const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+	// 			(void)p;
+	// 			_parseClientMaxBodySize(d, t, c, l);
+	// 		}},
+	// 		{"send_timeout", [this](const std::string& d, Tokens& t,
+	// 			const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+	// 			(void)p;
+	// 			_parseSendTimeout(d, t, c, l);
+	// 		}},
+	// 		{"absolute_redirect", [this](const std::string& d, Tokens& t,
+	// 			const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+	// 			(void)p;
+	// 			_parseAbsoluteRedirect(d, t, c, l);
+	// 		}},
+	// 		{"log_not_found", [this](const std::string& d, Tokens& t,
+	// 			const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+	// 			(void)p;
+	// 			_parseLogNotFound(d, t, c, l);
+	// 		}},
+	// 		{"error_page", [this](const std::string& d, Tokens& t,
+	// 			const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+	// 			(void)p;
+	// 			_parseErrorPage(d, t, c, l);
+	// 		}},
+	// 		{"try_files", [this](const std::string& d, Tokens& t,
+	// 			const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+	// 			(void)p;
+	// 			_parseTryFiles(d, t, c, l);
+	// 		}},
+	// };
     const ConfCtx&	confCtx = parser.getConfCtx();
     Tokens&			tokens = parser.getTokens();
 	std::string		directive = tokens.front();
@@ -137,7 +122,7 @@ void WebservCoreParser::parseDirective(
 			"Invalid definition for directive '" + directive + "'");
     _initConfIfEmptyAtLevel<HttpCoreConf, SrvCoreConf, LocCoreConf>(
 		confCtx, level);
-	parseMap.at(directive)(directive, tokens, confCtx, level, parser);
+	_parseMap.at(directive).second(directive, tokens, confCtx, level, parser);
 	if (tokens.empty() || tokens.front() != ";")
 		throw std::runtime_error(
 			"Invalid definition for directive '" + directive + "'");

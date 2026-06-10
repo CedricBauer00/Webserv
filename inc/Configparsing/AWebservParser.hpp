@@ -2,17 +2,22 @@
 
 #include <unordered_map>
 #include <stdexcept>
+#include <functional>
 #include "IWebservModule.hpp"
 
 class AWebservParser : virtual public IWebservModule {
+	public:
+		using parseFunc = std::function<void(const std::string& d, Tokens& t,
+			const ConfCtx& c, WebservConfLevel l, ConfigParser& p)>;
+
     private:
         template<typename T>
 		void	_insertConf(VecOfPtrs<T>* confs, std::unique_ptr<T> conf);
 
     protected:
         const int	_ctxIndex;
-        const std::unordered_map<std::string, WebservConfLevel>
-			_directiveValLevelMap;
+        // const std::unordered_map<std::string, WebservConfLevel>
+		// 	_directiveValLevelMap;
 
         template<typename T, typename Factory>
         void	_ensureConfExists(VecOfPtrs<T>* confs, Factory makeConf);
@@ -28,13 +33,12 @@ class AWebservParser : virtual public IWebservModule {
 		void	_addLowerLevelDirective(const std::string& directive,
 			std::vector<std::string> vals,
             std::vector<std::vector<std::string>>& arr);
+		virtual const std::unordered_map<
+		std::string, std::pair<WebservConfLevel, parseFunc>>&	_getParseMap() = 0;
 
     public:
         AWebservParser() = delete;
-        AWebservParser(int& ctxIndex,
-			std::unordered_map<std::string, WebservConfLevel> 
-                directiveValLevelMap
-		);
+        AWebservParser(int& ctxIndex);
         virtual ~AWebservParser() = default;
 
         int			isDirectiveValid(const std::string& directive,

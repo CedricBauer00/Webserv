@@ -3,10 +3,13 @@
 
 WebservIndexParser::WebservIndexParser(int& ctxIndex) :
 	AWebservParser(
-		ctxIndex,
-		{{"index", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-		{"autoindex", WebservConfLevel::HTTP | WebservConfLevel::SERVER | WebservConfLevel::LOCATION},
-		}) {
+		ctxIndex) {
+};
+
+const std::unordered_map<
+std::string,
+std::pair<WebservConfLevel, AWebservParser::parseFunc>>&	WebservIndexParser::_getParseMap() {
+	return _parseMap;
 };
 
 void WebservIndexParser::parseDirective(
