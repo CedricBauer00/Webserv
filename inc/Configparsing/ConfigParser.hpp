@@ -19,6 +19,7 @@ class ConfigParser {
         ~ConfigParser();
         void							parseConfig(WebservConfLevel level
 			= WebservConfLevel::MAIN);
+		void							mergeConfs();
 		Tokens&							getTokens();
 		const IWebservModule::LocNode&	getLocNode() const;
 		const IWebservModule::ConfCtx&	getConfCtx() const;

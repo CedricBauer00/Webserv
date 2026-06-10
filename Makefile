@@ -4,8 +4,10 @@ SRC	=	main.cpp \
 		HttpParser.cpp \
 		Configparsing/AWebservParser.cpp \
 		Configparsing/WebservCoreParser.cpp \
+		Configparsing/WebservCoreMerger.cpp \
 		Configparsing/WebservCoreModule.cpp \
 		Configparsing/WebservIndexParser.cpp \
+		Configparsing/WebservIndexMerger.cpp \
 		Configparsing/WebservIndexModule.cpp \
 		Configparsing/ConfigParser.cpp \
 		Configparsing/modules.cpp \
@@ -14,7 +16,6 @@ SRC	=	main.cpp \
 		Response.cpp \
 		Utils.cpp \
 		Method.cpp \
-		Execution.cpp \
 		Epoller.cpp \
 		AEventHandler.cpp \
 		Listener.cpp \

@@ -32,115 +32,120 @@ WebservCoreParser::WebservCoreParser(int& ctxIndex) :
 void WebservCoreParser::parseDirective(
 	ConfigParser& parser,
 	WebservConfLevel level) {
-    static const std::unordered_map<std::string, int> directiveMap = [&]() {
-        std::unordered_map<std::string, int> m;
-        std::array<std::string, 20> directives = {
-            "listen", "server_name", "num_req_expected",
-            "client_header_timeout", "ignore_invalid_headers", "merge_slashes",
-            "underscore_in_headers", "root", "allow", "alias",
-            "client_body_buffer_size", "client_body_timeout",
-            "client_max_body_size",
-            "send_timeout", "absolute_redirect", "log_not_found",
-            "error_page", "try_files"
-        };
-        int i = 0;
-        for (const auto& directive : directives) {
-            m[directive] = i++;
-        }
-        return m;
-    }();
+	static const std::unordered_map<
+	std::string,
+	std::function<void(const std::string& d, Tokens& t,
+		const ConfCtx& c, WebservConfLevel l, ConfigParser& p)>
+		> parseMap = {
+			{"listen", [this](const std::string& d, Tokens& t, const ConfCtx& c,
+				WebservConfLevel l, ConfigParser& p) {
+				(void)d; (void)l;
+				_parseListen(t, c, p);
+			}},
+			{"server_name", [this](const std::string& d, Tokens& t, const ConfCtx& c,
+				WebservConfLevel l, ConfigParser& p) {
+				(void)d; (void)l; (void)p;
+				_parseServerNames(t, c);
+			}},
+			{"num_req_expected", [this](const std::string& d, Tokens& t,
+				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+				(void)p;
+				_parseNumReqExpected(d, t, c, l);
+			}},
+			{"client_header_timeout", [this](const std::string& d, Tokens& t,
+				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+				(void)p;
+				_parseClientHeaderTimeout(d, t, c, l);
+			}},
+			{"ignore_invalid_headers", [this](const std::string& d, Tokens& t,
+				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+				(void)p;
+				_parseIgnoreInvalidHeaders(d, t, c, l);
+			}},
+			{"merge_slashes", [this](const std::string& d, Tokens& t,
+				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+				(void)p;
+				_parseMergeSlashes(d, t, c, l);
+			}},
+			{"underscore_in_headers", [this](const std::string& d, Tokens& t,
+				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+				(void)p;
+				_parseUnderscoreInHeaders(d, t, c, l);
+			}},
+			{"root", [this](const std::string& d, Tokens& t,
+				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+				(void)p;
+				_parseRoot(d, t, c, l);
+			}},
+			{"allow", [this](const std::string& d, Tokens& t,
+				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+				(void)p;
+				_parseAllow(d, t, c, l);
+			}},
+			{"alias", [this](const std::string& d, Tokens& t,
+				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+				_parseAlias(d, t, c, l, p);
+			}},
+			{"client_body_buffer_size", [this](const std::string& d, Tokens& t,
+				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+				(void)p;
+				_parseClientBodyBufferSize(d, t, c, l);
+			}},
+			{"client_body_timeout", [this](const std::string& d, Tokens& t,
+				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+				(void)p;
+				_parseClientBodyTimeout(d, t, c, l);
+			}},
+			{"client_max_body_size", [this](const std::string& d, Tokens& t,
+				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+				(void)p;
+				_parseClientMaxBodySize(d, t, c, l);
+			}},
+			{"send_timeout", [this](const std::string& d, Tokens& t,
+				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+				(void)p;
+				_parseSendTimeout(d, t, c, l);
+			}},
+			{"absolute_redirect", [this](const std::string& d, Tokens& t,
+				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+				(void)p;
+				_parseAbsoluteRedirect(d, t, c, l);
+			}},
+			{"log_not_found", [this](const std::string& d, Tokens& t,
+				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+				(void)p;
+				_parseLogNotFound(d, t, c, l);
+			}},
+			{"error_page", [this](const std::string& d, Tokens& t,
+				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+				(void)p;
+				_parseErrorPage(d, t, c, l);
+			}},
+			{"try_files", [this](const std::string& d, Tokens& t,
+				const ConfCtx& c, WebservConfLevel l, ConfigParser& p) {
+				(void)p;
+				_parseTryFiles(d, t, c, l);
+			}},
+	};
     const ConfCtx&	confCtx = parser.getConfCtx();
     Tokens&			tokens = parser.getTokens();
 	std::string		directive = tokens.front();
-	tokens.pop_front();
 
+	tokens.pop_front();
 	if (tokens.empty() || _isDelimiter(tokens.front()))
 		throw std::runtime_error(
 			"Invalid definition for directive '" + directive + "'");
     _initConfIfEmptyAtLevel<HttpCoreConf, SrvCoreConf, LocCoreConf>(
 		confCtx, level);
-    switch (directiveMap.at(directive)) {
-        case 0: // listen
-			_parseListen(tokens, confCtx, parser);
-			break;
-        case 1: // server_name
-			_parseServerNames(tokens, confCtx);
-            break;
-        case 2: // num_req_expected
-			_parseNumReqExpected(directive, tokens, confCtx, level);
-            break;
-        case 3: // client_header_timeout
-			_parseClientHeaderTimeout(directive, tokens, confCtx, level);
-            break;
-        case 4: // ignore_invalid_headers
-        case 5: // merge_slashes
-        case 6: // underscore_in_headers
-			_parseBoolDirective(directive, tokens, confCtx, level);;
-			break;
-        case 7: // root
-			_parseRoot(directive, tokens, confCtx, level);
-			break;
-        case 8: // allow
-			_parseAllow(directive, tokens, confCtx, level);
-			break;
-        case 9: // alias
-			_parseAlias(directive, tokens, confCtx, level, parser);
-			break;
-        case 10: // client_body_buffer_size
-			_parseClientBodyBufferSize(directive, tokens, confCtx, level);
-			break;
-        case 11: // client_body_timeout
-			_parseClientBodyTimeout(directive, tokens, confCtx, level);
-			break;
-        case 12: // client_max_body_size
-			_parseClientMaxBodySize(directive, tokens, confCtx, level);
-			break;
-        case 13: // send_timeout
-			_parseSendTimeout(directive, tokens, confCtx, level);
-			break;
-        case 14: // absolute_redirect
-        case 15: // log_not_found
-			_parseBoolDirective(directive, tokens, confCtx, level);
-			break;
-        case 16: // error_page
-			_parseErrorPage(directive, tokens, confCtx, level);
-			break;
-        case 17: // try_files
-			_parseTryFiles(directive, tokens, confCtx, level);
-			break;
-    }
+	parseMap.at(directive)(directive, tokens, confCtx, level, parser);
 	if (tokens.empty() || tokens.front() != ";")
 		throw std::runtime_error(
 			"Invalid definition for directive '" + directive + "'");
 	tokens.pop_front();
 };
 
-// void	WebservCoreParser::_initConfIfEmptyAtLevel(
-// 	const ConfCtx& confCtx, WebservConfLevel level) {
-// 	switch (level) {
-// 		case WebservConfLevel::HTTP:
-// 			_ensureConfExists(confCtx.httpConfs,
-// 							[]()
-// 							{ return std::make_unique<HttpCoreConf>(); });
-// 			break;
-// 		case WebservConfLevel::SERVER:
-// 			_ensureConfExists(confCtx.srvConfs,
-// 							[]()
-// 							{ return std::make_unique<SrvCoreConf>(); });
-// 			[[fallthrough]];
-// 		case WebservConfLevel::LOCATION:
-// 			_ensureConfExists(confCtx.locConfs,
-// 							[]()
-// 							{ return std::make_unique<LocCoreConf>(); });
-// 			break;
-// 		default:
-// 			throw std::runtime_error("Invalid configuration level");
-// 			break;
-// 	};
-// };
-
 void	WebservCoreParser::_parseListen(Tokens& t, const ConfCtx& c,
-	ConfigParser& parser) {
+	ConfigParser& p) {
 	std::string	ip;
 	std::string	port;
 	std::string	str = t.front();
@@ -163,9 +168,9 @@ void	WebservCoreParser::_parseListen(Tokens& t, const ConfCtx& c,
 		throw std::runtime_error("Invalid listen port '" + port + "'");
 
     if (ip != IP || port != PORT) {
-        parser.mapAddrToServer(ip + ":" + port, parser.getLastSrv());
-        parser.eraseMappingAddrToServer(std::string(IP) + ":" + PORT,
-            parser.getLastSrv());
+        p.mapAddrToServer(ip + ":" + port, p.getLastSrv());
+        p.eraseMappingAddrToServer(std::string(IP) + ":" + PORT,
+            p.getLastSrv());
     }
 	SrvCoreConf* srvConf = dynamic_cast<SrvCoreConf*>(getSrvConfPtr(c));
 	srvConf->flags = LISTEN;
@@ -183,80 +188,88 @@ void	WebservCoreParser::_parseServerNames(Tokens& t, const ConfCtx& c) {
 	}
 };
 
-void WebservCoreParser::_parseNumReqExpected(const std::string& directive,
+void WebservCoreParser::_parseNumReqExpected(const std::string& d,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
 	if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
-		_addLowerLevelDirective(directive,
+		_addLowerLevelDirective(d,
             {t.front()},
             dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
 	else
-		dynamic_cast<SrvCoreConf*>(getSrvConfPtr(c))->numReqExpected =\
-        std::stoul(t.front());
+		_assignIfHasNoValue(
+			dynamic_cast<SrvCoreConf*>(getSrvConfPtr(c))->numReqExpected,
+			std::stoul(t.front()));
 	t.pop_front();
 }
 
-void WebservCoreParser::_parseClientHeaderTimeout(const std::string& directive,
+void WebservCoreParser::_parseClientHeaderTimeout(const std::string& d,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
 	if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
-		_addLowerLevelDirective(directive,
+		_addLowerLevelDirective(d,
             {t.front()},
             dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
 	else
-		dynamic_cast<SrvCoreConf*>(getSrvConfPtr(c))->clientHeaderTimeout =\
-        WebservMsec(std::stoul(t.front()));
+		_assignIfHasNoValue(
+			dynamic_cast<SrvCoreConf*>(getSrvConfPtr(c))->clientHeaderTimeout,
+			WebservMsec(std::stoul(t.front())));
 	t.pop_front();
 }
 
-void WebservCoreParser::_parseBoolDirective(const std::string& d,
+void WebservCoreParser::_parseIgnoreInvalidHeaders(const std::string& d,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
-	try {
-		bool b = _parseBooleanValue(t.front());
+	bool b = _parseBooleanValue(t.front());
+	if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
+		_addLowerLevelDirective(d,
+            {t.front()},
+            dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
+	else
+		_assignIfHasNoValue(
+			dynamic_cast<SrvCoreConf*>(getSrvConfPtr(c))->ignore_invalid_headers,
+			b);
+	t.pop_front();
+}
+
+void WebservCoreParser::_parseMergeSlashes(const std::string& d,
+	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
+	bool b = _parseBooleanValue(t.front());
+	if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
+		_addLowerLevelDirective(d,
+            {t.front()},
+            dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
+	else
+		_assignIfHasNoValue(
+			dynamic_cast<SrvCoreConf*>(getSrvConfPtr(c))->merge_slashes,
+			b);
+	t.pop_front();
+}
+
+void WebservCoreParser::_parseUnderscoreInHeaders(const std::string& d,
+	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
+	bool b = _parseBooleanValue(t.front());
+	if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
+		_addLowerLevelDirective(d,
+            {t.front()},
+            dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
+	else
+		_assignIfHasNoValue(
+			dynamic_cast<SrvCoreConf*>(getSrvConfPtr(c))->underscore_is_valid,
+			b);
+	t.pop_front();
+}
+
+void WebservCoreParser::_parseRoot(const std::string& d,
+	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
+	if (!dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->alias.has_value()) {
 		if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
 			_addLowerLevelDirective(d,
 				{t.front()},
-				dynamic_cast<HttpCoreConf*>(
-					getHttpConfPtr(c))->lowerLevelDirectives);
-		else {
-			if (d == "ignore_invalid_headers"
-				|| d == "merge_slashes"
-				|| d == "underscore_in_headers") {
-				if (d == "ignore_invalid_headers")
-					dynamic_cast<SrvCoreConf*>(
-						getSrvConfPtr(c))->ignore_invalid_headers = b;
-				else if (d == "merge_slashes")
-					dynamic_cast<SrvCoreConf*>(
-						getSrvConfPtr(c))->merge_slashes = b;
-				else dynamic_cast<SrvCoreConf*>(
-					getSrvConfPtr(c))->underscore_is_valid = b;
-			}
-			else {
-				if (d == "absolute_redirect")
-					dynamic_cast<LocCoreConf*>(
-						getLocConfPtr(c))->absoluteRedirect = b;
-				else dynamic_cast<LocCoreConf*>(
-					getLocConfPtr(c))->logNotFound = b;
-			}
-		}
-		t.pop_front();
+				dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
+		else
+			dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->root = t.front();
 	}
-	catch (const std::exception& e) {
-		throw std::runtime_error("Invalid value '" + t.front()
-			+ "' for directive '" + d + "': " + e.what());
-	}
-}
-
-void WebservCoreParser::_parseRoot(const std::string& directive,
-	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
-	if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
-		_addLowerLevelDirective(directive,
-            {t.front()},
-            dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
-	else
-		dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->root = t.front();
 	t.pop_front();
 }
 
-void WebservCoreParser::_parseAllow(const std::string& directive,
+void WebservCoreParser::_parseAllow(const std::string& d,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
     static const std::unordered_map<std::string, unsigned int> m = {
         {"GET", 1u<<0}, {"POST", 1u<<1}, {"PUT", 1u<<2},
@@ -272,30 +285,37 @@ void WebservCoreParser::_parseAllow(const std::string& directive,
                 mask |= m.at(t.front());
         else
             throw std::runtime_error("Invalid value '" + t.front()
-                + "'for directive '" + directive + "'");
+                + "'for directive '" + d + "'");
 		t.pop_front();
         if (t.empty() || _isDelimiter(t.front()))
             break;
 	}
 	if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
-		_addLowerLevelDirective(directive,
+		_addLowerLevelDirective(d,
             values,
             dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
 	else
-		dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->allowedMethods = mask;
+		_assignIfHasNoValue(
+			dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->allowedMethods,
+			mask);
 }
 
-void WebservCoreParser::_parseAlias(const std::string& directive,
+void WebservCoreParser::_parseAlias(const std::string& d,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l, ConfigParser& parser) {
-	const LocNode&	curLocNode = parser.getLocNode();
-	dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->alias = curLocNode.name.size();
-	_parseRoot(directive, t, c, l);
+	if (!dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->alias.has_value()) {
+		const LocNode&	curLocNode = parser.getLocNode();
+		dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->alias = curLocNode.name.size();
+		_parseRoot(d, t, c, l);
+	}
+	else {
+		t.pop_front();
+	}
 }
 
-void WebservCoreParser::_parseClientBodyBufferSize(const std::string& directive,
+void WebservCoreParser::_parseClientBodyBufferSize(const std::string& d,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
     if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
-		_addLowerLevelDirective(directive,
+		_addLowerLevelDirective(d,
             {t.front()},
             dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
 	else
@@ -304,53 +324,84 @@ void WebservCoreParser::_parseClientBodyBufferSize(const std::string& directive,
 	t.pop_front();
 }
 
-void WebservCoreParser::_parseClientBodyTimeout(const std::string& directive,
+void WebservCoreParser::_parseClientBodyTimeout(const std::string& d,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
     if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
-		_addLowerLevelDirective(directive,
+		_addLowerLevelDirective(d,
             {t.front()},
             dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
 	else
-		dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->clientBodyTimeout =\
-        WebservMsec(std::stoul(t.front()));
+		_assignIfHasNoValue(
+			dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->clientBodyTimeout,
+        	WebservMsec(std::stoul(t.front())));
 	t.pop_front();
 }
 
-void WebservCoreParser::_parseClientMaxBodySize(const std::string& directive,
+void WebservCoreParser::_parseClientMaxBodySize(const std::string& d,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
     if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
-		_addLowerLevelDirective(directive,
+		_addLowerLevelDirective(d,
             {t.front()},
             dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
 	else
-		dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->clientMaxBodySize =\
-        std::stoul(t.front());
+		_assignIfHasNoValue(
+			dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->clientMaxBodySize,
+			std::stoul(t.front()));
 	t.pop_front();
 }
 
-void WebservCoreParser::_parseSendTimeout(const std::string& directive,
+void WebservCoreParser::_parseSendTimeout(const std::string& d,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
     if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
-		_addLowerLevelDirective(directive,
+		_addLowerLevelDirective(d,
             {t.front()},
             dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
 	else
-		dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->sendTimeout =\
-        WebservMsec(std::stoul(t.front()));
+		_assignIfHasNoValue(
+			dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->sendTimeout,
+			WebservMsec(std::stoul(t.front())));
 	t.pop_front();
 }
 
-void WebservCoreParser::_parseErrorPage(const std::string& directive,
+void WebservCoreParser::_parseAbsoluteRedirect(const std::string& d,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
-	(void)directive;
+	bool b = _parseBooleanValue(t.front());
+	if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
+		_addLowerLevelDirective(d,
+            {t.front()},
+            dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
+	else
+		_assignIfHasNoValue(
+			dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->absoluteRedirect,
+			b);
+	t.pop_front();
+}
+
+void WebservCoreParser::_parseLogNotFound(const std::string& d,
+	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
+	bool b = _parseBooleanValue(t.front());
+	if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
+		_addLowerLevelDirective(d,
+            {t.front()},
+            dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
+	else
+		_assignIfHasNoValue(
+			dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->logNotFound,
+			b);
+	t.pop_front();
+}
+
+void WebservCoreParser::_parseErrorPage(const std::string& d,
+	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
+	(void)d;
     (void)t;
     (void)c;
     (void)l;
 }
 
-void WebservCoreParser::_parseTryFiles(const std::string& directive,
+void WebservCoreParser::_parseTryFiles(const std::string& d,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
-	(void)directive;
+	(void)d;
     (void)t;
     (void)c;
     (void)l;

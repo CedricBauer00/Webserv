@@ -44,7 +44,7 @@ void	Executor::process(uint32_t events) {
 	if (events & (EPOLLERR | EPOLLHUP)) {
  		_printSocketError();
         std::cerr << "FD " << _fd
-		<< ": [Writer] Client disconnected unexpectedly" << std::endl;
+		<< ": [Executor] Client disconnected unexpectedly" << std::endl;
 		delete this;
     }
 
@@ -71,7 +71,7 @@ void	Executor::process(uint32_t events) {
 			if (!loc->locConfs.empty()) {
 				const auto* locConf =\
 				dynamic_cast<WebservCoreParser::LocCoreConf*>(loc->locConfs[0].get());
-				if (!(_parser.getReqMethod() & locConf->allowedMethods)) {
+				if (!(_parser.getReqMethod() & locConf->allowedMethods.value())) {
 					std::cerr << "Requested method not allowed" << "\n";
 					throw MethodNotAllowed();
 				}

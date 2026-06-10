@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include "AWebservParser.hpp"
 #include "ConfigParser.hpp"
 
@@ -10,13 +11,11 @@ class	WebservIndexParser : public AWebservParser {
 		};
 
 		struct	SrvIndexConf : SrvConf {
-			std::vector<std::string>	indexFiles; // list of index files to look for when a directory is requested
-			bool						autoindex{false}; // whether to generate directory listing if no index file is found
 		};
 
 		struct LocIndexConf : LocConf {
 			std::vector<std::string>	indexFiles; // list of index files to look for when a directory is requested
-			bool						autoindex{false}; // whether to generate directory listing if no index file is found
+			std::optional<bool>			autoindex; // whether to generate directory listing if no index file is found
 		};
 
 		WebservIndexParser() = delete;

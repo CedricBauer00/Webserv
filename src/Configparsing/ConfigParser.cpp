@@ -141,6 +141,19 @@ void	ConfigParser::parseConfig(WebservConfLevel level) {
 			+ getLevelName(level) + " block");
 }
 
+void	ConfigParser::mergeConfs() {
+	if (_httpConfs.empty())
+		return;
+	_confCtx.httpConfs = &_httpConfs;
+	for (auto& srv : _servers) {
+		_confCtx.srvConfs = &srv->srvConfs;
+		_confCtx.locConfs = &srv->location->locConfs;
+		for (const auto& module: _modules) {
+			module->mergeConfs(*this, srv->location);
+		}
+	}
+}
+
 Tokens&	ConfigParser::getTokens() {
 	return _tokens;
 }

@@ -54,9 +54,6 @@ void WebservIndexParser::_parseIndex(const std::string& directive,
             values,
             dynamic_cast<HttpIndexConf*>(
 				getHttpConfPtr(c))->lowerLevelDirectives);
-	else if ((l & WebservConfLevel::SERVER) != static_cast<WebservConfLevel>(0))
-		dynamic_cast<SrvIndexConf*>(getSrvConfPtr(c))->indexFiles =\
-		std::move(values);
 	else
 		dynamic_cast<LocIndexConf*>(getLocConfPtr(c))->indexFiles =\
 		std::move(values);
@@ -71,10 +68,6 @@ void WebservIndexParser::_parseAutoindex(const std::string& directive,
 				{t.front()},
 				dynamic_cast<HttpIndexConf*>(
 					getHttpConfPtr(c))->lowerLevelDirectives);
-		else if ((l & WebservConfLevel::SERVER)
-		!= static_cast<WebservConfLevel>(0))
-			dynamic_cast<SrvIndexConf*>(
-				getSrvConfPtr(c))->autoindex = b;
 		else
 			dynamic_cast<LocIndexConf*>(
 				getLocConfPtr(c))->autoindex = b;

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <unordered_set>
+#include <optional>
+#include <functional>
 #include "AWebservParser.hpp"
 #include "ConfigParser.hpp"
 
@@ -15,10 +17,10 @@ class WebservCoreParser : public AWebservParser {
 			std::unordered_set<std::string>	serverNames; // virtual server name entries
 			// std::string					filename, serverName;
 			// unsigned int					lineNum;
-			unsigned long					numReqExpected{1000}; // number of simultaneous requests expected
-			WebservMsec						clientHeaderTimeout{1000}; // maximum time to wait for client request headers in milliseconds (408 Request Timeout)
-			bool							ignore_invalid_headers{true}, \
-			merge_slashes{true}, underscore_is_valid{false};
+			std::optional<unsigned long>	numReqExpected; // number of simultaneous requests expected
+			std::optional<WebservMsec>		clientHeaderTimeout; // maximum time to wait for client request headers in milliseconds (408 Request Timeout)
+			std::optional<bool>				ignore_invalid_headers,\
+			merge_slashes, underscore_is_valid;
 			unsigned int					flags{0};
 		};
 
@@ -28,23 +30,23 @@ class WebservCoreParser : public AWebservParser {
 			// std::vector<WebservLocCoreConf*>	regexLocations;
 
 			// WebservPhase			phases[10];
-			unsigned int			allowedMethods{11}; // bitmask of allowed methods
-			WebservHandler			handler; // handler for this location
-			std::string				root; // root directory for this location
-			size_t					alias{0}; // length of the location prefix to be replaced by root when serving files
-			std::string				postAction; // URI to redirect POST requests to
+			std::optional<unsigned int>		allowedMethods; // bitmask of allowed methods {11}
+			// WebservHandler			handler; // handler for this location
+			std::string						root; // root directory for this location
+			std::optional<size_t>			alias; // length of the location prefix to be replaced by root when serving files
+			std::string						postAction; // URI to redirect POST requests to
 
-			unsigned long			clientMaxBodySize; // maximum allowed size of client request body in bytes
-			unsigned long			clientBodyBufferSize; // size of buffer used for reading client request body in bytes
+			std::optional<unsigned long>	clientMaxBodySize; // maximum allowed size of client request body in bytes
+			std::optional<unsigned long>	clientBodyBufferSize; // size of buffer used for reading client request body in bytes
 
-			WebservMsec				clientBodyTimeout; // maximum time to wait for client request body in milliseconds (408 Request Timeout)
-			WebservMsec				sendTimeout; // maximum time to wait for sending response to client in milliseconds (504 Gateway Timeout)
+			std::optional<WebservMsec>		clientBodyTimeout; // maximum time to wait for client request body in milliseconds (408 Request Timeout)
+			std::optional<WebservMsec>		sendTimeout; // maximum time to wait for sending response to client in milliseconds (504 Gateway Timeout)
 
-			bool					absoluteRedirect{true}; // whether to use absolute URIs in redirects (e.g., Location header in 301/302 responses)
-			bool					logNotFound{true}; // whether to log 404 Not Found errors
-			WebservErrorLog			errorLog;
+			std::optional<bool>				absoluteRedirect; // whether to use absolute URIs in redirects (e.g., Location header in 301/302 responses)
+			std::optional<bool>				logNotFound; // whether to log 404 Not Found errors
+			// WebservErrorLog			errorLog;
 
-			bool					chunkedTransferEncoding{false}; // whether to use chunked transfer encoding for responses with unknown content length
+			std::optional<bool>				chunkedTransferEncoding; // whether to use chunked transfer encoding for responses with unknown content length
 		};
 
         WebservCoreParser() = delete;
@@ -54,8 +56,10 @@ class WebservCoreParser : public AWebservParser {
 			WebservConfLevel level) override;
 
 	private:
-		// void	_initConfIfEmptyAtLevel(
-		// 	const ConfCtx& confCtx, WebservConfLevel level);
+		template<typename T>
+		void	_assignIfHasNoValue(std::optional<T> var, T val) {
+			if (!var.has_value()) var = val; 
+		};
 		void	_parseListen(Tokens& tokens, const ConfCtx& confCtx,
 			ConfigParser& parser);
 		void	_parseServerNames(Tokens& tokens, const ConfCtx& confCtx);
@@ -63,7 +67,11 @@ class WebservCoreParser : public AWebservParser {
 			Tokens& tokens, const ConfCtx& confCtx, WebservConfLevel level);
 		void	_parseClientHeaderTimeout(const std::string& directive,
 			Tokens& tokens, const ConfCtx& confCtx, WebservConfLevel level);
-		void	_parseBoolDirective(const std::string& directive,
+		void	_parseIgnoreInvalidHeaders(const std::string& directive,
+			Tokens& tokens, const ConfCtx& confCtx, WebservConfLevel level);
+		void	_parseMergeSlashes(const std::string& directive,
+			Tokens& tokens, const ConfCtx& confCtx, WebservConfLevel level);
+		void	_parseUnderscoreInHeaders(const std::string& directive,
 			Tokens& tokens, const ConfCtx& confCtx, WebservConfLevel level);
 		void	_parseRoot(const std::string& directive,
 			Tokens& tokens, const ConfCtx& confCtx, WebservConfLevel level);
@@ -79,6 +87,10 @@ class WebservCoreParser : public AWebservParser {
 		void	_parseClientMaxBodySize(const std::string& directive,
 			Tokens& tokens, const ConfCtx& confCtx, WebservConfLevel level);
 		void	_parseSendTimeout(const std::string& directive,
+			Tokens& tokens, const ConfCtx& confCtx, WebservConfLevel level);
+		void	_parseAbsoluteRedirect(const std::string& directive,
+			Tokens& tokens, const ConfCtx& confCtx, WebservConfLevel level);
+		void	_parseLogNotFound(const std::string& directive,
 			Tokens& tokens, const ConfCtx& confCtx, WebservConfLevel level);
 		void	_parseErrorPage(const std::string& directive,
 			Tokens& tokens, const ConfCtx& confCtx, WebservConfLevel level);
