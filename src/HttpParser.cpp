@@ -2,13 +2,13 @@
 #include "../inc/Exceptions.hpp"
 
 HttpParser::HttpParser() 
-: _startLine(), _headers(), _body(), _bodyLength( 0 ), _complHead( false ),
+: _startLine(), _headers(), _body(), _bodyLength(0), _headStopReceived(false),
 _foundContlen( false ), _foundHost( false ), _contentLength( 0 ),
 _chunked( false ), _request(), _method( METHOD_GET ) {
 }
 
 HttpParser::HttpParser(const std::string& request ) 
-: _startLine(), _headers(), _body(), _bodyLength( 0 ), _complHead( false ),
+: _startLine(), _headers(), _body(), _bodyLength(0), _headStopReceived(false),
 _foundContlen( false ), _foundHost( false ), _contentLength( 0 ),
 _chunked( false ), _request(request), _method( METHOD_GET ) {
 }
@@ -52,86 +52,93 @@ HttpParser::~HttpParser() {
 //     }
 // }
 
-bool    HttpParser::parseHead(std::string::size_type pos)
+void	HttpParser::parseHead(char* buffer, std::size_t count)
 {
-    std::string_view line(_request.data(), pos);
-    if (line.empty() || line.back() != '\r')
-        throw BadRequest();
-    line.remove_suffix(1);
+    _request.append(buffer, count);
+    std::string::size_type start = 0;
+    std::string::size_type pos;
 
-    if (line.empty())
+    while ((pos = _request.find('\n', start)) != std::string::npos)
     {
-        _request.erase(0, pos + 1);
-		for ( const auto& pair : _headers )
-		{
-			std::cout << BLUE << pair.first << " : "
-			<< pair.second << RESET << std::endl;
-		}
-        return true;
-    }
+        std::string_view line(_request.data() + start, pos - start);
+        if (line.empty() || line.back() != '\r')
+            throw BadRequest();
+        line.remove_suffix(1);
 
-    std::cout << GREEN << std::string(line) << RESET << std::endl;
-
-    if (_startLine.empty())
-    {
-        std::size_t start = 0;
-        std::size_t end = line.find(' ');
-        while (end != std::string_view::npos)
+        if (line.empty())
         {
-            _startLine.emplace_back(line.substr(start, end - start));
-            start = end + 1;
-            end = line.find(' ', start);
+            _request.erase(0, pos + 1);
+            for ( const auto& pair : _headers )
+                std::cout << BLUE << pair.first << " : "
+                << pair.second << RESET << std::endl;
+			_headStopReceived = true;
+            return;
         }
-        _startLine.emplace_back(line.substr(start));
-        _checkStartLine();
-        _setMethod();
-        _decodeRequestTarget(_startLine[1]);
-        _splitRequestTarget(_startLine[1]);
-        _normalizePath();
-		_complHead = true;
-    }
-    else
-    {
-        std::size_t colon = line.find(':');
-        if (colon == std::string_view::npos || colon == 0)
-            throw BadRequest();
-        if (line[colon - 1] == ' ')
-            throw BadRequest();
 
-        std::string key(line.substr(0, colon));
-        std::string value(line.substr(colon + 1));
+        std::cout << GREEN << std::string(line) << RESET << std::endl;
 
-        for (auto& x : key)
-            x = tolower(static_cast<unsigned char>(x));
-        for (auto& x : value)
-            x = tolower(static_cast<unsigned char>(x));
-
-        value = trim(value);
-        key = trim(key);
-        if (key == "content-length" && _foundContlen == false)
+        if (_startLine.empty())
         {
-            _foundContlen = true;
-            if (!isAllDigits(value))
+            std::size_t fieldStart = 0;
+            std::size_t fieldEnd = line.find(' ');
+            while (fieldEnd != std::string_view::npos)
+            {
+                _startLine.emplace_back(line.substr(fieldStart, fieldEnd - fieldStart));
+                fieldStart = fieldEnd + 1;
+                fieldEnd = line.find(' ', fieldStart);
+            }
+            _startLine.emplace_back(line.substr(fieldStart));
+            _checkStartLine();
+            _setMethod();
+            _decodeRequestTarget(_startLine[1]);
+            _splitRequestTarget(_startLine[1]);
+            _normalizePath();
+        }
+        else
+        {
+            std::size_t colon = line.find(':');
+            if (colon == std::string_view::npos || colon == 0)
                 throw BadRequest();
-            _contentLength = static_cast<std::size_t>(std::stoi(value));
+            if (line[colon - 1] == ' ')
+                throw BadRequest();
+
+            std::string key(line.substr(0, colon));
+            std::string value(line.substr(colon + 1));
+
+            for (auto& x : key)
+                x = tolower(static_cast<unsigned char>(x));
+
+            value = trim(value);
+            key = trim(key);
+            if (key == "content-length" && _foundContlen == false)
+            {
+                if (_chunked)
+                    throw BadRequest();
+                if (!isAllDigits(value))
+                    throw BadRequest();
+                _foundContlen = true;
+                _contentLength = static_cast<std::size_t>(std::stoi(value));
+            }
+            else if (key == "transfer-encoding")
+            {
+				for (auto& x : value)
+                	x = tolower(static_cast<unsigned char>(x));
+				if (value == "chunked")
+				{
+					if (_foundContlen)
+						throw BadRequest();
+					_chunked = true;
+				}
+            }
+            else if (key == "host")
+                checkHostHeader(value);
+
+            _headers[key] = value;
         }
-        else if (key == "transfer-encoding" && value == "chunked")
-            _chunked = true;
 
-        if (_chunked && _foundContlen)
-            throw BadRequest();
-
-        if (key == "host")
-            checkHostHeader(value);
-
-        _headers[key] = value;
+        start = pos + 1;
     }
-    // if ( _foundHost == false ) // oder default server - meist erster Serverblock
-    //     throw BadRequest(); // anscheinend muss! dann default server; keine Bad Request!
-
-    // std::cout << "found Host Header:" << _foundHost << " in line: "<< BLUE << whichline << RESET << std::endl;
-	_request.erase(0, pos + 1);
-    return false;
+	_request.erase(0, start);
 }
 
 void    HttpParser::_checkStartLine() // eventuell direkt Execution instance createn, die URI speichert
@@ -333,6 +340,21 @@ bool    isInRange( int num, int min, int max )
     return ( num >= min && num <= max );
 }
 
+const std::vector<std::string>&    HttpParser::getStartLine() const
+{
+	return _startLine;
+}
+
+const std::unordered_map<std::string, std::string>&    HttpParser::getHeaders() const
+{
+	return _headers;
+}
+
+const std::string&    HttpParser::getBody() const
+{
+    return _body;
+}
+
 whichMethod  HttpParser::getMethod() const
 {
     return _method;
@@ -341,11 +363,6 @@ whichMethod  HttpParser::getMethod() const
 unsigned int    HttpParser::getReqMethod() const
 {
     return _reqMethodMask;
-}
-
-const std::string&    HttpParser::getBody() const
-{
-    return _body;
 }
 
 const std::string&     HttpParser::getHostName() const
@@ -367,8 +384,8 @@ std::string&	HttpParser::getRequest() {
 	return _request;
 }
 
-bool			HttpParser::isComplHead() const {
-	return _complHead;
+bool			HttpParser::isHeadStopReceived() const {
+	return _headStopReceived;
 }
 
 void    HttpParser::_decodeRequestTarget(std::string& requestTarget)

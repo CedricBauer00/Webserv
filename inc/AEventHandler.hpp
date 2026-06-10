@@ -20,9 +20,10 @@ class AEventHandler {
 		const std::vector<const IWebservModule::Srv*>&		_servers;
 		const Epoller&										_epoller;
 
-		void	_setNonBlocking(int fd);
-        void    _printSocketError();
-        int     _dupFd(int fd);
+        static int		_dupFd(int fd);
+
+		void			_setNonBlocking(int fd);
+        void    		_printSocketError();
         std::function<const IWebservModule::Srv*(const std::string&)>
 		_selectServerFactory();
 

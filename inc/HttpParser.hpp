@@ -31,7 +31,7 @@ class HttpParser
 		std::string			_query;
         std::string 		_body;
         std::size_t			_bodyLength;
-		bool				_complHead;
+		bool				_headStopReceived;
         bool				_foundContlen;
         bool				_foundHost;
         std::size_t			_contentLength;
@@ -57,7 +57,7 @@ class HttpParser
         ~HttpParser();
  
         // void        parse();
-        bool        parseHead(std::string::size_type pos);
+        void        parseHead(char* buffer, std::size_t count);
         void        setBody();
         std::string trim( const std::string& value );
         bool        isAllDigits( const std::string& word );
@@ -68,8 +68,8 @@ class HttpParser
 
         // void    setHttpVersion();
         
-        std::vector<std::string>						getStartLine();
-        std::unordered_map<std::string, std::string>	getHeaders();
+        const std::vector<std::string>&					getStartLine() const;
+        const std::unordered_map<std::string, std::string>&	getHeaders() const;
         const std::string&								getBody() const;
         whichMethod										getMethod() const;
         unsigned int									getReqMethod() const;
@@ -77,7 +77,7 @@ class HttpParser
         const std::string&								getHostPort() const;
 		const std::string&								getPath() const;
 		std::string&									getRequest();
-		bool											isComplHead() const;
+		bool											isHeadStopReceived() const;
 };
 
 bool    isInRange( int num, int min, int max );

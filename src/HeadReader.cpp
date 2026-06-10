@@ -43,19 +43,13 @@ void	HeadReader::_receiveFromClient() {
         ssize_t count = recv(_fd, buffer, sizeof(buffer), 0);
         if (0 < count)
         {
-            std::string& request = _parser.getRequest();
-            request.append(buffer, static_cast<std::size_t>(count));
-
-            std::string::size_type pos = 0;
-            while ((pos = request.find('\n')) != std::string::npos)
-            {
-                if (_parser.parseHead(pos))
-                {
-                    if (_parser.isComplHead())
-                    return;
-                    throw BadRequest();
-                }
-            }
+			_parser.parseHead(buffer, static_cast<std::size_t>(count));
+			if (_parser.isHeadStopReceived())
+			{
+				if (_parser.getStartLine().empty())
+					throw BadRequest();
+				return; // Header fully received
+			}
             continue;
         }
         if (count == 0)
@@ -80,16 +74,18 @@ void    HeadReader::process(uint32_t events) {
 		delete this;
     }
 
-	try {
-		_receiveFromClient();
-		new Executor(*this, std::move(_parser), std::move(_selectServerFactory()));
+	try{
+		try {
+			_receiveFromClient();
+			new Executor(*this, std::move(_parser), _selectServerFactory());
+		}
+		catch (const HttpException& e) {
+			std::cerr << "FD " << _fd << ": [HeadReader] HTTP error: " << std::endl;
+		}
 	}
-	catch (const wouldBlockException& e) {
+    catch (const wouldBlockException& e) {
 		return; // Nothing more to read now
 	}
-    catch (const HttpException& e) {
-        std::cerr << "FD " << _fd << ": [HeadReader] HTTP error: " << std::endl;
-    }
 	catch (const std::exception& e) {
 		std::cerr << e.what() << std::endl;
 	}
