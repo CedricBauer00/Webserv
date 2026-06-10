@@ -15,28 +15,17 @@ std::pair<WebservConfLevel, AWebservParser::parseFunc>>&	WebservIndexParser::_ge
 void WebservIndexParser::parseDirective(
 	ConfigParser& parser,
 	WebservConfLevel level) {
-	static const std::unordered_map<std::string, int> directiveMap = {
-		{"index", 0},
-		{"autoindex", 1},
-	};
 	const ConfCtx&	confCtx = parser.getConfCtx();
 	Tokens&			tokens = parser.getTokens();
 	std::string		directive = tokens.front();
-	tokens.pop_front();
 
+	tokens.pop_front();
 	if (tokens.empty() || _isDelimiter(tokens.front()))
 		throw std::runtime_error(
 			"Invalid definition for directive '" + directive + "'");
 	_initConfIfEmptyAtLevel<HttpIndexConf, SrvIndexConf, LocIndexConf>(
 		confCtx, level);
-	switch (directiveMap.at(directive)) {
-		case 0: // index
-			_parseIndex(directive, tokens, confCtx, level);
-			break;
-		case 1: // autoindex
-			_parseAutoindex(directive, tokens, confCtx, level);
-			break;
-	}
+	_parseMap.at(directive).second(directive, tokens, confCtx, level, parser);
 	if (tokens.empty() || tokens.front() != ";")
 		throw std::runtime_error(
 			"Invalid definition for directive '" + directive + "'");
