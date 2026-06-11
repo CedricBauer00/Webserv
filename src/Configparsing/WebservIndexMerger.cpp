@@ -1,7 +1,10 @@
 #include "../../inc/Configparsing/WebservIndexMerger.hpp"
 #include "../../inc/Configparsing/WebservIndexParser.hpp"
 
-WebservIndexMerger::WebservIndexMerger() {
+WebservIndexMerger::WebservIndexMerger() :
+HttpIndexConf(),
+SrvIndexConf(),
+LocIndexConf({}, false) {
 }
 
 WebservIndexMerger::~WebservIndexMerger() {
@@ -9,32 +12,39 @@ WebservIndexMerger::~WebservIndexMerger() {
 
 void	WebservIndexMerger::mergeConfs(ConfigParser& parser,
 	std::unique_ptr<LocNode>& location) {
-	WebservConfLevel	level;
-	const ConfCtx&		c = parser.getConfCtx();
-
-    if (getHttpConfPtr(c) != nullptr) {
-		parser.setTokens(
-			dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
-		while (!parser.getTokens().empty()) {
-			for (const auto& token : parser.getTokens())
-					std::cout << token << " ";
-			std::cout << std::endl;
-			level = getLowestValidLevelOfDirective(parser.getTokens().front());
-			initConfIfEmptyAtLevel(c, level);
-			parseDirective(parser, level);
-		}
-		// for (const auto& tokens : dynamic_cast<HttpCoreConf*>(
-		// 	getHttpConfPtr(c))->lowerLevelDirectives) {
-		// 	for (const auto& token : tokens)
-		// 			std::cout << token << " ";
-		// 	std::cout << std::endl;
-		// 	std::cout << "lowest valid level of directive: "
-		// 	<< std::to_string(static_cast<uint8_t>(getLowestValidLevelOfDirective(tokens.front())))
-		// 	<< std::endl;
-		// 	WebservConfLevel	level = getLowestValidLevelOfDirective(tokens.front());
-		// 	initConfIfEmptyAtLevel(c, level);
-		// 	// parseDirective(parser, level);
-		// }
-	}
+	mergeFromHttpConf<HttpIndexConf>(parser);
+	print(parser.getConfCtx());
 	(void)location;
+}
+
+void	WebservIndexMerger::print(const ConfCtx& ctx) {
+	if (getHttpConfPtr(ctx) != nullptr)
+		printHttpConf(*dynamic_cast<const HttpIndexConf*>(getHttpConfPtr(ctx)));
+	if (getSrvConfPtr(ctx) != nullptr)
+		printSrvConf(*dynamic_cast<const SrvIndexConf*>(getSrvConfPtr(ctx)));
+	if (getLocConfPtr(ctx) != nullptr)
+		printLocConf(*dynamic_cast<const LocIndexConf*>(getLocConfPtr(ctx)));
+}
+
+void	WebservIndexMerger::printHttpConf(const HttpIndexConf& httpConf) {
+	std::cout << "----------HttpIndexConf----------" << std::endl;
+	for (const auto& token : httpConf.lowerLevelDirectives)
+		std::cout << token << " ";
+	std::cout << std::endl;
+}
+
+void	WebservIndexMerger::printSrvConf(const SrvIndexConf& srvConf) {
+	std::cout << "----------SrvIndexConf----------" << std::endl;
+	(void)srvConf;
+}
+
+void	WebservIndexMerger::printLocConf(const LocIndexConf& locConf) {
+	std::cout << "----------LocIndexConf----------" << std::endl;
+	std::cout << "indexFiles: ";
+	for (const auto& file : locConf.indexFiles)
+		std::cout << file << " ";
+	std::cout << std::endl;
+	std::cout << "autoindex: "
+		<< (locConf.autoindex.has_value() ? (locConf.autoindex.value() ? "true" : "false") : "nullopt")
+		<< std::endl;
 }

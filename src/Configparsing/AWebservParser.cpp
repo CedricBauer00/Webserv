@@ -30,14 +30,23 @@ WebservConfLevel	AWebservParser::getLowestValidLevelOfDirective(
 }
 
 HttpConf*	AWebservParser::getHttpConfPtr(const ConfCtx& confCtx) {
+    if (confCtx.httpConfs == nullptr
+		|| confCtx.httpConfs->size() <= static_cast<size_t>(_ctxIndex))
+		return nullptr;
 	return (*confCtx.httpConfs)[_ctxIndex].get();
 }
 
 SrvConf*	AWebservParser::getSrvConfPtr(const ConfCtx& confCtx) {
+    if (confCtx.srvConfs == nullptr
+		|| confCtx.srvConfs->size() <= static_cast<size_t>(_ctxIndex))
+		return nullptr;
 	return (*confCtx.srvConfs)[_ctxIndex].get();
 }
 
 LocConf*	AWebservParser::getLocConfPtr(const ConfCtx& confCtx) {
+    if (confCtx.locConfs == nullptr
+		|| confCtx.locConfs->size() <= static_cast<size_t>(_ctxIndex))
+		return nullptr;
 	return (*confCtx.locConfs)[_ctxIndex].get();
 }
 

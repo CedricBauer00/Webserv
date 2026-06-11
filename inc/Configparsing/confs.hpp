@@ -31,6 +31,22 @@ struct SrvCoreConf : SrvConf {
 	std::optional<bool>				ignore_invalid_headers,\
 	merge_slashes, underscore_is_valid;
 	unsigned int					flags{0};
+
+	SrvCoreConf() = default;
+	SrvCoreConf(std::unordered_set<std::string> _serverNames,
+		std::optional<unsigned long> _numReqExpected,
+		std::optional<WebservMsec> _clientHeaderTimeout,
+		std::optional<bool> _ignore_invalid_headers,
+		std::optional<bool> _merge_slashes,
+		std::optional<bool> _underscore_is_valid)
+		: 
+		serverNames(std::move(_serverNames)),
+		numReqExpected(_numReqExpected),
+		clientHeaderTimeout(_clientHeaderTimeout),
+		ignore_invalid_headers(_ignore_invalid_headers),
+		merge_slashes(_merge_slashes),
+		underscore_is_valid(_underscore_is_valid)
+	{}
 };
 
 struct LocCoreConf : LocConf {
@@ -43,7 +59,7 @@ struct LocCoreConf : LocConf {
 	// WebservHandler			handler; // handler for this location
 	std::string						root; // root directory for this location
 	std::optional<size_t>			alias; // length of the location prefix to be replaced by root when serving files
-	std::string						postAction; // URI to redirect POST requests to
+	std::string						postRedirect; // URI to redirect POST requests to
 
 	std::optional<unsigned long>	clientMaxBodySize; // maximum allowed size of client request body in bytes
 	std::optional<unsigned long>	clientBodyBufferSize; // size of buffer used for reading client request body in bytes
@@ -56,6 +72,31 @@ struct LocCoreConf : LocConf {
 	// WebservErrorLog			errorLog;
 
 	std::optional<bool>				chunkedTransferEncoding; // whether to use chunked transfer encoding for responses with unknown content length
+
+	LocCoreConf() = default;
+	LocCoreConf(std::optional<unsigned int> _allowedMethods,
+		std::string _root,
+		std::optional<size_t> _alias,
+		std::string _postRedirect,
+		std::optional<unsigned long> _clientMaxBodySize,
+		std::optional<unsigned long> _clientBodyBufferSize,
+		std::optional<WebservMsec> _clientBodyTimeout,
+		std::optional<WebservMsec> _sendTimeout,
+		std::optional<bool> _absoluteRedirect,
+		std::optional<bool> _logNotFound,
+		std::optional<bool> _chunkedTransferEncoding)
+		: allowedMethods(_allowedMethods),
+		root(std::move(_root)),
+		alias(_alias),
+		postRedirect(std::move(_postRedirect)),
+		clientMaxBodySize(_clientMaxBodySize),
+		clientBodyBufferSize(_clientBodyBufferSize),
+		clientBodyTimeout(_clientBodyTimeout),
+		sendTimeout(_sendTimeout),
+		absoluteRedirect(_absoluteRedirect),
+		logNotFound(_logNotFound),
+		chunkedTransferEncoding(_chunkedTransferEncoding)
+	{}
 };
 
 struct	HttpIndexConf : HttpConf {
@@ -68,4 +109,10 @@ struct	SrvIndexConf : SrvConf {
 struct LocIndexConf : LocConf {
 	Tokens				indexFiles; // list of index files to look for when a directory is requested
 	std::optional<bool>	autoindex; // whether to generate directory listing if no index file is found
+
+	LocIndexConf() = default;
+	LocIndexConf(Tokens _indexFiles, bool _autoindex) :
+		indexFiles(std::move(_indexFiles)),
+		autoindex(_autoindex)
+	{}
 };

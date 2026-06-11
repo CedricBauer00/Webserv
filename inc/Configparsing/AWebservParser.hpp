@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <functional>
 #include <optional>
+#include <iostream>
 #include "IWebservModule.hpp"
 
 class AWebservParser : virtual public IWebservModule {
@@ -30,7 +31,7 @@ class AWebservParser : virtual public IWebservModule {
 			const ConfCtx& confCtx, WebservConfLevel level);
 
 		template<typename T>
-		void	_assignIfHasNoValue(std::optional<T> var, T val);
+		void	_assignIfHasNoValue(std::optional<T>& var, T val);
 
 		bool	_isDelimiter(const std::string& tok);
 		bool	_parseBooleanValue(const std::string& tok);
@@ -94,6 +95,6 @@ void AWebservParser::_initConfIfEmptyAtLevel(
 };
 
 template<typename T>
-void	AWebservParser::_assignIfHasNoValue(std::optional<T> var, T val) {
-	if (!var.has_value()) var = val; 
+void	AWebservParser::_assignIfHasNoValue(std::optional<T>& var, T val) {
+	if (!var.has_value()) var = val;
 };

@@ -1,13 +1,20 @@
 #pragma once
 
-#include "modules.hpp"
-#include "IWebservModule.hpp"
-#include "ConfigParser.hpp"
+#include "AWebservMerger.hpp"
 
-class WebservCoreMerger : virtual public IWebservModule {
+class WebservCoreMerger :
+public AWebservMerger,
+public HttpCoreConf,
+public SrvCoreConf,
+public LocCoreConf {
 	public:
 		WebservCoreMerger();
 		virtual ~WebservCoreMerger();
+
 		void    mergeConfs(ConfigParser& parser,
 			std::unique_ptr<LocNode>& location) override;
+        void    print(const ConfCtx& ctx);
+        void    printHttpConf(const HttpCoreConf& httpConf);
+        void    printSrvConf(const SrvCoreConf& srvConf);
+        void    printLocConf(const LocCoreConf& locConf);
 };
