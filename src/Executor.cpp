@@ -55,7 +55,7 @@ void	Executor::process(uint32_t events) {
 			auto server = _selectServer(_parser.getHostName()); // select server based on Host name
 			if (!server->srvConfs.empty()) {
 				for (const auto& item :
-					dynamic_cast<WebservCoreParser::SrvCoreConf*>(
+					dynamic_cast<SrvCoreConf*>(
 						server->srvConfs[0].get())->serverNames) {
 					std::cout << item << " ";
 				}
@@ -70,7 +70,7 @@ void	Executor::process(uint32_t events) {
 	
 			if (!loc->locConfs.empty()) {
 				const auto* locConf =\
-				dynamic_cast<WebservCoreParser::LocCoreConf*>(loc->locConfs[0].get());
+				dynamic_cast<LocCoreConf*>(loc->locConfs[0].get());
 				if (!(_parser.getReqMethod() & locConf->allowedMethods.value())) {
 					std::cerr << "Requested method not allowed" << "\n";
 					throw MethodNotAllowed();

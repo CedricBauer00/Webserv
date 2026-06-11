@@ -8,4 +8,7 @@ class WebservCoreModule : public WebservCoreParser, public WebservCoreMerger {
         WebservCoreModule() = delete;
 		WebservCoreModule(int& ctxIndex);
         virtual ~WebservCoreModule() = default;
+
+        void	initConfIfEmptyAtLevel(const ConfCtx& confCtx,
+			WebservConfLevel level) override;
 };

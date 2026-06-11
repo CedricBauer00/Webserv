@@ -8,5 +8,8 @@ class WebservIndexModule : public WebservIndexParser, public WebservIndexMerger 
 		WebservIndexModule() = delete;
 		WebservIndexModule(int& ctxIndex);
 		virtual ~WebservIndexModule() = default;
+
+		void	initConfIfEmptyAtLevel(const ConfCtx& confCtx,
+			WebservConfLevel level) override;
 };
 

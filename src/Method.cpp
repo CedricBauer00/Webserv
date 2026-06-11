@@ -12,7 +12,7 @@ std::string    Method::joinRootAndPath(
     // std::string root = getRootPath();
     if (!location.locConfs.empty()) {
         const auto* locConf =\
-        dynamic_cast<WebservCoreParser::LocCoreConf*>(location.locConfs[0].get());
+        dynamic_cast<LocCoreConf*>(location.locConfs[0].get());
         _root = locConf->root.empty() ? getRootPath() : locConf->root;
     }
     else _root = getRootPath();
@@ -170,7 +170,7 @@ void    Method::getMethod( std::string newPath, Response &res, const IWebservMod
     
         if (2 <= location.locConfs.size()) {
             std::cout << location.locConfs.size() << std::endl;
-            for ( auto x : dynamic_cast<WebservIndexParser::LocIndexConf*>(location.locConfs[1].get())->indexFiles) // replace stack with all files in directory - indexes from location 
+            for ( auto x : dynamic_cast<LocIndexConf*>(location.locConfs[1].get())->indexFiles) // replace stack with all files in directory - indexes from location 
             {
                 std::string joinedPath = newPath + x;
                 
@@ -201,7 +201,7 @@ void    Method::getMethod( std::string newPath, Response &res, const IWebservMod
                 }
             }
     
-            if (dynamic_cast<WebservIndexParser::LocIndexConf*>(location.locConfs[1].get())->autoindex)
+            if (dynamic_cast<LocIndexConf*>(location.locConfs[1].get())->autoindex)
             {
                 std::cout << "autoindex" << std::endl;
                 createAutoIndex( newPath, res ); // not implemented yet

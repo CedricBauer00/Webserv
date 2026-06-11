@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <stdexcept>
 #include <functional>
+#include <optional>
 #include "IWebservModule.hpp"
 
 class AWebservParser : virtual public IWebservModule {
@@ -28,11 +29,13 @@ class AWebservParser : virtual public IWebservModule {
 		void	_initConfIfEmptyAtLevel(
 			const ConfCtx& confCtx, WebservConfLevel level);
 
+		template<typename T>
+		void	_assignIfHasNoValue(std::optional<T> var, T val);
+
 		bool	_isDelimiter(const std::string& tok);
 		bool	_parseBooleanValue(const std::string& tok);
 		void	_addLowerLevelDirective(const std::string& directive,
-			std::vector<std::string> vals,
-            std::vector<std::vector<std::string>>& arr);
+			Tokens vals, Tokens& arr);
 		virtual const std::unordered_map<
 		std::string, std::pair<WebservConfLevel, parseFunc>>&	_getParseMap() = 0;
 
@@ -41,12 +44,15 @@ class AWebservParser : virtual public IWebservModule {
         AWebservParser(int& ctxIndex);
         virtual ~AWebservParser() = default;
 
-        int			isDirectiveValid(const std::string& directive,
+        bool			    isDirectiveValid(const std::string& directive,
 			WebservConfLevel level) override;
-        HttpConf*	getHttpConfPtr(const ConfCtx& confCtx) override;
-		SrvConf*	getSrvConfPtr(const ConfCtx& confCtx) override;
-		LocConf*	getLocConfPtr(const ConfCtx& confCtx) override;
-
+        WebservConfLevel    getLowestValidLevelOfDirective(
+	        const std::string& directive) override;
+        HttpConf*		    getHttpConfPtr(const ConfCtx& confCtx) override;
+		SrvConf*		    getSrvConfPtr(const ConfCtx& confCtx) override;
+		LocConf*		    getLocConfPtr(const ConfCtx& confCtx) override;
+        void	    	    parseDirective(ConfigParser& parser,
+			WebservConfLevel level) override;
 };
 
 template<typename T>
@@ -85,4 +91,9 @@ void AWebservParser::_initConfIfEmptyAtLevel(
 			throw std::runtime_error("Invalid configuration level");
 			break;
 	};
+};
+
+template<typename T>
+void	AWebservParser::_assignIfHasNoValue(std::optional<T> var, T val) {
+	if (!var.has_value()) var = val; 
 };

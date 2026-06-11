@@ -5,7 +5,7 @@
 #include <deque>
 #include <unordered_map>
 #include <memory>
-#include "modules.hpp"
+#include "confs.hpp"
 #include "IWebservModule.hpp"
 
 class ConfigParser {
@@ -30,6 +30,7 @@ class ConfigParser {
 			const IWebservModule::Srv&);
 		void							eraseMappingAddrToServer(
 			const std::string& addr, const IWebservModule::Srv& node);
+		void							setTokens(const Tokens& tokens);
 
 	private:
 		const std::unordered_map<WebservConfLevel, std::string> _levelNames {
@@ -50,7 +51,7 @@ class ConfigParser {
 		VecOfPtrs<IWebservModule>			_modules;
 		IWebservModule::ConfCtx				_confCtx;
 		IWebservModule::LocNode*			_curLocNode{nullptr};
-        VecOfPtrs<IWebservModule::HttpConf>	_httpConfs;
+        VecOfPtrs<HttpConf>	                _httpConfs;
 		VecOfPtrs<IWebservModule::Srv>		_servers;
         AddrToServersMap					_addrToServersMap;
 

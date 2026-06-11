@@ -65,13 +65,12 @@ AEventHandler::_selectServerFactory()
 			for (const IWebservModule::Srv* srv : servers) {
 				if (srv->srvConfs.empty())
 					continue;
-				const auto* srvConf =\
-				dynamic_cast<WebservCoreParser::SrvCoreConf*>(
-                    srv->srvConfs[0].get());
-				const auto& names = srvConf->serverNames;
+				const auto* srvCoreConf =\
+				dynamic_cast<SrvCoreConf*>(srv->srvConfs[0].get());
+				const auto& names = srvCoreConf->serverNames;
 				if (names.find(hostname) != names.end())
 					return srv;
-				if (srvConf->flags & DEFAULT_SERVER)
+				if (srvCoreConf->flags & DEFAULT_SERVER)
 					defaultSrv = srv;
 			}
 			return defaultSrv != nullptr ? defaultSrv : servers[0];

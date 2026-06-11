@@ -93,6 +93,7 @@ void	ConfigParser::_parseBlock(
 void    ConfigParser::_parseModuleDirective(WebservConfLevel level) {
 	for (const auto& module: _modules) {
 		if (module->isDirectiveValid(_tokens.front(), level)) {
+            module->initConfIfEmptyAtLevel(getConfCtx(), level);
 			module->parseDirective(*this, level);
 			return;
 		}
@@ -139,6 +140,7 @@ void	ConfigParser::parseConfig(WebservConfLevel level) {
 	if (level != WebservConfLevel::MAIN)
 		throw std::runtime_error("Expected '}' at end of "
 			+ getLevelName(level) + " block");
+    mergeConfs();
 }
 
 void	ConfigParser::mergeConfs() {
@@ -148,9 +150,8 @@ void	ConfigParser::mergeConfs() {
 	for (auto& srv : _servers) {
 		_confCtx.srvConfs = &srv->srvConfs;
 		_confCtx.locConfs = &srv->location->locConfs;
-		for (const auto& module: _modules) {
+		for (const auto& module: _modules)
 			module->mergeConfs(*this, srv->location);
-		}
 	}
 }
 
@@ -205,4 +206,8 @@ void	ConfigParser::eraseMappingAddrToServer(const std::string& addr,
 		if (_addrToServersMap[addr].empty())
 			_addrToServersMap.erase(addr);
 	}
+}
+
+void	ConfigParser::setTokens(const Tokens& tokens) {
+	_tokens = tokens;
 }

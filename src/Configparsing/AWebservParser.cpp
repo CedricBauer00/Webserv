@@ -1,11 +1,12 @@
 #include "../../inc/Configparsing/AWebservParser.hpp"
+#include "../../inc/Configparsing/ConfigParser.hpp"
 
 AWebservParser::AWebservParser(
     int& ctxIndex) :
 	_ctxIndex(ctxIndex++) {
 };
 
-int AWebservParser::isDirectiveValid(
+bool AWebservParser::isDirectiveValid(
 	const std::string& directive,
 	WebservConfLevel level) {
 	auto&	parseMap =  _getParseMap();
@@ -14,17 +15,50 @@ int AWebservParser::isDirectiveValid(
 		&& (it->second.first & level) != static_cast<WebservConfLevel>(0));
 };
 
-IWebservModule::HttpConf*	AWebservParser::getHttpConfPtr(const ConfCtx& confCtx) {
+WebservConfLevel	AWebservParser::getLowestValidLevelOfDirective(
+	const std::string& directive) {
+	WebservConfLevel	lowVallevel = WebservConfLevel::HTTP;
+	if (_getParseMap().find(directive) == _getParseMap().end())
+		throw std::runtime_error(directive + "[Directive] unknown");
+	WebservConfLevel	valLevels = _getParseMap().find(directive)->second.first;
+	while (((lowVallevel << 1) & valLevels) != static_cast<WebservConfLevel>(0)) {
+		lowVallevel = lowVallevel << 1;
+        if ((lowVallevel & WebservConfLevel::LOCATION)
+            != static_cast<WebservConfLevel>(0)) break;
+    }
+	return lowVallevel;
+}
+
+HttpConf*	AWebservParser::getHttpConfPtr(const ConfCtx& confCtx) {
 	return (*confCtx.httpConfs)[_ctxIndex].get();
 }
 
-IWebservModule::SrvConf*	AWebservParser::getSrvConfPtr(const ConfCtx& confCtx) {
+SrvConf*	AWebservParser::getSrvConfPtr(const ConfCtx& confCtx) {
 	return (*confCtx.srvConfs)[_ctxIndex].get();
 }
 
-IWebservModule::LocConf*	AWebservParser::getLocConfPtr(const ConfCtx& confCtx) {
+LocConf*	AWebservParser::getLocConfPtr(const ConfCtx& confCtx) {
 	return (*confCtx.locConfs)[_ctxIndex].get();
 }
+
+void AWebservParser::parseDirective(
+	ConfigParser& parser,
+	WebservConfLevel level) {
+    const ConfCtx&	confCtx = parser.getConfCtx();
+    Tokens&			tokens = parser.getTokens();
+	std::string		directive = tokens.front();
+
+	tokens.pop_front();
+	if (tokens.empty() || _isDelimiter(tokens.front()))
+		throw std::runtime_error(
+			"Invalid definition for directive '" + directive + "'");
+	_getParseMap().at(directive).second(
+        directive, tokens, confCtx, level, parser);
+	if (tokens.empty() || tokens.front() != ";")
+		throw std::runtime_error(
+			"Invalid definition for directive '" + directive + "'");
+	tokens.pop_front();
+};
 
 bool	AWebservParser::_isDelimiter(const std::string& tok) {
 	return (tok == ";" || tok == "{" || tok == "}");
@@ -40,10 +74,9 @@ bool	AWebservParser::_parseBooleanValue(const std::string& tok) {
 			"Only on/off, true/false, 1/0 are accepted as boolean values");
 };
 
-void	AWebservParser::_addLowerLevelDirective(
-	const std::string& directive,
-    std::vector<std::string> vals,
-    std::vector<std::vector<std::string>>& arr) {
-    vals.insert(vals.begin(), directive);
-    arr.push_back(vals);
+void	AWebservParser::_addLowerLevelDirective(const std::string& directive,
+    Tokens vals, Tokens& arr) {
+	arr.push_back(directive);
+	arr.insert(arr.end(), vals.begin(), vals.end());
+    arr.push_back(";");
 }

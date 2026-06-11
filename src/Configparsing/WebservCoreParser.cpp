@@ -14,26 +14,6 @@ std::pair<WebservConfLevel, AWebservParser::parseFunc>>&	WebservCoreParser::_get
 	return _parseMap;
 };
 
-void WebservCoreParser::parseDirective(
-	ConfigParser& parser,
-	WebservConfLevel level) {
-    const ConfCtx&	confCtx = parser.getConfCtx();
-    Tokens&			tokens = parser.getTokens();
-	std::string		directive = tokens.front();
-
-	tokens.pop_front();
-	if (tokens.empty() || _isDelimiter(tokens.front()))
-		throw std::runtime_error(
-			"Invalid definition for directive '" + directive + "'");
-    _initConfIfEmptyAtLevel<HttpCoreConf, SrvCoreConf, LocCoreConf>(
-		confCtx, level);
-	_parseMap.at(directive).second(directive, tokens, confCtx, level, parser);
-	if (tokens.empty() || tokens.front() != ";")
-		throw std::runtime_error(
-			"Invalid definition for directive '" + directive + "'");
-	tokens.pop_front();
-};
-
 void	WebservCoreParser::_parseListen(Tokens& t, const ConfCtx& c,
 	ConfigParser& p) {
 	std::string	ip;
@@ -148,14 +128,12 @@ void WebservCoreParser::_parseUnderscoreInHeaders(const std::string& d,
 
 void WebservCoreParser::_parseRoot(const std::string& d,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
-	if (!dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->alias.has_value()) {
-		if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
-			_addLowerLevelDirective(d,
-				{t.front()},
-				dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
-		else
-			dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->root = t.front();
-	}
+    if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
+        _addLowerLevelDirective(d,
+            {t.front()},
+            dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
+    else if (!dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->alias.has_value())
+		dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->root = t.front();
 	t.pop_front();
 }
 
@@ -165,7 +143,7 @@ void WebservCoreParser::_parseAllow(const std::string& d,
         {"GET", 1u<<0}, {"POST", 1u<<1}, {"PUT", 1u<<2},
         {"DELETE", 1u<<3}, {"HEAD", 1u<<4}, {"OPTIONS", 1u<<5}};
     unsigned int mask = 0;
-    std::vector<std::string> values;
+    Tokens values;
 
 	while (1) {
         if (m.count(t.front()))
