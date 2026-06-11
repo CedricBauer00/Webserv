@@ -27,10 +27,10 @@ class Method
     public:
         Method();
         ~Method();
-        std::string    joinRootAndPath(std::string uri, whichMethod whichMethod, const IWebservModule::LocNode& location);
-        void    getMethod( std::string newPath, Response &res, const IWebservModule::LocNode& location );
-        void    postMethod( std::string newPath, Response &res, std::string contentBody, const IWebservModule::LocNode& location ); // status codes 200, 402, 404
-        void    deleteMethod( std::string newPath, Response &res, const IWebservModule::LocNode& location ); // status codes 200, 402, 404
+        std::string    joinRootAndPath(std::string uri, whichMethod whichMethod, const LocNode& location);
+        void    getMethod( std::string newPath, Response &res, const LocNode& location );
+        void    postMethod( std::string newPath, Response &res, std::string contentBody, const LocNode& location ); // status codes 200, 402, 404
+        void    deleteMethod( std::string newPath, Response &res, const LocNode& location ); // status codes 200, 402, 404
         void    runCgi( std::string &content, bool isPost );
         std::string getCgiPath();
         std::string getScript();

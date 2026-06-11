@@ -35,8 +35,42 @@ constexpr WebservConfLevel operator<<(WebservConfLevel a, int shift) {
     return static_cast<WebservConfLevel>(static_cast<uint8_t>(a) << shift);
 }
 
+struct HttpConf {
+	virtual ~HttpConf() = default;
+};
+
+struct SrvConf {
+	virtual ~SrvConf() = default;
+};
+
+struct LocConf {
+	virtual ~LocConf() = default;
+};
+
 template<typename T>
 using VecOfPtrs = std::vector<std::unique_ptr<T>>;
+
+struct  LocNode {
+	LocNode*			parent{nullptr};
+	std::string			name;
+	int					matchType{3}; // 0: exact, 1: prefix, 2: regex, 3:normal prefix
+	VecOfPtrs<LocConf>	locConfs;
+	VecOfPtrs<LocNode>	locations;
+};
+
+struct  Srv {
+	VecOfPtrs<SrvConf>			srvConfs;
+	std::unique_ptr<LocNode>	location;
+	Srv() : location(std::make_unique<LocNode>()) {
+	}
+};
+
+struct	ConfCtx {
+	VecOfPtrs<HttpConf>*	httpConfs{nullptr};
+	VecOfPtrs<SrvConf>*		srvConfs{nullptr};
+	VecOfPtrs<LocConf>*		locConfs{nullptr};
+};
+
 
 using Tokens = std::deque<std::string>;
 

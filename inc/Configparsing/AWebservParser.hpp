@@ -18,8 +18,6 @@ class AWebservParser : virtual public IWebservModule {
 
     protected:
         const int	_ctxIndex;
-        // const std::unordered_map<std::string, WebservConfLevel>
-		// 	_directiveValLevelMap;
 
         template<typename T, typename Factory>
         void	_ensureConfExists(VecOfPtrs<T>* confs, Factory makeConf);

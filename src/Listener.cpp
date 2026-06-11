@@ -4,7 +4,7 @@
 #include "../inc/HeadReader.hpp"
 
 Listener::Listener(const std::string& addr, 
-	const std::vector<const IWebservModule::Srv*>& servers,
+	const std::vector<const Srv*>& servers,
 	const Epoller& epoller)
 	: AEventHandler(_createListenFd(addr), servers, epoller, EPOLLIN | EPOLLET),
 	_addr(addr) {

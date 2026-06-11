@@ -12,7 +12,7 @@ class ConfigParser {
     public:
 		using AddrToServersMap =\
 			std::unordered_map<std::string,
-			std::vector<const IWebservModule::Srv*>>;
+			std::vector<const Srv*>>;
 
         ConfigParser() = delete;
         ConfigParser(char* filename);
@@ -21,15 +21,15 @@ class ConfigParser {
 			= WebservConfLevel::MAIN);
 		void							mergeConfs();
 		Tokens&							getTokens();
-		const IWebservModule::LocNode&	getLocNode() const;
-		const IWebservModule::ConfCtx&	getConfCtx() const;
+		const LocNode&	getLocNode() const;
+		const ConfCtx&	getConfCtx() const;
 		const std::string&				getLevelName(WebservConfLevel level) const;
-		const IWebservModule::Srv&		getLastSrv() const;
+		const Srv&		getLastSrv() const;
 		const AddrToServersMap&			getAddrToServersMap() const;
 		void							mapAddrToServer(const std::string& addr,
-			const IWebservModule::Srv&);
+			const Srv&);
 		void							eraseMappingAddrToServer(
-			const std::string& addr, const IWebservModule::Srv& node);
+			const std::string& addr, const Srv& node);
 		void							setTokens(const Tokens& tokens);
 
 	private:
@@ -46,14 +46,14 @@ class ConfigParser {
 				{"location", WebservConfLevel::SERVER
 					| WebservConfLevel::LOCATION}
         };
-        char*								_configFilename;
-        Tokens		                		_tokens;
-		VecOfPtrs<IWebservModule>			_modules;
-		IWebservModule::ConfCtx				_confCtx;
-		IWebservModule::LocNode*			_curLocNode{nullptr};
-        VecOfPtrs<HttpConf>	                _httpConfs;
-		VecOfPtrs<IWebservModule::Srv>		_servers;
-        AddrToServersMap					_addrToServersMap;
+        char*						_configFilename;
+        Tokens		                _tokens;
+		VecOfPtrs<IWebservModule>	_modules;
+		ConfCtx						_confCtx;
+		LocNode*					_curLocNode{nullptr};
+        VecOfPtrs<HttpConf>			_httpConfs;
+		VecOfPtrs<Srv>				_servers;
+        AddrToServersMap			_addrToServersMap;
 
         Tokens  _tokenize();
 		void    _parseModuleDirective(WebservConfLevel level);

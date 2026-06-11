@@ -6,7 +6,7 @@
 
 Executor::Executor(const AEventHandler& handler,
 	HttpParser&& parser,
-	std::function<const IWebservModule::Srv*(const std::string&)>&& selectServer)
+	std::function<const Srv*(const std::string&)>&& selectServer)
     : AEventHandler(_dupFd(handler.getFd()),
         handler.getServers(),
         handler.getEpoller(),
@@ -20,13 +20,13 @@ Executor::~Executor() {
 	std::cout << "FD " << _fd << ": [Executor] destroyed" << std::endl;
 }
 
-const IWebservModule::LocNode*	Executor::selectLocation(const std::string& path,
-	const IWebservModule::LocNode& root) {
-	const IWebservModule::LocNode* bestMatch = nullptr;
-	std::deque<const IWebservModule::LocNode*> queue;
+const LocNode*	Executor::selectLocation(const std::string& path,
+	const LocNode& root) {
+	const LocNode* bestMatch = nullptr;
+	std::deque<const LocNode*> queue;
 	queue.push_back(&root);
 	while (!queue.empty()) {
-		const IWebservModule::LocNode* node = queue.front();
+		const LocNode* node = queue.front();
 		queue.pop_front();
 		if (node->matchType == 0 && node->name == path)
 			return node;
@@ -61,7 +61,7 @@ void	Executor::process(uint32_t events) {
 				}
 				std::cout << '\n';
 			}
-			const IWebservModule::LocNode* loc = selectLocation(
+			const LocNode* loc = selectLocation(
 				_parser.getPath(), *server->location.get()); // select location based on URI
 			std::cout << "Selected location: '" << loc->name 
 			<< "' with match type " << loc->matchType << "\n";

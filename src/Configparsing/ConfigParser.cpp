@@ -66,7 +66,7 @@ void	ConfigParser::_parseBlock(
 		_confCtx.httpConfs = &_httpConfs;
 	}
 	else if (name == "server") {
-		_servers.emplace_back(std::make_unique<IWebservModule::Srv>());
+		_servers.emplace_back(std::make_unique<Srv>());
 		mapAddrToServer(std::string(IP) + ":" + PORT, *_servers.back().get());
 		_confCtx.srvConfs = &_servers.back().get()->srvConfs;
 		_curLocNode = _servers.back().get()->location.get();
@@ -74,7 +74,7 @@ void	ConfigParser::_parseBlock(
 	}
 	else if (name == "location") {
 		_curLocNode->locations.emplace_back(
-			std::make_unique<IWebservModule::LocNode>());
+			std::make_unique<LocNode>());
 		_curLocNode->locations.back().get()->parent = _curLocNode;
 		_curLocNode = _curLocNode->locations.back().get();
 		_confCtx.locConfs = &_curLocNode->locConfs;
@@ -159,11 +159,11 @@ Tokens&	ConfigParser::getTokens() {
 	return _tokens;
 }
 
-const IWebservModule::LocNode&	ConfigParser::getLocNode() const {
+const LocNode&	ConfigParser::getLocNode() const {
 	return *_curLocNode;
 }
 
-const IWebservModule::ConfCtx&	ConfigParser::getConfCtx() const {
+const ConfCtx&	ConfigParser::getConfCtx() const {
 	return _confCtx;
 }
 
@@ -175,7 +175,7 @@ const std::string&	ConfigParser::getLevelName(WebservConfLevel level) const {
 		throw std::runtime_error("Unknown configuration level");
 }
 
-const IWebservModule::Srv&	ConfigParser::getLastSrv() const {
+const Srv&	ConfigParser::getLastSrv() const {
     if (_servers.empty())
         throw std::runtime_error(
             "Can't fetch the last server node as none available yet");
@@ -188,7 +188,7 @@ const ConfigParser::AddrToServersMap&	ConfigParser::getAddrToServersMap() const
 }
 
 void	ConfigParser::mapAddrToServer(const std::string& addr,
-	const IWebservModule::Srv& srv) {
+	const Srv& srv) {
 	if (!_addrToServersMap.count(addr)
 		|| (std::find(_addrToServersMap[addr].begin(),
 			_addrToServersMap[addr].end(),
@@ -197,7 +197,7 @@ void	ConfigParser::mapAddrToServer(const std::string& addr,
 }
 
 void	ConfigParser::eraseMappingAddrToServer(const std::string& addr,
-	const IWebservModule::Srv& srv) {
+	const Srv& srv) {
 	if (_addrToServersMap.count(addr)) {
 		auto it = std::find(_addrToServersMap[addr].begin(),
 		_addrToServersMap[addr].end(), &srv);

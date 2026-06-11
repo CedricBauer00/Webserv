@@ -4,7 +4,7 @@
 
 AEventHandler::AEventHandler(
 	const int fd,
-	const std::vector<const IWebservModule::Srv*>& servers,
+	const std::vector<const Srv*>& servers,
 	const Epoller& epoller,
 	const uint32_t events)
     : _fd(fd), _servers(servers), _epoller(epoller) {
@@ -50,7 +50,7 @@ int	AEventHandler::_dupFd(int fd) {
 	return dupFd;
 }
 
-std::function<const IWebservModule::Srv*(const std::string&)>
+std::function<const Srv*(const std::string&)>
 AEventHandler::_selectServerFactory()
 {
 	if (_servers.empty())
@@ -61,8 +61,8 @@ AEventHandler::_selectServerFactory()
 		};
 	else
 		return [&servers = _servers](const std::string& hostname) {
-			const IWebservModule::Srv* defaultSrv = nullptr;
-			for (const IWebservModule::Srv* srv : servers) {
+			const Srv* defaultSrv = nullptr;
+			for (const Srv* srv : servers) {
 				if (srv->srvConfs.empty())
 					continue;
 				const auto* srvCoreConf =\
@@ -77,7 +77,7 @@ AEventHandler::_selectServerFactory()
 		};
 }
 
-const std::vector<const IWebservModule::Srv*>&	AEventHandler::getServers(
+const std::vector<const Srv*>&	AEventHandler::getServers(
 ) const {
 	return _servers;
 }

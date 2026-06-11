@@ -132,7 +132,8 @@ void WebservCoreParser::_parseRoot(const std::string& d,
         _addLowerLevelDirective(d,
             {t.front()},
             dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
-    else if (!dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->alias.has_value())
+    else if (!dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->alias.has_value()
+	&& dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->root.empty())
 		dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->root = t.front();
 	t.pop_front();
 }

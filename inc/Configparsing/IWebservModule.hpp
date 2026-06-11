@@ -7,27 +7,6 @@ class ConfigParser;
 
 class IWebservModule {
 	public:
-        struct  LocNode {
-            LocNode*			parent{nullptr};
-            std::string			name;
-            int					matchType{3}; // 0: exact, 1: prefix, 2: regex, 3:normal prefix
-            VecOfPtrs<LocConf>	locConfs;
-            VecOfPtrs<LocNode>	locations;
-        };
-
-        struct  Srv {
-            VecOfPtrs<SrvConf>			srvConfs;
-            std::unique_ptr<LocNode>	location;
-            Srv() : location(std::make_unique<IWebservModule::LocNode>()) {
-			}
-        };
-
-        struct	ConfCtx {
-            VecOfPtrs<HttpConf>*	httpConfs{nullptr};
-            VecOfPtrs<SrvConf>*		srvConfs{nullptr};
-            VecOfPtrs<LocConf>*		locConfs{nullptr};
-        };
-
 		virtual ~IWebservModule() = default;
         virtual bool				isDirectiveValid(
 			const std::string& directive, WebservConfLevel level) = 0;

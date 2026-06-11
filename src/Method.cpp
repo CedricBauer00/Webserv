@@ -5,7 +5,7 @@ Method::Method() : _isCgiFile( false ) {}
 Method::~Method() {}
 
 std::string    Method::joinRootAndPath(
-    std::string newPath, whichMethod whichMethod, const IWebservModule::LocNode& location)
+    std::string newPath, whichMethod whichMethod, const LocNode& location)
 {
 
     // std::string mockLocation = "/images";
@@ -105,7 +105,7 @@ std::string    Method::normalizePath(std::string uri)
 }
 
 
-void    Method::getMethod( std::string newPath, Response &res, const IWebservModule::LocNode& location ) // status codes 200, 402, 404
+void    Method::getMethod( std::string newPath, Response &res, const LocNode& location ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
     std::error_code ec;
@@ -217,7 +217,7 @@ void    Method::getMethod( std::string newPath, Response &res, const IWebservMod
 // /servers/server1/uploads/data/index1.html
 
 // test: printf 'DELETE /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
-void    Method::deleteMethod( std::string newPath, Response &res, const IWebservModule::LocNode& location ) // status codes 200, 402, 404
+void    Method::deleteMethod( std::string newPath, Response &res, const LocNode& location ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
     (void)location;
@@ -262,7 +262,7 @@ void    Method::deleteMethod( std::string newPath, Response &res, const IWebserv
 }
 
 // test: printf 'POST /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
-void    Method::postMethod( std::string newPath, Response &res, std::string contentBody, const IWebservModule::LocNode& location ) // status codes 200, 402, 404
+void    Method::postMethod( std::string newPath, Response &res, std::string contentBody, const LocNode& location ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
     (void)location;

@@ -5,18 +5,6 @@
 #include <unordered_set>
 #include "modules.hpp"
 
-struct HttpConf {
-	virtual ~HttpConf() = default;
-};
-
-struct SrvConf {
-	virtual ~SrvConf() = default;
-};
-
-struct LocConf {
-	virtual ~LocConf() = default;
-};
-
 struct HttpCoreConf : HttpConf {
 	Tokens	lowerLevelDirectives; // directives that can be specified in http block and inherited by all servers and locations, e.g., error_log, client_max_body_size
 	// std::vector<std::pair<WebservAddr, t_webserv_phase_engine>> ph;

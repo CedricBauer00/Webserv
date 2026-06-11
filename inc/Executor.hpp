@@ -7,17 +7,17 @@
 class	Executor: public AEventHandler {
 	private:
 		HttpParser	_parser;
-		std::function<const IWebservModule::Srv*(const std::string&)> _selectServer;
+		std::function<const Srv*(const std::string&)> _selectServer;
 		Response	_res;
 
 	public:
 		Executor() = delete;
 		Executor(const AEventHandler& handler,
 			HttpParser&& parser,
-            std::function<const IWebservModule::Srv*(const std::string&)>&& selectServer);
+            std::function<const Srv*(const std::string&)>&& selectServer);
 		virtual ~Executor();
 
-		static const IWebservModule::LocNode*	selectLocation(const std::string& path,
-            const IWebservModule::LocNode& root);
+		static const LocNode*	selectLocation(const std::string& path,
+            const LocNode& root);
 		void	process(uint32_t events) override;
 };

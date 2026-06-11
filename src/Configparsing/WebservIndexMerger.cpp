@@ -43,8 +43,8 @@ void	WebservIndexMerger::printLocConf(const LocIndexConf& locConf) {
 	std::cout << "indexFiles: ";
 	for (const auto& file : locConf.indexFiles)
 		std::cout << file << " ";
-	std::cout << std::endl;
+	std::cout << " ; ";
 	std::cout << "autoindex: "
 		<< (locConf.autoindex.has_value() ? (locConf.autoindex.value() ? "true" : "false") : "nullopt")
-		<< std::endl;
+		<< " ; " << std::endl;
 }
