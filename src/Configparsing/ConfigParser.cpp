@@ -72,7 +72,7 @@ void	ConfigParser::_parseBlock(
 		_curLocNode = _servers.back().get()->location.get();
 		_confCtx.locConfs = &_curLocNode->locConfs;
 	}
-	else if (name == "location") {
+	else {
 		_curLocNode->locations.emplace_back(
 			std::make_unique<LocNode>());
 		_curLocNode->locations.back().get()->parent = _curLocNode;
@@ -93,7 +93,7 @@ void	ConfigParser::_parseBlock(
 void    ConfigParser::_parseModuleDirective(WebservConfLevel level) {
 	for (const auto& module: _modules) {
 		if (module->isDirectiveValid(_tokens.front(), level)) {
-            module->initConfIfEmptyAtLevel(getConfCtx(), level);
+            module->initConfIfEmptyAtLevel(getConfCtx(), level, _curLocNode);
 			module->parseDirective(*this, level);
 			return;
 		}
@@ -150,6 +150,7 @@ void	ConfigParser::mergeConfs() {
 	for (auto& srv : _servers) {
 		_confCtx.srvConfs = &srv->srvConfs;
 		_confCtx.locConfs = &srv->location->locConfs;
+		_curLocNode = srv->location.get();
 		for (const auto& module: _modules)
 			module->mergeConfs(*this, srv->location);
 	}

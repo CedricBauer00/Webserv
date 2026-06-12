@@ -10,6 +10,6 @@ class WebservIndexModule : public WebservIndexParser, public WebservIndexMerger 
 		virtual ~WebservIndexModule() = default;
 
 		void	initConfIfEmptyAtLevel(const ConfCtx& confCtx,
-			WebservConfLevel level) override;
+			WebservConfLevel level, const LocNode* locNodePtr) override;
 };
 

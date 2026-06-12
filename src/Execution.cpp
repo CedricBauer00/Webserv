@@ -275,4 +275,4 @@ void    Execution::execution(Response &res,
 // localhost/api/
 
 
-    //  printf 'GET /servers/server1/cgi/test.py/ HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nhOST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
+    //  printf 'GET /servers/server1/cgi/test.py/ HTTP/1.1\r\nhOST: example.com\r\n\r\n' | nc 127.0.0.2 3490

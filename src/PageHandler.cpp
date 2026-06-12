@@ -81,59 +81,59 @@ void    PageHandler::setErrorPage( Response &res )
 
 void    PageHandler::setRedirectPage( Response &res, std::string uri )
 {
-    std::string path = "pages/redirectPage.html";
+    // std::string path = "pages/redirectPage.html";
 
-    std::cout << _statusCode << " : " << _reasonPhrase << std::endl;
+    // std::cout << _statusCode << " : " << _reasonPhrase << std::endl;
 
-    std::ifstream       ifs( path );
-    std::ostringstream  oss;
-    std::string         buffer;    
+    // std::ifstream       ifs( path );
+    // std::ostringstream  oss;
+    // std::string         buffer;    
 
-    if ( !ifs.is_open() )
-    {
-        std::cerr << "couldnt open file" << std::endl; // not sure if we need error messages here...
-        return ;
-    }
+    // if ( !ifs.is_open() )
+    // {
+    //     std::cerr << "couldnt open file" << std::endl; // not sure if we need error messages here...
+    //     return ;
+    // }
 
-    oss << ifs.rdbuf();
+    // oss << ifs.rdbuf();
 
-    if ( ifs.bad() )
-    {
-        std::cerr << "Reading failed" << std::endl;
-        return ;
-    }
-    buffer = oss.str();
-    if ( buffer.empty() )
-    {
-        std::cerr << "Warning: File is empty" << std::endl;
-        return ; 
-    }
+    // if ( ifs.bad() )
+    // {
+    //     std::cerr << "Reading failed" << std::endl;
+    //     return ;
+    // }
+    // buffer = oss.str();
+    // if ( buffer.empty() )
+    // {
+    //     std::cerr << "Warning: File is empty" << std::endl;
+    //     return ; 
+    // }
     
-    while ( true )
-    {
-        size_t CodePos = buffer.find( "{{STATUS_CODE}}", 0 );
+    // while ( true )
+    // {
+    //     size_t CodePos = buffer.find( "{{STATUS_CODE}}", 0 );
         
-        if ( CodePos != std::string::npos )
-        {
-            std::string sCode = std::to_string( _statusCode );
-            buffer.replace( CodePos, 15, sCode );
-        }
+    //     if ( CodePos != std::string::npos )
+    //     {
+    //         std::string sCode = std::to_string( _statusCode );
+    //         buffer.replace( CodePos, 15, sCode );
+    //     }
         
-        size_t PhrasePos = buffer.find( "{{REASON_PHRASE}}", 0 );
+    //     size_t PhrasePos = buffer.find( "{{REASON_PHRASE}}", 0 );
 
-        if ( PhrasePos != std::string::npos )
-        {
-            buffer.replace( PhrasePos, 17, _reasonPhrase );
-        }
-        if ( CodePos == std::string::npos && PhrasePos == std::string::npos )
-            break ;
-    }
+    //     if ( PhrasePos != std::string::npos )
+    //     {
+    //         buffer.replace( PhrasePos, 17, _reasonPhrase );
+    //     }
+    //     if ( CodePos == std::string::npos && PhrasePos == std::string::npos )
+    //         break ;
+    // }
 
     res.setCodeAndPhrase( std::to_string( _statusCode), _reasonPhrase );
     res.setHeaders( "Location", uri );
-    res.setHeaders( "Content-Length", std::to_string( buffer.size() ) );
-    res.setHeaders( "Content-Type", getFileType( path ) );
-    res.setBody( buffer );
+    // res.setHeaders( "Content-Length", std::to_string( buffer.size() ) );
+    // res.setHeaders( "Content-Type", getFileType( path ) );
+    // res.setBody( buffer );
 }
 
 void    PageHandler::initErrorPages( const std::map<int, std::string>& configErroPages )

@@ -7,7 +7,7 @@ HttpCoreConf(),
 SrvCoreConf({}, 10000, WebservMsec{1000}, true, true, true, 0),
 LocCoreConf(11,
 	std::filesystem::current_path().string(),
-	0,
+	false,
 	{},
 	1000,
 	1000,
@@ -24,8 +24,8 @@ WebservCoreMerger::~WebservCoreMerger() {
 void	WebservCoreMerger::mergeConfs(ConfigParser& parser,
 	std::unique_ptr<LocNode>& location) {
 	inheritFromHttpConf<HttpCoreConf>(parser);
-	print(parser.getConfCtx());
 	assignDefaults(parser.getConfCtx(), *this, *this);
+	print(parser.getConfCtx());
 	(void)location;
 }
 
@@ -70,6 +70,7 @@ void	WebservCoreMerger::printSrvConf(const SrvCoreConf& srvConf) {
 
 void	WebservCoreMerger::printLocConf(const LocCoreConf& locConf) {
 	std::cout << "----------LocCoreConf----------" << std::endl;
+	std::cout << "nameLen: " << std::to_string(locConf.nameLen) << " ; ";
 	std::cout << "allowedMethods: "
 		<< (locConf.allowedMethods.has_value() ? std::to_string(locConf.allowedMethods.value()) : "nullopt")
 		<< " ; ";

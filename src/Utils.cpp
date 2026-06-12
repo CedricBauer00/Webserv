@@ -96,7 +96,9 @@ void createAutoIndex( std::string mockUri, Response &res )
     buffer += "<!DOCTYPE html>\n";
     buffer += "<html>\n";
     buffer += "<head>\n";
-    buffer += "<title>index of " + mockUri + "/<title>\n";
+    buffer += "<title>index of " + mockUri + "</title>\n";
+    buffer += "</head>\n";
+    buffer += "<body>\n";
     buffer += "<hr>\n";
     buffer += "<pre>\n";
 
@@ -104,19 +106,18 @@ void createAutoIndex( std::string mockUri, Response &res )
     {
         std::filesystem::path path = x.path();    
         if ( std::filesystem::is_regular_file( path ) )
-            buffer += "<a href=\"" + mockUri +  path.filename().string() + "\">" + path.filename().string() + "</a>\n";
+            buffer += "<a href=\"" +  path.filename().string() + "\">" + path.filename().string() + "</a>\n";
         else if ( std::filesystem::is_directory( path ) )
-            buffer += "<a href=\"" + mockUri +  path.filename().string() + "/\">" + path.filename().string() + "</a>\n";
+            buffer += "<a href=\"" +  path.filename().string() + "/\">" + path.filename().string() + "</a>\n";
     }
 
     buffer += "</pre>\n";
-    buffer += "</hr>\n";
     buffer += "</body>\n";
     buffer += "</html>\n";
 
     res.setBody( buffer );
     res.setCodeAndPhrase( "200", "OK" );
     res.setHeaders( "Content-Length", std::to_string( buffer.size() ) );
-    res.setHeaders( "Content-Type", "txt/html" );
+    res.setHeaders( "Content-Type", "text/html" );
     res.build();
 }

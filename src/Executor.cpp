@@ -71,10 +71,11 @@ void	Executor::process(uint32_t events) {
 			if (!loc->locConfs.empty()) {
 				const auto* locConf =\
 				dynamic_cast<LocCoreConf*>(loc->locConfs[0].get());
-				if (!(_parser.getReqMethod() & locConf->allowedMethods.value())) {
-					std::cerr << "Requested method not allowed" << "\n";
-					throw MethodNotAllowed();
-				}
+				(void)locConf;
+				// if (!(_parser.getReqMethod() & locConf->allowedMethods.value())) {
+				// 	std::cerr << "Requested method not allowed" << "\n";
+				// 	throw MethodNotAllowed();
+				// }
 			}
 	
 			std::string joinedPath = m.joinRootAndPath(_parser.getPath(), whichMethod, *loc);
@@ -104,6 +105,7 @@ void	Executor::process(uint32_t events) {
 			}
 			else
 				pageHandler.setErrorPage( _res );
+			_res.build();
 			new Writer(*this, std::move(_res));
 		}
 	}

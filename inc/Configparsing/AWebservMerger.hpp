@@ -35,7 +35,7 @@ void	AWebservMerger::inheritFromHttpConf(ConfigParser& parser) {
 	parser.setTokens(dynamic_cast<T*>(httpConfPtr)->lowerLevelDirectives);
 	while (!tokens.empty()) {
 		level = getLowestValidLevelOfDirective(tokens.front());
-		initConfIfEmptyAtLevel(c, level);
+		initConfIfEmptyAtLevel(c, level, &parser.getLocNode());
 		parseDirective(parser, level);
 	}
 }

@@ -26,7 +26,7 @@ class AWebservParser : virtual public IWebservModule {
 				typename SrvConfType,
 				typename LocConfType>
 		void	_initConfIfEmptyAtLevel(
-			const ConfCtx& confCtx, WebservConfLevel level);
+			const ConfCtx& confCtx, WebservConfLevel level, const LocNode* locNodePtr);
 
 		template<typename T>
 		void	_assignIfHasNoValue(std::optional<T>& var, T val);
@@ -69,7 +69,7 @@ void AWebservParser::_ensureConfExists(VecOfPtrs<T>* confs, Factory makeConf) {
 
 template<typename HttpConfType, typename SrvConfType, typename LocConfType>
 void AWebservParser::_initConfIfEmptyAtLevel(
-	const ConfCtx& confCtx, WebservConfLevel level) {
+	const ConfCtx& confCtx, WebservConfLevel level, const LocNode* locNodePtr) {
 	switch (level) {
 		case WebservConfLevel::HTTP:
 			_ensureConfExists(confCtx.httpConfs,
@@ -83,8 +83,8 @@ void AWebservParser::_initConfIfEmptyAtLevel(
 			[[fallthrough]];
 		case WebservConfLevel::LOCATION:
 			_ensureConfExists(confCtx.locConfs,
-							[]()
-							{ return std::make_unique<LocConfType>(); });
+							[locNodePtr]()
+							{ return std::make_unique<LocConfType>(locNodePtr); });
 			break;
 		default:
 			throw std::runtime_error("Invalid configuration level");

@@ -169,12 +169,10 @@ void WebservCoreParser::_parseAllow(const std::string& d,
 			mask);
 }
 
-void WebservCoreParser::_parseAlias(const std::string& d,
-	Tokens& t, const ConfCtx& c, WebservConfLevel l, ConfigParser& parser) {
+void WebservCoreParser::_parseAlias(Tokens& t, const ConfCtx& c) {
 	if (!dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->alias.has_value()) {
-		const LocNode&	curLocNode = parser.getLocNode();
-		dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->alias = curLocNode.name.size();
-		_parseRoot(d, t, c, l);
+		dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->alias = true;
+		dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->root = t.front();
 	}
 	else {
 		t.pop_front();

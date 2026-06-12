@@ -17,20 +17,20 @@ class ConfigParser {
         ConfigParser() = delete;
         ConfigParser(char* filename);
         ~ConfigParser();
-        void							parseConfig(WebservConfLevel level
-			= WebservConfLevel::MAIN);
-		void							mergeConfs();
-		Tokens&							getTokens();
-		const LocNode&	getLocNode() const;
-		const ConfCtx&	getConfCtx() const;
-		const std::string&				getLevelName(WebservConfLevel level) const;
-		const Srv&		getLastSrv() const;
-		const AddrToServersMap&			getAddrToServersMap() const;
-		void							mapAddrToServer(const std::string& addr,
-			const Srv&);
-		void							eraseMappingAddrToServer(
+        void					parseConfig(
+			WebservConfLevel level = WebservConfLevel::MAIN);
+		void					mergeConfs();
+		Tokens&					getTokens();
+		const LocNode&			getLocNode() const;
+		const ConfCtx&			getConfCtx() const;
+		const std::string&		getLevelName(WebservConfLevel level) const;
+		const Srv&				getLastSrv() const;
+		const AddrToServersMap&	getAddrToServersMap() const;
+		void					mapAddrToServer(
+			const std::string& addr, const Srv&);
+		void					eraseMappingAddrToServer(
 			const std::string& addr, const Srv& node);
-		void							setTokens(const Tokens& tokens);
+		void					setTokens(const Tokens& tokens);
 
 	private:
 		const std::unordered_map<WebservConfLevel, std::string> _levelNames {
@@ -59,7 +59,7 @@ class ConfigParser {
 		void    _parseModuleDirective(WebservConfLevel level);
 		void    _parseBlock(const std::string& name, WebservConfLevel level);
 		void	_validateLevel(WebservConfLevel level);
-        void	_validateBlockAllowedInLevel(const std::string& directive,
-            WebservConfLevel level);
+        void	_validateBlockAllowedInLevel(
+			const std::string& directive, WebservConfLevel level);
 
 };

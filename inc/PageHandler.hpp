@@ -13,7 +13,6 @@ class PageHandler
     private:
         int         _statusCode;
         std::string _reasonPhrase;
-        std::string _errorPage;
         std::map<int, std::string> errorPages;
     public:
         PageHandler( int statusCode, std::string reasonPhrase );

@@ -84,6 +84,11 @@ struct LocCoreConf : LocConf {
 
 	LocCoreConf() = delete;
 	LocCoreConf(
+		const LocNode* locNodePtr) 
+		:
+		nameLen(locNodePtr->name.size())
+	{}
+	LocCoreConf(
 		std::optional<unsigned int> _allowedMethods,
 		std::string _root,
 		std::optional<bool> _alias,
@@ -140,14 +145,17 @@ struct	HttpIndexConf : HttpConf {
 };
 
 struct	SrvIndexConf : SrvConf {
-	void	inheritFrom(const SrvConf& otherConf) override;
+	void	inheritFrom(const SrvConf& otherConf) override { (void)otherConf; };
 };
 
 struct LocIndexConf : LocConf {
 	Tokens				indexFiles; // list of index files to look for when a directory is requested
 	std::optional<bool>	autoindex; // whether to generate directory listing if no index file is found
 
-	LocIndexConf() = default;
+	LocIndexConf() = delete;
+	LocIndexConf(
+		const LocNode* locNodePtr) 
+	{ (void)locNodePtr; }
 	LocIndexConf(
 		Tokens _indexFiles,
 		bool _autoindex)

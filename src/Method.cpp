@@ -115,8 +115,6 @@ void    Method::getMethod( std::string newPath, Response &res, const LocNode& lo
     // stack.push_back("index3.html");
     // stack.push_back("index.html");
 
-    std::cout << "newPath:" << newPath << std::endl;
-
     //  printf 'GET /servers/server1/cgi/test.py HTTP/1.1\r\n\r\n' | nc 127.0.0.2 3490
 
     

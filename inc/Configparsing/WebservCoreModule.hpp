@@ -10,5 +10,5 @@ class WebservCoreModule : public WebservCoreParser, public WebservCoreMerger {
         virtual ~WebservCoreModule() = default;
 
         void	initConfIfEmptyAtLevel(const ConfCtx& confCtx,
-			WebservConfLevel level) override;
+			WebservConfLevel level, const LocNode* locNodePtr) override;
 };

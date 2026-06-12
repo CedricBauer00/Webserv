@@ -5,7 +5,7 @@ WebservCoreModule::WebservCoreModule(int& ctxIndex) :
 };
 
 void    WebservCoreModule::initConfIfEmptyAtLevel(const ConfCtx& confCtx,
-    WebservConfLevel level) {
+    WebservConfLevel level, const LocNode* locNodePtr) {
 	_initConfIfEmptyAtLevel<HttpCoreConf, SrvCoreConf, LocCoreConf>(
-		confCtx, level);
+		confCtx, level, locNodePtr);
 }

@@ -13,7 +13,9 @@ class IWebservModule {
         virtual WebservConfLevel	getLowestValidLevelOfDirective(
 	        const std::string& directive) = 0;
         virtual void				initConfIfEmptyAtLevel(
-			const ConfCtx& confCtx, WebservConfLevel level) = 0;
+			const ConfCtx& confCtx,
+			WebservConfLevel level,
+			const LocNode* locNodePtr) = 0;
 		virtual void				parseDirective(
 			ConfigParser& parser, WebservConfLevel level) = 0;
         virtual void    			mergeConfs(
