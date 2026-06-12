@@ -41,10 +41,12 @@ struct HttpConf {
 
 struct SrvConf {
 	virtual ~SrvConf() = default;
+    virtual void inheritFrom(const SrvConf& other) = 0;
 };
 
 struct LocConf {
 	virtual ~LocConf() = default;
+	virtual void inheritFrom(const LocConf& other) = 0;
 };
 
 template<typename T>

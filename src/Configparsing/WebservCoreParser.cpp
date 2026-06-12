@@ -45,7 +45,7 @@ void	WebservCoreParser::_parseListen(Tokens& t, const ConfCtx& c,
 	SrvCoreConf* srvConf = dynamic_cast<SrvCoreConf*>(getSrvConfPtr(c));
 	srvConf->flags = LISTEN;
 	if (!t.empty() && t.front() == "default_server")
-		srvConf->flags |= DEFAULT_SERVER, t.pop_front();
+		srvConf->flags.value() |= DEFAULT_SERVER, t.pop_front();
 };
 
 void	WebservCoreParser::_parseServerNames(Tokens& t, const ConfCtx& c) {

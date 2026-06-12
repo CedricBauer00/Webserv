@@ -12,8 +12,9 @@ WebservIndexMerger::~WebservIndexMerger() {
 
 void	WebservIndexMerger::mergeConfs(ConfigParser& parser,
 	std::unique_ptr<LocNode>& location) {
-	mergeFromHttpConf<HttpIndexConf>(parser);
+	inheritFromHttpConf<HttpIndexConf>(parser);
 	print(parser.getConfCtx());
+	assignDefaults(parser.getConfCtx(), *this, *this);
 	(void)location;
 }
 

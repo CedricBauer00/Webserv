@@ -4,7 +4,7 @@
 
 WebservCoreMerger::WebservCoreMerger() :
 HttpCoreConf(),
-SrvCoreConf({}, 10000, WebservMsec{1000}, true, true, true),
+SrvCoreConf({}, 10000, WebservMsec{1000}, true, true, true, 0),
 LocCoreConf(11,
 	std::filesystem::current_path().string(),
 	0,
@@ -23,8 +23,9 @@ WebservCoreMerger::~WebservCoreMerger() {
 
 void	WebservCoreMerger::mergeConfs(ConfigParser& parser,
 	std::unique_ptr<LocNode>& location) {
-	mergeFromHttpConf<HttpCoreConf>(parser);
+	inheritFromHttpConf<HttpCoreConf>(parser);
 	print(parser.getConfCtx());
+	assignDefaults(parser.getConfCtx(), *this, *this);
 	(void)location;
 }
 

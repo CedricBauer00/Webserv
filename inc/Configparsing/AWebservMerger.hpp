@@ -11,11 +11,20 @@ class	AWebservMerger : virtual public IWebservModule{
 		virtual ~AWebservMerger() = default;
 
 		template<typename T>
-		void	mergeFromHttpConf(ConfigParser& parser);
+		void	inheritFromHttpConf(ConfigParser& parser);
+
+		void	assignDefaults(const ConfCtx& ctx,
+			const SrvConf& defaultSrvConf,
+			const LocConf& defaultLocConf) {
+			if (getSrvConfPtr(ctx) != nullptr)
+				getSrvConfPtr(ctx)->inheritFrom(defaultSrvConf);
+			if (getLocConfPtr(ctx) != nullptr)
+				getLocConfPtr(ctx)->inheritFrom(defaultLocConf);
+		};
 };
 
 template<typename T>
-void	AWebservMerger::mergeFromHttpConf(ConfigParser& parser) {
+void	AWebservMerger::inheritFromHttpConf(ConfigParser& parser) {
 	WebservConfLevel	level;
 	const ConfCtx&		c = parser.getConfCtx();
 	HttpConf*			httpConfPtr = getHttpConfPtr(c);

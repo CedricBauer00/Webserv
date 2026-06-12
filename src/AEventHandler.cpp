@@ -70,7 +70,8 @@ AEventHandler::_selectServerFactory()
 				const auto& names = srvCoreConf->serverNames;
 				if (names.find(hostname) != names.end())
 					return srv;
-				if (srvCoreConf->flags & DEFAULT_SERVER)
+				if (srvCoreConf->flags.has_value()
+                && (srvCoreConf->flags.value() & DEFAULT_SERVER))
 					defaultSrv = srv;
 			}
 			return defaultSrv != nullptr ? defaultSrv : servers[0];
