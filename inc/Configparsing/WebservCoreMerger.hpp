@@ -11,8 +11,10 @@ public LocCoreConf {
 		WebservCoreMerger();
 		virtual ~WebservCoreMerger();
 
+        void	mergeLocConfs(std::unique_ptr<LocNode>& location,
+            ConfCtx confctx, LocConf* parentLocConf);
 		void    mergeConfs(ConfigParser& parser,
-			std::unique_ptr<LocNode>& location) override;
+			std::unique_ptr<LocNode>& location, ConfCtx& confctx) override;
         void    print(const ConfCtx& ctx);
         void    printHttpConf(const HttpCoreConf& httpConf);
         void    printSrvConf(const SrvCoreConf& srvConf);

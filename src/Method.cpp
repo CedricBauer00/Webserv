@@ -5,17 +5,11 @@ Method::Method() : _isCgiFile( false ) {}
 Method::~Method() {}
 
 std::string    Method::joinRootAndPath(
-    std::string newPath, whichMethod whichMethod, const LocNode& location)
+    std::string path, whichMethod whichMethod, const LocNode& location)
 {
-
-    // std::string mockLocation = "/images";
-    // std::string root = getRootPath();
-    if (!location.locConfs.empty()) {
-        const auto* locConf =\
-        dynamic_cast<LocCoreConf*>(location.locConfs[0].get());
-        _root = locConf->root.empty() ? getRootPath() : locConf->root;
-    }
-    else _root = getRootPath();
+    if (!location.locConfs.empty() && location.locConfs[0].get() != nullptr)
+        _root = dynamic_cast<LocCoreConf*>(location.locConfs[0].get())->root;
+    else _root = std::filesystem::current_path().string();
 
     if ( whichMethod == METHOD_POST )
     {
@@ -25,108 +19,19 @@ std::string    Method::joinRootAndPath(
             _root = getUploadPath().empty() ? _root : getUploadPath();
         std::cout << "Upload Path: " << _root << std::endl;
     }
-
-    // newPath = mockLocation + newPath;
-    // newPath = newPath.substr( mockLocation.size() );
-    
-    // /DO.PNG
-    
-    std::cout << "root:" << _root << "\nnewPath:" << newPath << std::endl;
-    newPath = _root + newPath; // join root + uri 
-
-    
-    std::cout << "finished modify path" << std::endl;
-    return newPath;
+    return _root + path;
 }
 
-std::string    Method::normalizePath(std::string uri)
+void    Method::getMethod( std::string path, Response &res, const LocNode& location ) // status codes 200, 402, 404
 {
-        // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
-    
-    // Normalizing
-    std::cout << "uri: " << uri << std::endl;
-
-    std::string::size_type pos = uri.find( '?' );
-    
-    _path = uri;
-    
-    bool endsWithSlash = !_path.empty() && _path.back() == '/';
-
-    if ( pos != std::string::npos )
-    {
-        _path = uri.substr( 0, pos );
-        _query = uri.substr( pos + 1 );
-    }
-
-    checkCgiExtension();
-
-    for ( size_t i = 0; i < _path.size(); ++i )
-    {
-        if ( _path[ i ] == '%' && i + 2 < _path.size() )
-        {
-            std::string hex = _path.substr( i + 1, 2 );
-            char c = static_cast<char>( std::strtol( hex.c_str(), 0, 16 ) );
-            _path.replace( i, 3, 1, c );
-        }
-    }
-    // std::cout << "_Path After: " << _path << std::endl;
-    // std::cout << "Query: " << _query << std::endl;
-
-    std::vector<std::string> wholePath;
-    std::istringstream iss( _path );
-    std::string partStr;
-
-    while ( getline( iss, partStr, '/' ) )
-    {
-        if ( partStr.empty() || partStr == "." ) // "." - dieses Verzeichnis
-            continue ;
-        if ( partStr == ".." ) // Traversal-Check 
-        {
-            if ( wholePath.empty() )
-                throw BadRequest();
-                
-            wholePath.pop_back(); // one directory out  
-        }
-        else
-            wholePath.push_back( partStr );
-    }
-
-    std::string newPath;
-    for ( size_t i = 0; i < wholePath.size(); ++i )
-    {
-        newPath = "/" + newPath;
-        newPath += wholePath[ i ];
-    }
-    std::cout << "new Path: " << newPath << std::endl;
-    
-    if ( endsWithSlash )
-        newPath += '/';
-    return newPath;
-}
-
-
-void    Method::getMethod( std::string newPath, Response &res, const LocNode& location ) // status codes 200, 402, 404
-{
-    // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
     std::error_code ec;
-    // std::vector<std::string> stack;
-    // stack.push_back("index1.html");
-    // stack.push_back("index2.html");
-    // stack.push_back("index3.html");
-    // stack.push_back("index.html");
-
-    //  printf 'GET /servers/server1/cgi/test.py HTTP/1.1\r\n\r\n' | nc 127.0.0.2 3490
-
     
-    if ( std::filesystem::is_regular_file( newPath ) )
+    if ( std::filesystem::is_regular_file( path ) )
     {
         std::cout << "is a file1" << std::endl;
 
-        if ( !( std::filesystem::exists( newPath, ec ) ) )
-        {
-            std::cout << "Geht hier raus" << std::endl;
+        if ( !( std::filesystem::exists( path, ec ) ) )
             throw NotFound();
-        }
 
         std::string content;
 
@@ -136,7 +41,7 @@ void    Method::getMethod( std::string newPath, Response &res, const LocNode& lo
         {
             std::cout << "is a file2" << std::endl;
 
-            std::ifstream ifs( newPath ); 
+            std::ifstream ifs( path ); 
         
             if ( !( ifs.is_open() ) ) // permissions check
                 throw NotFound();
@@ -153,16 +58,15 @@ void    Method::getMethod( std::string newPath, Response &res, const LocNode& lo
         res.setBody( content );
         res.setCodeAndPhrase( "200", "OK" );
         res.setHeaders( "Content-Length", std::to_string( content.size() ) );
-        res.setHeaders( "Content-Type", getFileType( newPath ) );
+        res.setHeaders( "Content-Type", getFileType( path ) );
         return ;
     }
-    else if ( std::filesystem::is_directory( newPath ) )
+    else if ( std::filesystem::is_directory( path ) )
     {
-        std::cout << "newP: " << newPath << std::endl;
-        if ( newPath.back() != '/' )
+        if ( path.back() != '/' )
         {
             std::cout << "_root : " << _root << std::endl; 
-            std::string newStr = newPath.substr( _root.size() ) + "/";
+            std::string newStr = path.substr( _root.size() ) + "/";
             throw MovedPermanently( newStr );
         }
     
@@ -170,7 +74,7 @@ void    Method::getMethod( std::string newPath, Response &res, const LocNode& lo
             std::cout << location.locConfs.size() << std::endl;
             for ( auto x : dynamic_cast<LocIndexConf*>(location.locConfs[1].get())->indexFiles) // replace stack with all files in directory - indexes from location 
             {
-                std::string joinedPath = newPath + x;
+                std::string joinedPath = path + x;
                 
                 std::cout << "joinedPath: " << joinedPath << std::endl;
     
@@ -202,7 +106,7 @@ void    Method::getMethod( std::string newPath, Response &res, const LocNode& lo
             if (dynamic_cast<LocIndexConf*>(location.locConfs[1].get())->autoindex)
             {
                 std::cout << "autoindex" << std::endl;
-                createAutoIndex( newPath, res ); // not implemented yet
+                createAutoIndex( path, res ); // not implemented yet
                 return ;
             }
         }
@@ -215,25 +119,25 @@ void    Method::getMethod( std::string newPath, Response &res, const LocNode& lo
 // /servers/server1/uploads/data/index1.html
 
 // test: printf 'DELETE /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
-void    Method::deleteMethod( std::string newPath, Response &res, const LocNode& location ) // status codes 200, 402, 404
+void    Method::deleteMethod( std::string path, Response &res, const LocNode& location ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
     (void)location;
 
     std::error_code ec;
-    if ( !( std::filesystem::exists( newPath, ec ) ) )
+    if ( !( std::filesystem::exists( path, ec ) ) )
         throw NotFound();
 
-    if ( std::filesystem::is_regular_file( newPath ) )
+    if ( std::filesystem::is_regular_file( path ) )
     {
         std::cout << "Enter delete function" << std::endl;
 
-        std::ifstream ifs( newPath ); 
+        std::ifstream ifs( path ); 
     
         if ( !( ifs.is_open() ) ) // permissions check
             throw NotFound();
         // delete file
-        std::filesystem::remove( newPath );
+        std::filesystem::remove( path );
 
         res.setCodeAndPhrase( "204", "No Content" );
         res.setHeaders( "Content-Length", "0" );
@@ -246,7 +150,7 @@ void    Method::deleteMethod( std::string newPath, Response &res, const LocNode&
     {
         if ( getAllowDeleteDir() == true ) // deleting directory is allowed
         {
-            std::filesystem::remove_all( newPath );
+            std::filesystem::remove_all( path );
             res.setCodeAndPhrase( "204", "No Content" );
             res.setHeaders( "Content-Length", "0" );
             
@@ -260,18 +164,18 @@ void    Method::deleteMethod( std::string newPath, Response &res, const LocNode&
 }
 
 // test: printf 'POST /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
-void    Method::postMethod( std::string newPath, Response &res, std::string contentBody, const LocNode& location ) // status codes 200, 402, 404
+void    Method::postMethod( std::string path, Response &res, std::string contentBody, const LocNode& location ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
     (void)location;
         
-    if ( std::filesystem::is_regular_file( newPath ) )
+    if ( std::filesystem::is_regular_file( path ) )
     {
         if ( !getAllowedToOverwrite() )
             throw Forbidden();
         else
         {
-            _postedFile = newPath;
+            _postedFile = path;
             std::ofstream ofs( _postedFile, std::ios::binary | std::ios::trunc );
             if ( !ofs )
                 throw BadRequest();
@@ -299,11 +203,11 @@ void    Method::postMethod( std::string newPath, Response &res, std::string cont
     }
     else
     {
-        if ( newPath.back() != '/' )
+        if ( path.back() != '/' )
         {
-            size_t pos = newPath.find_last_of( '/' );
+            size_t pos = path.find_last_of( '/' );
             if ( pos != std::string::npos )
-                newPath.erase( pos + 1 );
+                path.erase( pos + 1 );
             
         }
         // create file 
@@ -311,8 +215,8 @@ void    Method::postMethod( std::string newPath, Response &res, std::string cont
         fileName += getTimeStamp();
         fileName += ".bin";
         
-        std::cout << "FileName: " << fileName << "\n" << "JoinedPath: " << newPath + fileName << "\n\nPosted Body:\n" << contentBody << std::endl;
-        _postedFile =  newPath + fileName;
+        std::cout << "FileName: " << fileName << "\n" << "JoinedPath: " << path + fileName << "\n\nPosted Body:\n" << contentBody << std::endl;
+        _postedFile =  path + fileName;
         std::ofstream ofs( _postedFile );
         
         if ( !ofs )

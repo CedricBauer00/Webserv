@@ -35,8 +35,6 @@ class Method
         std::string getCgiPath();
         std::string getScript();
         void    checkCgiExtension();
-        std::string    normalizePath(std::string uri);
-
 };
 
 // bool        autoIndexActive();

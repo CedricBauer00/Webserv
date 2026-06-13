@@ -152,7 +152,7 @@ void	ConfigParser::mergeConfs() {
 		_confCtx.locConfs = &srv->location->locConfs;
 		_curLocNode = srv->location.get();
 		for (const auto& module: _modules)
-			module->mergeConfs(*this, srv->location);
+			module->mergeConfs(*this, srv->location, _confCtx);
 	}
 }
 

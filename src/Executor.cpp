@@ -54,6 +54,7 @@ void	Executor::process(uint32_t events) {
 	
 			auto server = _selectServer(_parser.getHostName()); // select server based on Host name
 			if (!server->srvConfs.empty()) {
+                std::cout << "server_name: ";
 				for (const auto& item :
 					dynamic_cast<SrvCoreConf*>(
 						server->srvConfs[0].get())->serverNames) {
@@ -68,14 +69,13 @@ void	Executor::process(uint32_t events) {
 	
 			whichMethod whichMethod = _parser.getMethod();
 	
-			if (!loc->locConfs.empty()) {
-				const auto* locConf =\
-				dynamic_cast<LocCoreConf*>(loc->locConfs[0].get());
-				(void)locConf;
-				// if (!(_parser.getReqMethod() & locConf->allowedMethods.value())) {
-				// 	std::cerr << "Requested method not allowed" << "\n";
-				// 	throw MethodNotAllowed();
-				// }
+			if (!loc->locConfs.empty() && loc->locConfs[0].get() != nullptr) {
+				auto* locConf =\
+				dynamic_cast<const LocCoreConf*>(loc->locConfs[0].get());
+				if (!(_parser.getReqMethod() & locConf->allowedMethods.value())) {
+					std::cerr << "Requested method not allowed" << "\n";
+					throw MethodNotAllowed();
+				}
 			}
 	
 			std::string joinedPath = m.joinRootAndPath(_parser.getPath(), whichMethod, *loc);
@@ -110,9 +110,8 @@ void	Executor::process(uint32_t events) {
 		}
 	}
 	catch (const std::exception& e) {
-		int fd = getFd();
-		throw std::runtime_error("FD " + std::to_string(fd)
-		+ ": [Executor] Error executing request," + e.what());
+		std::cerr << "FD " << _fd
+		<< ": [Executor] Error, " << e.what() << std::endl;
 	}
 	delete this; // Execution finished, destroy self
 }

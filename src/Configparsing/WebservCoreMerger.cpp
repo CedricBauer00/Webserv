@@ -21,12 +21,26 @@ LocCoreConf(11,
 WebservCoreMerger::~WebservCoreMerger() {
 }
 
+void	WebservCoreMerger::mergeLocConfs(
+	std::unique_ptr<LocNode>& location, ConfCtx confctx, LocConf* parentLocConf) {
+	if (parentLocConf != nullptr) {
+		getLocConfPtr(confctx)->inheritFrom(*parentLocConf);
+		printLocConf(*dynamic_cast<const LocCoreConf*>(getLocConfPtr(confctx)));
+	}
+	parentLocConf = getLocConfPtr(confctx);
+	for (auto& loc : location.get()->locations) {
+		confctx.locConfs = &loc.get()->locConfs;
+		mergeLocConfs(loc, confctx, parentLocConf);
+	}
+}
+
 void	WebservCoreMerger::mergeConfs(ConfigParser& parser,
-	std::unique_ptr<LocNode>& location) {
+	std::unique_ptr<LocNode>& location, ConfCtx& confctx) {
 	inheritFromHttpConf<HttpCoreConf>(parser);
-	assignDefaults(parser.getConfCtx(), *this, *this);
-	print(parser.getConfCtx());
-	(void)location;
+	assignDefaults(confctx, *this, *this);
+	print(confctx);
+	if (getLocConfPtr(confctx) != nullptr)
+		mergeLocConfs(location, confctx, nullptr);
 }
 
 void	WebservCoreMerger::print(const ConfCtx& ctx) {
