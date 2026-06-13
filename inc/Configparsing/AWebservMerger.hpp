@@ -10,8 +10,20 @@ class	AWebservMerger : virtual public IWebservModule{
 		AWebservMerger() = default;
 		virtual ~AWebservMerger() = default;
 
-		template<typename T>
-		void	inheritFromHttpConf(ConfigParser& parser);
+		void	inheritFromHttpConf(ConfigParser& parser,
+			ConfCtx& ctx, HttpConf* httpConfPtr) {
+			WebservConfLevel	level;
+			Tokens&				tokens = parser.getTokens();
+
+			if (httpConfPtr == nullptr)
+				return;
+			parser.setTokens(httpConfPtr->getlowerLevelDirectives());
+			while (!tokens.empty()) {
+				level = getLowestValidLevelOfDirective(tokens.front());
+				initConfIfEmptyAtLevel(ctx, level, &parser.getLocNode());
+				parseDirective(parser, level);
+			}
+		};
 
 		void	assignDefaults(const ConfCtx& ctx,
 			const SrvConf& defaultSrvConf,
@@ -21,21 +33,29 @@ class	AWebservMerger : virtual public IWebservModule{
 			if (getLocConfPtr(ctx) != nullptr)
 				getLocConfPtr(ctx)->inheritFrom(defaultLocConf);
 		};
+
+		void	mergeLocConfs(std::unique_ptr<LocNode>& location,
+			ConfCtx confctx, LocConf* parentLocConf) {
+			if (parentLocConf != nullptr) {
+				initConfIfEmptyAtLevel(
+					confctx, WebservConfLevel::LOCATION, location.get());
+				getLocConfPtr(confctx)->inheritFrom(*parentLocConf);
+			}
+			parentLocConf = getLocConfPtr(confctx);
+			for (auto& loc : location.get()->locations) {
+				confctx.locConfs = &loc.get()->locConfs;
+				mergeLocConfs(loc, confctx, parentLocConf);
+			}
+		}
+
+		virtual void	print(ConfCtx ctx, std::unique_ptr<LocNode>& location) = 0;
+
+		void	mergeConfs(ConfigParser& parser,
+			std::unique_ptr<LocNode>& location, ConfCtx& confctx) override {
+			inheritFromHttpConf(parser, confctx, getHttpConfPtr(confctx));
+			assignDefaults(confctx, dynamic_cast<const SrvConf&>(*this),
+				dynamic_cast<const LocConf&>(*this));
+			mergeLocConfs(location, confctx, nullptr);
+			print(confctx, location);
+		}
 };
-
-template<typename T>
-void	AWebservMerger::inheritFromHttpConf(ConfigParser& parser) {
-	WebservConfLevel	level;
-	const ConfCtx&		c = parser.getConfCtx();
-	HttpConf*			httpConfPtr = getHttpConfPtr(c);
-	Tokens&				tokens = parser.getTokens();
-
-	if (httpConfPtr == nullptr)
-		return;
-	parser.setTokens(dynamic_cast<T*>(httpConfPtr)->lowerLevelDirectives);
-	while (!tokens.empty()) {
-		level = getLowestValidLevelOfDirective(tokens.front());
-		initConfIfEmptyAtLevel(c, level, &parser.getLocNode());
-		parseDirective(parser, level);
-	}
-}

@@ -7,7 +7,8 @@
 
 struct HttpCoreConf : HttpConf {
 	Tokens	lowerLevelDirectives; // directives that can be specified in http block and inherited by all servers and locations, e.g., error_log, client_max_body_size
-	// std::vector<std::pair<WebservAddr, t_webserv_phase_engine>> ph;
+	virtual ~HttpCoreConf() = default;
+	Tokens	getlowerLevelDirectives() override { return lowerLevelDirectives; };
 };
 
 struct SrvCoreConf : SrvConf {
@@ -142,6 +143,8 @@ struct LocCoreConf : LocConf {
 
 struct	HttpIndexConf : HttpConf {
 	Tokens	lowerLevelDirectives; // directives that can be specified in http block and inherited by all servers and locations, e.g., index, autoindex
+	virtual ~HttpIndexConf() = default;
+	Tokens	getlowerLevelDirectives() override { return lowerLevelDirectives; };
 };
 
 struct	SrvIndexConf : SrvConf {

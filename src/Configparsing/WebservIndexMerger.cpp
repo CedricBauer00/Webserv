@@ -10,22 +10,23 @@ LocIndexConf({}, false) {
 WebservIndexMerger::~WebservIndexMerger() {
 }
 
-void	WebservIndexMerger::mergeConfs(ConfigParser& parser,
-	std::unique_ptr<LocNode>& location, ConfCtx& confctx) {
-	inheritFromHttpConf<HttpIndexConf>(parser);
-	assignDefaults(parser.getConfCtx(), *this, *this);
-	print(parser.getConfCtx());
-	(void)location;
-	(void)confctx;
+void	WebservIndexMerger::printLocConfs(
+	ConfCtx ctx, std::unique_ptr<LocNode>& location) {
+	if (getLocConfPtr(ctx) != nullptr)
+		printLocConf(*dynamic_cast<const LocIndexConf*>(getLocConfPtr(ctx)));
+	for (auto& loc : location.get()->locations) {
+		ctx.locConfs = &loc.get()->locConfs;
+		printLocConfs(ctx, loc);
+	}
 }
 
-void	WebservIndexMerger::print(const ConfCtx& ctx) {
+void	WebservIndexMerger::print(
+	ConfCtx ctx, std::unique_ptr<LocNode>& location) {
 	if (getHttpConfPtr(ctx) != nullptr)
 		printHttpConf(*dynamic_cast<const HttpIndexConf*>(getHttpConfPtr(ctx)));
 	if (getSrvConfPtr(ctx) != nullptr)
 		printSrvConf(*dynamic_cast<const SrvIndexConf*>(getSrvConfPtr(ctx)));
-	if (getLocConfPtr(ctx) != nullptr)
-		printLocConf(*dynamic_cast<const LocIndexConf*>(getLocConfPtr(ctx)));
+	printLocConfs(ctx, location);
 }
 
 void	WebservIndexMerger::printHttpConf(const HttpIndexConf& httpConf) {

@@ -21,35 +21,23 @@ LocCoreConf(11,
 WebservCoreMerger::~WebservCoreMerger() {
 }
 
-void	WebservCoreMerger::mergeLocConfs(
-	std::unique_ptr<LocNode>& location, ConfCtx confctx, LocConf* parentLocConf) {
-	if (parentLocConf != nullptr) {
-		getLocConfPtr(confctx)->inheritFrom(*parentLocConf);
-		printLocConf(*dynamic_cast<const LocCoreConf*>(getLocConfPtr(confctx)));
-	}
-	parentLocConf = getLocConfPtr(confctx);
+void	WebservCoreMerger::printLocConfs(
+	ConfCtx ctx, std::unique_ptr<LocNode>& location) {
+	if (getLocConfPtr(ctx) != nullptr)
+		printLocConf(*dynamic_cast<const LocCoreConf*>(getLocConfPtr(ctx)));
 	for (auto& loc : location.get()->locations) {
-		confctx.locConfs = &loc.get()->locConfs;
-		mergeLocConfs(loc, confctx, parentLocConf);
+		ctx.locConfs = &loc.get()->locConfs;
+		printLocConfs(ctx, loc);
 	}
 }
 
-void	WebservCoreMerger::mergeConfs(ConfigParser& parser,
-	std::unique_ptr<LocNode>& location, ConfCtx& confctx) {
-	inheritFromHttpConf<HttpCoreConf>(parser);
-	assignDefaults(confctx, *this, *this);
-	print(confctx);
-	if (getLocConfPtr(confctx) != nullptr)
-		mergeLocConfs(location, confctx, nullptr);
-}
-
-void	WebservCoreMerger::print(const ConfCtx& ctx) {
+void	WebservCoreMerger::print(
+	ConfCtx ctx, std::unique_ptr<LocNode>& location) {
 	if (getHttpConfPtr(ctx) != nullptr)
 		printHttpConf(*dynamic_cast<const HttpCoreConf*>(getHttpConfPtr(ctx)));
 	if (getSrvConfPtr(ctx) != nullptr)
 		printSrvConf(*dynamic_cast<const SrvCoreConf*>(getSrvConfPtr(ctx)));
-	if (getLocConfPtr(ctx) != nullptr)
-		printLocConf(*dynamic_cast<const LocCoreConf*>(getLocConfPtr(ctx)));
+	printLocConfs(ctx, location);
 }
 
 void	WebservCoreMerger::printHttpConf(const HttpCoreConf& httpConf) {

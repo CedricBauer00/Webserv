@@ -35,18 +35,24 @@ constexpr WebservConfLevel operator<<(WebservConfLevel a, int shift) {
     return static_cast<WebservConfLevel>(static_cast<uint8_t>(a) << shift);
 }
 
+using Tokens = std::deque<std::string>;
+
+using WebservMsec = std::chrono::milliseconds;
+
 struct HttpConf {
 	virtual ~HttpConf() = default;
+	virtual Tokens	getlowerLevelDirectives() = 0;
+	// iheritFrom() not defined as currently unnecessary
 };
 
 struct SrvConf {
 	virtual ~SrvConf() = default;
-    virtual void inheritFrom(const SrvConf& other) = 0;
+    virtual void	inheritFrom(const SrvConf& other) = 0;
 };
 
 struct LocConf {
 	virtual ~LocConf() = default;
-	virtual void inheritFrom(const LocConf& other) = 0;
+	virtual void	inheritFrom(const LocConf& other) = 0;
 };
 
 template<typename T>
@@ -72,11 +78,6 @@ struct	ConfCtx {
 	VecOfPtrs<SrvConf>*		srvConfs{nullptr};
 	VecOfPtrs<LocConf>*		locConfs{nullptr};
 };
-
-
-using Tokens = std::deque<std::string>;
-
-using WebservMsec = std::chrono::milliseconds;
 
 struct WebservAddr {
 	std::string	ip;
