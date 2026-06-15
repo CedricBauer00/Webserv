@@ -41,11 +41,9 @@ void	HeadReader::_receiveFromClient() {
     char buffer[BUFFER_SIZE];
     while (true) {
         ssize_t count = recv(_fd, buffer, sizeof(buffer), 0);
-        if (0 < count)
-        {
+        if (0 < count) {
 			_parser.parseHead(buffer, static_cast<std::size_t>(count));
-			if (_parser.isHeadStopReceived())
-			{
+			if (_parser.headStopReceived()) {
 				if (_parser.getStartLine().empty())
 					throw BadRequest();
 				return; // Header fully received

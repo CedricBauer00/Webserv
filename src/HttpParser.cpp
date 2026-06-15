@@ -4,13 +4,15 @@
 HttpParser::HttpParser() 
 : _startLine(), _headers(), _body(), _bodyLength(0), _headStopReceived(false), _bodyStopReceived(false),
 _foundContlen( false ), _foundHost( false ), _contentLength( 0 ),
-_chunked( false ), _request(), _method( METHOD_GET ) {
+_chunked( false ), _request(), _method( METHOD_GET ),
+_currentChunkSize(0), _waitingForChunkData(false), _waitingForLastChunkCRLF(false) {
 }
 
 HttpParser::HttpParser(const std::string& request ) 
 : _startLine(), _headers(), _body(), _bodyLength(0), _headStopReceived(false), _bodyStopReceived(false),
 _foundContlen( false ), _foundHost( false ), _contentLength( 0 ),
-_chunked( false ), _request(request), _method( METHOD_GET ) {
+_chunked( false ), _request(request), _method( METHOD_GET ),
+_currentChunkSize(0), _waitingForChunkData(false), _waitingForLastChunkCRLF(false) {
 }
 
 HttpParser::HttpParser(HttpParser&& other) noexcept
@@ -45,16 +47,13 @@ void	HttpParser::parseHead(char* buffer, std::size_t count)
     std::string::size_type start = 0;
     std::string::size_type pos;
 
-    while ((pos = _request.find('\n', start)) != std::string::npos)
+    while ((pos = _request.find("\r\n", start)) != std::string::npos)
     {
         std::string_view line(_request.data() + start, pos - start);
-        if (line.empty() || line.back() != '\r')
-            throw BadRequest();
-        line.remove_suffix(1);
 
         if (line.empty())
         {
-            _request.erase(0, pos + 1);
+            _request.erase(0, pos + 2);
             for ( const auto& pair : _headers )
                 std::cout << BLUE << pair.first << " : "
                 << pair.second << RESET << std::endl;
@@ -123,7 +122,7 @@ void	HttpParser::parseHead(char* buffer, std::size_t count)
             _headers[key] = value;
         }
 
-        start = pos + 1;
+        start = pos + 2;
     }
 	_request.erase(0, start);
 }
@@ -131,90 +130,78 @@ void	HttpParser::parseHead(char* buffer, std::size_t count)
 void	HttpParser::parseBody(char* buffer, std::size_t count)
 {
 	_request.append(buffer, count);
-	
-	if (_chunked == true)
-	{
-		// Parse chunked encoding from _request
-		std::string::size_type pos = 0;
-		while (pos < _request.size())
-		{
-			// Find chunk size line
-			std::string::size_type sizeEnd = _request.find("\r\n", pos);
-			if (sizeEnd == std::string::npos)
-				return; // Need more data for complete chunk size line
-			
-			// Parse hex chunk size
-			std::size_t chunkSize = 0;
-			try {
-				chunkSize = std::stoul(
-                    _request.substr(pos, sizeEnd - pos), nullptr, 16);
+	if (_chunked) {
+		while (true) {
+			if (!_waitingForChunkData) {
+				std::string::size_type sizeEnd = _request.find("\r\n");
+
+				if (sizeEnd == std::string::npos)
+					return;
+				for (size_t i = 0; i < sizeEnd; ++i) {
+					if (!std::isxdigit(
+							static_cast<unsigned char>(_request[i])))
+						throw BadRequest();
+				}
+
+				try {
+					_currentChunkSize =
+						std::stoul(_request.substr(0, sizeEnd), nullptr, 16);
+				}
+				catch (...) {
+					throw BadRequest();
+				}
+
+				_request.erase(0, sizeEnd + 2);
+				if (_currentChunkSize == 0) {
+					_waitingForLastChunkCRLF = true;
+					continue;
+				}
+				if(MAX_BODY_SIZE < _body.size() + _currentChunkSize)
+					throw PayloadTooLarge();
+				_waitingForChunkData = true;
 			}
-			catch (const std::exception&) {
-				throw BadRequest(); // Invalid chunk size
-			}
-			
-            // Last chunk
-			if (chunkSize == 0) {
+
+			if (_waitingForLastChunkCRLF) {
+				if (_request.size() < 2)
+					return;
+				if (_request[0] != '\r' || _request[1] != '\n')
+					throw BadRequest();
+				_request.erase(0, 2);
 				_bodyStopReceived = true;
+				_waitingForLastChunkCRLF = false;
 				return;
 			}
-			
-			// Check if we have the complete chunk (size + \r\n + data + \r\n)
-			std::string::size_type dataStart = sizeEnd + 2;
-			std::string::size_type dataEnd = dataStart + chunkSize;
-			
-			if (_request.size() < dataEnd + 2)
-				return; // Need more data
-			
-			// Verify chunk ends with \r\n
-			if (_request[dataEnd] != '\r' || _request[dataEnd + 1] != '\n')
-				throw BadRequest(); // Bad chunk formatting
-			
-			// Append chunk data to body
-			_body.append(_request.substr(dataStart, chunkSize));
-			
-			if (MAX_BODY_SIZE < _body.size())
-				throw PayloadTooLarge();
-			
-			// Move to next chunk
-			pos = dataEnd + 2;
+
+			if (_request.size() < _currentChunkSize + 2)
+				return;
+			if (_request[_currentChunkSize] != '\r'
+				|| _request[_currentChunkSize + 1] != '\n')
+				throw BadRequest();
+			_body.append(_request.data(), _currentChunkSize);
+			_request.erase(0, _currentChunkSize + 2);
+			_currentChunkSize = 0;
+			_waitingForChunkData = false;
 		}
-		
-		// Remove processed data from _request
-		_request.erase(0, pos);
-		return;
 	}
 	
-	if (_foundContlen)
-	{
-		// Accumulate body data until we have contentLength bytes
-		_body.append(_request);
-		_request.clear();
-		
-		if (_body.size() >= _contentLength)
-		{
-			// Trim to exact content length if we received more
-			if (_body.size() > _contentLength)
-				_body.erase(_contentLength);
-			
-			if (_body.size() > MAX_BODY_SIZE)
-				throw PayloadTooLarge();
-			
+	if (_foundContlen) {
+		std::size_t remaining = _contentLength - _body.size();
+		std::size_t toCopy = std::min(remaining, _request.size());
+
+		_body.append(_request.data(), toCopy);
+		_request.erase(0, toCopy);
+		if (_body.size() == _contentLength)
 			_bodyStopReceived = true;
-		}
 		return;
 	}
 
-	// No Content-Length or Transfer-Encoding, body is all remaining data
-	// Only allowed for HTTP/1.0
 	if (_startLine[2] != "HTTP/1.0")
-		throw BadRequest();
-	
+    	throw BadRequest();
 	_body.append(_request);
-	_request.clear();
-	
-	if (_body.size() > MAX_BODY_SIZE)
+	if (MAX_BODY_SIZE < _body.size())
 		throw PayloadTooLarge();
+	_request.clear();
+	return;
 }
 
 void    HttpParser::_checkStartLine() // eventuell direkt Execution instance createn, die URI speichert
@@ -465,12 +452,24 @@ std::string&	HttpParser::getRequest() {
 	return _request;
 }
 
-bool			HttpParser::isHeadStopReceived() const {
+bool			HttpParser::headStopReceived() const {
 	return _headStopReceived;
 }
 
-bool			HttpParser::isBodyStopReceived() const {
+bool			HttpParser::bodyStopReceived() const {
 	return _bodyStopReceived;
+}
+
+bool	HttpParser::headerHasContlen() const {
+	return _foundContlen;
+}
+
+std::size_t	HttpParser::getContlen() const {
+	return _contentLength;
+};
+
+bool	HttpParser::isHTTP1p0() const {
+	return _startLine[2] == "HTTP/1.0";
 }
 
 void    HttpParser::_decodeRequestTarget(std::string& requestTarget)

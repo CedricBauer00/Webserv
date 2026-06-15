@@ -16,7 +16,7 @@
 #include "Exceptions.hpp"
 #include "constants.h"
 
-#define MAX_BODY_SIZE 1024
+#define MAX_BODY_SIZE 8192
 
 class HttpParser
 {
@@ -42,6 +42,9 @@ class HttpParser
         std::string 		_hostName;
         whichMethod 		_method;
         unsigned int    	_reqMethodMask;
+		std::size_t 		_currentChunkSize = 0;
+		bool 				_waitingForChunkData = false;
+		bool 				_waitingForLastChunkCRLF = false;
 
         void	_setMethod();
         void	_checkStartLine();
@@ -80,8 +83,11 @@ class HttpParser
 		const std::string&								getPath() const;
         const std::string&                              getHttp() const;
 		std::string&									getRequest();
-		bool											isHeadStopReceived() const;
-		bool											isBodyStopReceived() const;
+		bool											headStopReceived() const;
+		bool											bodyStopReceived() const;
+		bool											headerHasContlen() const;
+		std::size_t										getContlen() const;
+		bool											isHTTP1p0() const;
 };
 
 bool    isInRange( int num, int min, int max );

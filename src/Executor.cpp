@@ -2,6 +2,7 @@
 #include "../inc/Epoller.hpp"
 #include "../inc/constants.h"
 #include "../inc/Writer.hpp"
+#include "../inc/BodyReader.hpp"
 #include "../inc/PageHandler.hpp"
 
 Executor::Executor(const AEventHandler& handler,
@@ -80,21 +81,28 @@ void	Executor::process(uint32_t events) {
 	
 			std::string joinedPath = m.joinRootAndPath(_parser.getPath(), whichMethod, *loc);
 			std::cout << "joinedPath: " << joinedPath << std::endl;
-	
-			if ( whichMethod == METHOD_GET )
-				m.getMethod( joinedPath, _res, *loc ); // && if GET method is allowed
-			else if ( whichMethod == METHOD_DELETE )
-				m.deleteMethod( joinedPath, _res, *loc ); // && if DELETE method is allowed
-			if ( whichMethod == METHOD_POST )
-			{
-				_parser.setBody(); // for POST requests - last step of execution
-				m.postMethod( joinedPath, _res, _parser.getBody(), *loc ); // && if POST method is allowed
-				std::cout << ORANGE << _parser.getBody() << RESET << std::endl;
+			
+			if (whichMethod == METHOD_POST) {
+				if (_parser.headerHasContlen() && MAX_BODY_SIZE < _parser.getContlen())
+					throw PayloadTooLarge();
+				_parser.parseBody(nullptr, 0);
+				if (_parser.bodyStopReceived()) {
+					_res.build();
+					new Writer(*this, std::move(_res));
+				}
+				else
+					new BodyReader(*this, std::move(_parser));
 			}
-			/// Response Buidling 
-			_res.build();
-			std::cout << ORANGE << _res.getResponse() << RESET << std::endl;
-			new Writer(*this, std::move(_res));
+			else {
+				if ( whichMethod == METHOD_GET )
+					m.getMethod( joinedPath, _res, *loc ); // && if GET method is allowed
+				else if ( whichMethod == METHOD_DELETE )
+					m.deleteMethod( joinedPath, _res, *loc ); // && if DELETE method is allowed
+				/// Response Buidling 
+				_res.build();
+				new Writer(*this, std::move(_res));
+				std::cout << ORANGE << _res.getResponse() << RESET << std::endl;
+			}
 		}
 		catch ( const HttpException& e )
 		{
