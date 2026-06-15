@@ -102,11 +102,12 @@ void    Method::getMethod( std::string path, Response &res, const LocNode& locat
                     return ;
                 }
             }
-    
-            if (dynamic_cast<LocIndexConf*>(location.locConfs[1].get())->autoindex)
+            
+            auto* locConf = dynamic_cast<LocIndexConf*>( location.locConfs[ 1 ].get() );
+            if ( locConf && locConf->autoindex && *locConf->autoindex )
             {
                 std::cout << "autoindex" << std::endl;
-                createAutoIndex( path, res ); // not implemented yet
+                createAutoIndex( path, res );
                 return ;
             }
         }
