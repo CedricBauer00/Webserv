@@ -2,13 +2,13 @@
 #include "../inc/Exceptions.hpp"
 
 HttpParser::HttpParser() 
-: _startLine(), _headers(), _body(), _bodyLength(0), _headStopReceived(false),
+: _startLine(), _headers(), _body(), _bodyLength(0), _headStopReceived(false), _bodyStopReceived(false),
 _foundContlen( false ), _foundHost( false ), _contentLength( 0 ),
 _chunked( false ), _request(), _method( METHOD_GET ) {
 }
 
 HttpParser::HttpParser(const std::string& request ) 
-: _startLine(), _headers(), _body(), _bodyLength(0), _headStopReceived(false),
+: _startLine(), _headers(), _body(), _bodyLength(0), _headStopReceived(false), _bodyStopReceived(false),
 _foundContlen( false ), _foundHost( false ), _contentLength( 0 ),
 _chunked( false ), _request(request), _method( METHOD_GET ) {
 }
@@ -21,6 +21,8 @@ HttpParser::HttpParser(HttpParser&& other) noexcept
 , _query( std::move( other._query ) )
 , _body( std::move( other._body ) )
 , _bodyLength( other._bodyLength )
+, _headStopReceived( other._headStopReceived )
+, _bodyStopReceived( other._bodyStopReceived )
 , _foundContlen( other._foundContlen )
 , _foundHost( other._foundHost )
 , _contentLength( other._contentLength )
@@ -124,6 +126,95 @@ void	HttpParser::parseHead(char* buffer, std::size_t count)
         start = pos + 1;
     }
 	_request.erase(0, start);
+}
+
+void	HttpParser::parseBody(char* buffer, std::size_t count)
+{
+	_request.append(buffer, count);
+	
+	if (_chunked == true)
+	{
+		// Parse chunked encoding from _request
+		std::string::size_type pos = 0;
+		while (pos < _request.size())
+		{
+			// Find chunk size line
+			std::string::size_type sizeEnd = _request.find("\r\n", pos);
+			if (sizeEnd == std::string::npos)
+				return; // Need more data for complete chunk size line
+			
+			// Parse hex chunk size
+			std::size_t chunkSize = 0;
+			try {
+				chunkSize = std::stoul(
+                    _request.substr(pos, sizeEnd - pos), nullptr, 16);
+			}
+			catch (const std::exception&) {
+				throw BadRequest(); // Invalid chunk size
+			}
+			
+            // Last chunk
+			if (chunkSize == 0) {
+				_bodyStopReceived = true;
+				return;
+			}
+			
+			// Check if we have the complete chunk (size + \r\n + data + \r\n)
+			std::string::size_type dataStart = sizeEnd + 2;
+			std::string::size_type dataEnd = dataStart + chunkSize;
+			
+			if (_request.size() < dataEnd + 2)
+				return; // Need more data
+			
+			// Verify chunk ends with \r\n
+			if (_request[dataEnd] != '\r' || _request[dataEnd + 1] != '\n')
+				throw BadRequest(); // Bad chunk formatting
+			
+			// Append chunk data to body
+			_body.append(_request.substr(dataStart, chunkSize));
+			
+			if (MAX_BODY_SIZE < _body.size())
+				throw PayloadTooLarge();
+			
+			// Move to next chunk
+			pos = dataEnd + 2;
+		}
+		
+		// Remove processed data from _request
+		_request.erase(0, pos);
+		return;
+	}
+	
+	if (_foundContlen)
+	{
+		// Accumulate body data until we have contentLength bytes
+		_body.append(_request);
+		_request.clear();
+		
+		if (_body.size() >= _contentLength)
+		{
+			// Trim to exact content length if we received more
+			if (_body.size() > _contentLength)
+				_body.erase(_contentLength);
+			
+			if (_body.size() > MAX_BODY_SIZE)
+				throw PayloadTooLarge();
+			
+			_bodyStopReceived = true;
+		}
+		return;
+	}
+
+	// No Content-Length or Transfer-Encoding, body is all remaining data
+	// Only allowed for HTTP/1.0
+	if (_startLine[2] != "HTTP/1.0")
+		throw BadRequest();
+	
+	_body.append(_request);
+	_request.clear();
+	
+	if (_body.size() > MAX_BODY_SIZE)
+		throw PayloadTooLarge();
 }
 
 void    HttpParser::_checkStartLine() // eventuell direkt Execution instance createn, die URI speichert
@@ -365,12 +456,21 @@ const std::string&     HttpParser::getPath() const
     return _path;
 }
 
+const std::string&	HttpParser::getHttp() const 
+{
+	return  _startLine[2];
+}
+
 std::string&	HttpParser::getRequest() {
 	return _request;
 }
 
 bool			HttpParser::isHeadStopReceived() const {
 	return _headStopReceived;
+}
+
+bool			HttpParser::isBodyStopReceived() const {
+	return _bodyStopReceived;
 }
 
 void    HttpParser::_decodeRequestTarget(std::string& requestTarget)

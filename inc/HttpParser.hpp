@@ -32,6 +32,7 @@ class HttpParser
         std::string 		_body;
         std::size_t			_bodyLength;
 		bool				_headStopReceived;
+		bool				_bodyStopReceived;
         bool				_foundContlen;
         bool				_foundHost;
         std::size_t			_contentLength;
@@ -58,6 +59,7 @@ class HttpParser
  
         // void        parse();
         void        parseHead(char* buffer, std::size_t count);
+        void        parseBody(char* buffer, std::size_t count);
         void        setBody();
         std::string trim( const std::string& value );
         bool        isAllDigits( const std::string& word );
@@ -76,8 +78,10 @@ class HttpParser
         const std::string&								getHostName() const;
         const std::string&								getHostPort() const;
 		const std::string&								getPath() const;
+        const std::string&                              getHttp() const;
 		std::string&									getRequest();
 		bool											isHeadStopReceived() const;
+		bool											isBodyStopReceived() const;
 };
 
 bool    isInRange( int num, int min, int max );
