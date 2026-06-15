@@ -144,15 +144,13 @@ void	ConfigParser::parseConfig(WebservConfLevel level) {
 }
 
 void	ConfigParser::mergeConfs() {
-	if (_httpConfs.empty())
-		return;
 	_confCtx.httpConfs = &_httpConfs;
 	for (auto& srv : _servers) {
 		_confCtx.srvConfs = &srv->srvConfs;
 		_confCtx.locConfs = &srv->location->locConfs;
 		_curLocNode = srv->location.get();
 		for (const auto& module: _modules)
-			module->mergeConfs(*this, srv->location, _confCtx);
+			module->mergeConfs(*this);
 	}
 }
 

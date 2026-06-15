@@ -11,9 +11,9 @@ public LocIndexConf {
 		WebservIndexMerger();
 		virtual ~WebservIndexMerger();
 
-        void    print(ConfCtx ctx, std::unique_ptr<LocNode>& location);
+        void    print(const ConfCtx& ctx, const LocNode* node);
         void    printHttpConf(const HttpIndexConf& httpConf);
         void    printSrvConf(const SrvIndexConf& srvConf);
-        void	printLocConfs(ConfCtx ctx, std::unique_ptr<LocNode>& location);
+        void	printLocConfs(const LocNode* node, ConfCtx ctx);
         void    printLocConf(const LocIndexConf& locConf);
 };

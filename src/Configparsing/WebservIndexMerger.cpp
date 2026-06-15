@@ -11,22 +11,20 @@ WebservIndexMerger::~WebservIndexMerger() {
 }
 
 void	WebservIndexMerger::printLocConfs(
-	ConfCtx ctx, std::unique_ptr<LocNode>& location) {
+	const LocNode* node, ConfCtx ctx) {
 	if (getLocConfPtr(ctx) != nullptr)
 		printLocConf(*dynamic_cast<const LocIndexConf*>(getLocConfPtr(ctx)));
-	for (auto& loc : location.get()->locations) {
-		ctx.locConfs = &loc.get()->locConfs;
-		printLocConfs(ctx, loc);
-	}
+	for (auto& loc : node->locations)
+		printLocConfs(loc.get(),
+			{ctx.httpConfs, ctx.srvConfs, &loc.get()->locConfs});
 }
 
-void	WebservIndexMerger::print(
-	ConfCtx ctx, std::unique_ptr<LocNode>& location) {
+void	WebservIndexMerger::print(const ConfCtx& ctx, const LocNode* node) {
 	if (getHttpConfPtr(ctx) != nullptr)
 		printHttpConf(*dynamic_cast<const HttpIndexConf*>(getHttpConfPtr(ctx)));
 	if (getSrvConfPtr(ctx) != nullptr)
 		printSrvConf(*dynamic_cast<const SrvIndexConf*>(getSrvConfPtr(ctx)));
-	printLocConfs(ctx, location);
+	printLocConfs(node, ctx);
 }
 
 void	WebservIndexMerger::printHttpConf(const HttpIndexConf& httpConf) {

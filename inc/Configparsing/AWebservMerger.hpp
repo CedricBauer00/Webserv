@@ -10,10 +10,11 @@ class	AWebservMerger : virtual public IWebservModule{
 		AWebservMerger() = default;
 		virtual ~AWebservMerger() = default;
 
-		void	inheritFromHttpConf(ConfigParser& parser,
-			ConfCtx& ctx, HttpConf* httpConfPtr) {
+		void	inheritFromHttpConf(ConfigParser& parser) {
 			WebservConfLevel	level;
 			Tokens&				tokens = parser.getTokens();
+			const ConfCtx&		ctx = parser.getConfCtx();
+			HttpConf*			httpConfPtr = getHttpConfPtr(ctx);
 
 			if (httpConfPtr == nullptr)
 				return;
@@ -34,28 +35,28 @@ class	AWebservMerger : virtual public IWebservModule{
 				getLocConfPtr(ctx)->inheritFrom(defaultLocConf);
 		};
 
-		void	mergeLocConfs(std::unique_ptr<LocNode>& location,
+		void	mergeLocConfs(const LocNode* node,
 			ConfCtx confctx, LocConf* parentLocConf) {
-			if (parentLocConf != nullptr) {
+			if (parentLocConf != nullptr) { 
 				initConfIfEmptyAtLevel(
-					confctx, WebservConfLevel::LOCATION, location.get());
+					confctx, WebservConfLevel::LOCATION, node);
 				getLocConfPtr(confctx)->inheritFrom(*parentLocConf);
 			}
 			parentLocConf = getLocConfPtr(confctx);
-			for (auto& loc : location.get()->locations) {
+			for (auto& loc : node->locations) {
 				confctx.locConfs = &loc.get()->locConfs;
-				mergeLocConfs(loc, confctx, parentLocConf);
+				mergeLocConfs(loc.get(), confctx, parentLocConf);
 			}
 		}
 
-		virtual void	print(ConfCtx ctx, std::unique_ptr<LocNode>& location) = 0;
+		virtual void	print(const ConfCtx& ctx, const LocNode* node) = 0;
 
-		void	mergeConfs(ConfigParser& parser,
-			std::unique_ptr<LocNode>& location, ConfCtx& confctx) override {
-			inheritFromHttpConf(parser, confctx, getHttpConfPtr(confctx));
-			assignDefaults(confctx, dynamic_cast<const SrvConf&>(*this),
+		void	mergeConfs(ConfigParser& parser) override {
+			inheritFromHttpConf(parser);
+			assignDefaults(parser.getConfCtx(),
+				dynamic_cast<const SrvConf&>(*this),
 				dynamic_cast<const LocConf&>(*this));
-			mergeLocConfs(location, confctx, nullptr);
-			print(confctx, location);
+			mergeLocConfs(&parser.getLocNode(), parser.getConfCtx(), nullptr);
+			print(parser.getConfCtx(), &parser.getLocNode());
 		}
 };

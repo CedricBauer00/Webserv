@@ -11,9 +11,9 @@ public LocCoreConf {
 		WebservCoreMerger();
 		virtual ~WebservCoreMerger();
 
-        void    print(ConfCtx ctx, std::unique_ptr<LocNode>& location);
+        void    print(const ConfCtx& ctx, const LocNode* node);
         void    printHttpConf(const HttpCoreConf& httpConf);
         void    printSrvConf(const SrvCoreConf& srvConf);
-        void	printLocConfs(ConfCtx ctx, std::unique_ptr<LocNode>& location);
+        void	printLocConfs(const LocNode* node, ConfCtx ctx);
         void    printLocConf(const LocCoreConf& locConf);
 };

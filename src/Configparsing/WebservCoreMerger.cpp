@@ -22,22 +22,20 @@ WebservCoreMerger::~WebservCoreMerger() {
 }
 
 void	WebservCoreMerger::printLocConfs(
-	ConfCtx ctx, std::unique_ptr<LocNode>& location) {
+	const LocNode* node, const ConfCtx ctx) {
 	if (getLocConfPtr(ctx) != nullptr)
 		printLocConf(*dynamic_cast<const LocCoreConf*>(getLocConfPtr(ctx)));
-	for (auto& loc : location.get()->locations) {
-		ctx.locConfs = &loc.get()->locConfs;
-		printLocConfs(ctx, loc);
-	}
+	for (auto& loc : node->locations)
+		printLocConfs(loc.get(),
+			{ctx.httpConfs, ctx.srvConfs, &loc.get()->locConfs});
 }
 
-void	WebservCoreMerger::print(
-	ConfCtx ctx, std::unique_ptr<LocNode>& location) {
+void	WebservCoreMerger::print(const ConfCtx& ctx, const LocNode* node) {
 	if (getHttpConfPtr(ctx) != nullptr)
 		printHttpConf(*dynamic_cast<const HttpCoreConf*>(getHttpConfPtr(ctx)));
 	if (getSrvConfPtr(ctx) != nullptr)
 		printSrvConf(*dynamic_cast<const SrvCoreConf*>(getSrvConfPtr(ctx)));
-	printLocConfs(ctx, location);
+	printLocConfs(node, ctx);
 }
 
 void	WebservCoreMerger::printHttpConf(const HttpCoreConf& httpConf) {
