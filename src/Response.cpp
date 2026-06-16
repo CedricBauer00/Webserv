@@ -48,7 +48,6 @@ void    Response::build()
 
 void    Response::setBody( std::string content )
 {
-    // <html><body>Hello, World!</body></html>
     _body = content;
 }
 

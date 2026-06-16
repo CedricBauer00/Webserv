@@ -4,24 +4,6 @@ Method::Method() : _isCgiFile( false ) {}
 
 Method::~Method() {}
 
-std::string    Method::joinRootAndPath(
-    std::string path, whichMethod whichMethod, const LocNode& location)
-{
-    if (!location.locConfs.empty() && location.locConfs[0].get() != nullptr)
-        _root = dynamic_cast<LocCoreConf*>(location.locConfs[0].get())->root;
-    else _root = std::filesystem::current_path().string();
-
-    if ( whichMethod == METHOD_POST )
-    {
-        if ( !getUploadEnabled() )
-            throw Forbidden();
-        if( !( _path.empty() ) )
-            _root = getUploadPath().empty() ? _root : getUploadPath();
-        std::cout << "Upload Path: " << _root << std::endl;
-    }
-    return _root + path;
-}
-
 void    Method::getMethod( std::string path, Response &res, const LocNode& location ) // status codes 200, 402, 404
 {
     std::error_code ec;
@@ -65,9 +47,9 @@ void    Method::getMethod( std::string path, Response &res, const LocNode& locat
     {
         if ( path.back() != '/' )
         {
-            std::cout << "_root : " << _root << std::endl; 
-            std::string newStr = path.substr( _root.size() ) + "/";
-            throw MovedPermanently( newStr );
+            // std::cout << "_root : " << _root << std::endl; 
+            // std::string newStr = path.substr( _root.size() ) + "/";
+            throw MovedPermanently( path );
         }
     
         if (2 <= location.locConfs.size()) {

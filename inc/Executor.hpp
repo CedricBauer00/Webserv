@@ -6,9 +6,19 @@
 
 class	Executor: public AEventHandler {
 	private:
-		HttpParser	_parser;
+		HttpParser			_parser;
 		std::function<const Srv*(const std::string&)> _selectServer;
-		Response	_res;
+		Response			_res;
+		const LocNode*		_loc;
+		const LocCoreConf*	_locCoreConf{nullptr};
+		const LocIndexConf*	_locIndexConf{nullptr};
+		std::string			_filesystemPath;
+
+		void	_selectLocation(const std::string& path, const LocNode& root);
+		void	_resolveLocConfs();
+		void	_setWorkingDirAsPath();
+		void	_assertHttpMethodAllowed();
+		void	_resolveFilesystemPath();
 
 	public:
 		Executor() = delete;
@@ -17,7 +27,5 @@ class	Executor: public AEventHandler {
             std::function<const Srv*(const std::string&)>&& selectServer);
 		virtual ~Executor();
 
-		static const LocNode*	selectLocation(const std::string& path,
-            const LocNode& root);
 		void	process(uint32_t events) override;
 };

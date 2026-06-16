@@ -21,24 +21,55 @@ Executor::~Executor() {
 	std::cout << "FD " << _fd << ": [Executor] destroyed" << std::endl;
 }
 
-const LocNode*	Executor::selectLocation(const std::string& path,
-	const LocNode& root) {
-	const LocNode* bestMatch = nullptr;
+void	Executor::_selectLocation(const std::string& path, const LocNode& root)
+{
 	std::deque<const LocNode*> queue;
 	queue.push_back(&root);
 	while (!queue.empty()) {
 		const LocNode* node = queue.front();
 		queue.pop_front();
-		if (node->matchType == 0 && node->name == path)
-			return node;
+		if (node->matchType == 0 && node->name == path) {
+			_loc = node;
+			_resolveLocConfs();
+			return;
+		}
 		else if (path.compare(0, node->name.size(), node->name) == 0) {
-			if (bestMatch == nullptr || node->name.size() > bestMatch->name.size())
-				bestMatch = node;
+			if (_loc == nullptr || _loc->name.size() < node->name.size())
+				_loc = node;
 		}
 		for (const auto& loc : node->locations)
 			queue.push_back(loc.get());
 	}
-	return bestMatch;
+	_resolveLocConfs();
+}
+
+void	Executor::_resolveLocConfs() {
+	if (!_loc)
+		return;
+	if (0 < _loc->locConfs.size())
+		_locCoreConf = dynamic_cast<const LocCoreConf*>(_loc->locConfs[0].get());
+	if (1 < _loc->locConfs.size())
+		_locIndexConf = dynamic_cast<const LocIndexConf*>(_loc->locConfs[1].get());
+}
+
+void	Executor::_setWorkingDirAsPath() {
+	_filesystemPath = std::filesystem::current_path().string();
+}
+
+void	Executor::_assertHttpMethodAllowed() {
+	if (!(_parser.getReqMethod() & *_locCoreConf->allowedMethods)) {
+		std::cerr << "Requested method not allowed" << "\n";
+		throw MethodNotAllowed();
+	}
+}
+
+void	Executor::_resolveFilesystemPath() {
+	if (*_locCoreConf->alias)
+		_filesystemPath = _locCoreConf->root\
+			+ _parser.getPath().substr(_loc->name.size());
+	else 
+		_filesystemPath = _locCoreConf->root + _parser.getPath();
+	std::cout << "FilesystemPath: " << _filesystemPath << std::endl;
 }
 
 void	Executor::process(uint32_t events) {
@@ -63,29 +94,22 @@ void	Executor::process(uint32_t events) {
 				}
 				std::cout << '\n';
 			}
-			const LocNode* loc = selectLocation(
-				_parser.getPath(), *server->location.get()); // select location based on URI
-			std::cout << "Selected location: '" << loc->name 
-			<< "' with match type " << loc->matchType << "\n";
+
+			_selectLocation(_parser.getPath(), *server->location.get()); // select location based on URI
+			std::cout << "Selected location: '" << _loc->name << "' with match type " << _loc->matchType << "\n";
 	
-			whichMethod whichMethod = _parser.getMethod();
-	
-			if (!loc->locConfs.empty() && loc->locConfs[0].get() != nullptr) {
-				auto* locConf =\
-				dynamic_cast<const LocCoreConf*>(loc->locConfs[0].get());
-				if (!(_parser.getReqMethod() & locConf->allowedMethods.value())) {
-					std::cerr << "Requested method not allowed" << "\n";
-					throw MethodNotAllowed();
-				}
+			if (_locCoreConf) {
+				_assertHttpMethodAllowed();
+				_resolveFilesystemPath();
 			}
-	
-			std::string joinedPath = m.joinRootAndPath(_parser.getPath(), whichMethod, *loc);
-			std::cout << "joinedPath: " << joinedPath << std::endl;
+			else
+				_setWorkingDirAsPath();
 			
+            whichMethod whichMethod = _parser.getMethod();
 			if (whichMethod == METHOD_POST) {
 				if (_parser.headerHasContlen() && MAX_BODY_SIZE < _parser.getContlen())
 					throw PayloadTooLarge();
-				_parser.parseBody(nullptr, 0);
+				_parser.parseBody(nullptr, 0); //consume body remaining from header parsing
 				if (_parser.bodyStopReceived()) {
 					_res.build();
 					new Writer(*this, std::move(_res));
@@ -95,13 +119,12 @@ void	Executor::process(uint32_t events) {
 			}
 			else {
 				if ( whichMethod == METHOD_GET )
-					m.getMethod( joinedPath, _res, *loc ); // && if GET method is allowed
+					m.getMethod( _filesystemPath, _res, *_loc ); // && if GET method is allowed
 				else if ( whichMethod == METHOD_DELETE )
-					m.deleteMethod( joinedPath, _res, *loc ); // && if DELETE method is allowed
+					m.deleteMethod( _filesystemPath, _res, *_loc ); // && if DELETE method is allowed
 				/// Response Buidling 
 				_res.build();
 				new Writer(*this, std::move(_res));
-				std::cout << ORANGE << _res.getResponse() << RESET << std::endl;
 			}
 		}
 		catch ( const HttpException& e )
