@@ -145,11 +145,12 @@ void WebservCoreParser::_parseAllow(const std::string& d,
     Tokens values;
 
 	while (1) {
-        if (methodMap.count(t.front()))
+        auto it = methodMap.find(t.front());
+        if (it != methodMap.end())
             if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
                 values.push_back(t.front());
             else
-                mask |= methodMap.at(t.front()).second;
+                mask |= it->second.first;
         else
             throw std::runtime_error("Invalid value '" + t.front()
                 + "'for directive '" + d + "'");

@@ -57,18 +57,13 @@ class HttpParser
         HttpParser& operator=(HttpParser&& other) noexcept = default;
         ~HttpParser();
  
-        // void        parse();
         void        parseHead(char* buffer, std::size_t count);
         void        parseBody(char* buffer, std::size_t count);
         void        setBody();
         std::string trim( const std::string& value );
         bool        isAllDigits( const std::string& word );
-        // void        initIss( std::string request );
         void        checkHostHeader( const std::string& value );
         void        validatePort( std::string portStr );
-        void        checkCgiExtension();
-
-        // void    setHttpVersion();
         
         const std::vector<std::string>&					getStartLine() const;
         const std::string&								getQuery() const;
@@ -81,7 +76,6 @@ class HttpParser
         const std::string&								getHostPort() const;
 		const std::string&								getPath() const;
         const std::string&                              getHttp() const;
-		std::string&									getRequest();
 		bool											headStopReceived() const;
 		bool											bodyStopReceived() const;
 		bool											headerHasContlen() const;
@@ -90,8 +84,3 @@ class HttpParser
 };
 
 bool    isInRange( int num, int min, int max );
-
-void    HttpParsing( std::string request );
-
-// JSON POST
-// falls POST method, check ob eine json (Content-Type: /json), dann ignore erste '{' und letzte '}' character

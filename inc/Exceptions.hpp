@@ -55,11 +55,11 @@ class Forbidden : public HttpException
 class MovedPermanently : public HttpException
 {
     public:
-        MovedPermanently( std::string& location ) : HttpException( 301, "Moved Permanently", location ) {}
+        MovedPermanently(const std::string& location ) : HttpException( 301, "Moved Permanently", location ) {}
 };
 
 class Found : public HttpException
 {
     public:
-        Found( std::string& location ) : HttpException( 302, "Found", location ) {}
+        Found(const std::string& location ) : HttpException( 302, "Found", location ) {}
 };

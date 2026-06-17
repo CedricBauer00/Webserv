@@ -233,10 +233,11 @@ void    HttpParser::_checkStartLine() // eventuell direkt Execution instance cre
 void    HttpParser::_setMethod() // eventuell hier Execution class instance createn, die die Method selbst speichert
 {
     std::cout << "startline:" << _startLine[ 0 ] << std::endl;
-    if (!methodMap.count(_startLine[0]))
+    auto it = methodMap.find(_startLine[0]);
+    if (it == methodMap.end())
 		throw MethodNotImplemented();
-	_methodMask = methodMap.at(_startLine[0]).first;
-	_method = methodMap.at(_startLine[0]).second;
+	_methodMask = it->second.first;
+	_method = it->second.second;
     std::cout << "_method:" << _method << std::endl;
     
 }
@@ -386,19 +387,6 @@ void    HttpParser::checkHostHeader(const std::string& value )
 
     _foundHost = true;
 }
-// [:::::example.com]   faield: wird gepassed!
-// [example.com]        faield: wird gepassed!
-// example.com]
-// printf 'GET /legacy/location/ HTTP/1.1\r\nHOST: ccc[]cc\r\nHEAEDER1: A A \r\n\r\n' | nc 127.0.0.2 3490   
-// ~$ printf 'GET /legacy/location/ HTTP/1.1\r\nHOST: [ccc]\r\nHEAEDER1: A A \r\n\r\n' | nc 127.0.0.2 3490
-// ~$ printf 'GET /legacy/location/ HTTP/1.1\r\nHOST: [:ccc]\r\nHEAEDER1: A A \r\n\r\n' | nc 127.0.0.2 3490
-// ~$ printf 'GET /legacy/location/ HTTP/1.1\r\nHOST: [::ccc]\r\nHEAEDER1: A A \r\n\r\n' | nc 127.0.0.2 3490
-// ~$ printf 'GET /legacy/location/ HTTP/1.1\r\nHOST: [::]:6553\r\nHEAEDER1: A A \r\n\r\n' | nc 127.0.0.2 3490
-
-bool    isInRange( int num, int min, int max )
-{
-    return ( num >= min && num <= max );
-}
 
 const std::vector<std::string>&    HttpParser::getStartLine() const
 {
@@ -420,14 +408,14 @@ const std::string&    HttpParser::getBody() const
     return _body;
 }
 
-method  HttpParser::getMethod() const
-{
-    return _method;
-}
-
 const std::string&	HttpParser::getMethodStr() const
 {
 	return _startLine[0];
+}
+
+method  HttpParser::getMethod() const
+{
+    return _method;
 }
 
 unsigned int    HttpParser::getMethodMask() const
@@ -453,10 +441,6 @@ const std::string&     HttpParser::getPath() const
 const std::string&	HttpParser::getHttp() const 
 {
 	return  _startLine[2];
-}
-
-std::string&	HttpParser::getRequest() {
-	return _request;
 }
 
 bool			HttpParser::headStopReceived() const {
@@ -536,9 +520,7 @@ void    HttpParser::_normalizePath() {
     _path = std::move(nPath);
 }
 
-// bool            HttpParser::isCgifile()
-// {
-//     return _isCgiFile;
-// }
-// test for carriage return
-// printf 'GET /Something HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
+bool    isInRange( int num, int min, int max )
+{
+    return ( num >= min && num <= max );
+}

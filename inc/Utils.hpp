@@ -8,7 +8,5 @@
 class Response;
 
 std::string setStatus(int code);
-std::string getFileType( std::string path );
-// bool        autoIndexActive();
-void        createAutoIndex( std::string mockUri, Response &res );
-std::string getExtension( std::string type );
+std::string getFileType(const std::string& path);
+std::string getExtension(const std::string& contentType);

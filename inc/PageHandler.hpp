@@ -21,8 +21,4 @@ class PageHandler
         void        setErrorPage( Response &res );
         void        setRedirectPage( Response &res, std::string uri );
         void        initErrorPages( const std::map<int, std::string>& configErroPages );
-
-
 };
-
-std::string getFileType( std::string path );

@@ -1,5 +1,6 @@
 #include "../inc/Method.hpp"
-#include "../inc/HttpParser.hpp"
+#include "../inc/Executor.hpp"
+
 Method::Method() {}
 
 Method::~Method() {}
@@ -7,130 +8,129 @@ Method::~Method() {}
 void    Method::_setResponse(Response &res,
     const std::string& statusCode,
     const std::string& reasonPhrase,
-    const std::string& path) {
+    const std::string& contentType) {
         res.setCodeAndPhrase(statusCode, reasonPhrase);
         res.setHeaders("Content-Length", std::to_string(_fileContent.size()));
         if (!_fileContent.empty()) {
-            res.setHeaders("Content-Type", getFileType(path));
+            res.setHeaders("Content-Type", contentType);
             res.setBody(std::move(_fileContent));
         }
+		res.build();
 }
 
-void    Method::getMethod( std::string path, Response &res, const LocNode& location ) // status codes 200, 402, 404
+void	Method::_createAutoIndexPage(const std::string &path, Response &res,
+	const HttpParser& parser)
+{
+    std::string& html = _fileContent;
+
+    html += "<!DOCTYPE html>\n";
+	html += "<html>\n";
+	html += "<head><title>index of " + parser.getPath() + "</title></head>\n";
+    html += "<body>\n";
+	html += "<h1>Index of " + parser.getPath() + "</h1>\n";
+    html += "<hr>\n";
+    html += "<pre>\n";
+
+    for (const auto& x : std::filesystem::directory_iterator(path)) /// filesystem issues
+    {
+        auto name = x.path().filename().string();    
+        if (x.is_regular_file())
+            html += "<a href=\"" +  name + "\">" + name + "</a>\n";
+        else if (x.is_directory())
+            html += "<a href=\"" +  name + "/\">" + name + "/</a>\n";
+    }
+
+    html += "</pre>\n</body>\n</html>\n";
+
+	_setResponse(res, "200", "OK", "text/html");
+}
+
+void    Method::getMethod(const std::string &path, Response &res,
+	const HttpParser& parser, const LocIndexConf* locIndexConf) // status codes 200, 402, 404
 {
     std::error_code ec;
     
-    if ( std::filesystem::is_regular_file( path ) )
+    if ( std::filesystem::is_regular_file(path) )
     {
-        std::cout << "is a file1" << std::endl;
-
-        if ( !( std::filesystem::exists( path, ec ) ) )
+        if ( !std::filesystem::exists( path, ec ) )
             throw NotFound();
 
         std::ifstream ifs(path, std::ios::binary); 
-        if ( !( ifs.is_open() ) ) // permissions check
-            throw NotFound();
+        if (!ifs) // permissions check
+            throw Forbidden();
 
-        _fileContent = std::string(
-            (std::istreambuf_iterator<char>(ifs)),
-            std::istreambuf_iterator<char>());
-        _setResponse(res, "200", "OK", path);
-        return ;
+        _fileContent = std::string(std::istreambuf_iterator<char>(ifs),
+			std::istreambuf_iterator<char>());
+        _setResponse(res, "200", "OK", getFileType(path));
     }
-    else if ( std::filesystem::is_directory( path ) )
+    else if ( std::filesystem::is_directory(path) )
     {
-        if ( path.back() != '/' )
-        {
-            // std::cout << "_root : " << _root << std::endl; 
-            // std::string newStr = path.substr( _root.size() ) + "/";
-            throw MovedPermanently( path );
-        }
+        if (path.back() != '/')
+			throw MovedPermanently(parser.getPath() + "/");
     
-        if (2 <= location.locConfs.size()) {
-            std::cout << location.locConfs.size() << std::endl;
-            for ( auto x : dynamic_cast<LocIndexConf*>(location.locConfs[1].get())->indexFiles) // replace stack with all files in directory - indexes from location 
+        if (locIndexConf) {
+            for (auto& x : locIndexConf->indexFiles) // replace stack with all files in directory - indexes from location 
             {
-                std::string joinedPath = path + x;
-                
-                std::cout << "joinedPath: " << joinedPath << std::endl;
-    
-                if ( std::filesystem::exists( joinedPath, ec ) )
+                std::string indexPath = path + x;
+                    
+                if (std::filesystem::exists(indexPath, ec))
                 {
-                    std::cout << "entered" << std::endl;
-                    std::ifstream ifs( joinedPath ); 
-                    std::cout  << joinedPath << std::endl;
-    
-                    if ( !( ifs.is_open() ) ) // permissions check
-                        throw NotFound();
+                    std::ifstream ifs(indexPath); 
+                    if (!ifs) // permissions check
+                        continue;
 
-                    std::ostringstream oss;
-            
-                    oss << ifs.rdbuf();
-    
-                    _fileContent = oss.str();
-    
-                    _setResponse(res, "200", "OK", path);
+                    _fileContent = std::string(std::istreambuf_iterator<char>(ifs),
+						std::istreambuf_iterator<char>());
+					_setResponse(res, "200", "OK", getFileType(indexPath));
                     return ;
                 }
             }
             
-            auto* locConf = dynamic_cast<LocIndexConf*>( location.locConfs[ 1 ].get() );
-            if ( locConf && locConf->autoindex && *locConf->autoindex )
-            {
-                std::cout << "autoindex" << std::endl;
-                createAutoIndex( path, res );
+            if (*locIndexConf->autoindex) {
+                _createAutoIndexPage(path, res, parser);
                 return ;
             }
         }
-        throw NotFound();
+        throw Forbidden();
     }
     else
-        throw NotFound();
+        throw Forbidden();
 }
 
 void    Method::deleteMethod( std::string path, Response &res) // status codes 200, 402, 404
 {
     std::error_code ec;
-    if ( !( std::filesystem::exists( path, ec ) ) )
+    if ( !std::filesystem::exists( path, ec ) )
         throw NotFound();
 
     if (std::filesystem::remove_all( path , ec) == (unsigned long)-1)
 		throw Forbidden();
 
-	_setResponse(res, "204", "No Content", path);
+	_setResponse(res, "204", "No Content", "");
 }
 
-void    Method::postMethod( std::string path, Response &res, std::string contentBody, const LocNode& location, std::unordered_map<std::string, std::string>	headers ) // status codes 200, 402, 404
-{
-    // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
-    (void)location;
-    
-    if ( !std::filesystem::is_directory( path ) )
-        throw Forbidden();
+void    Method::postMethod(
+	const std::string &path, Response &res, const HttpParser& parser) // status codes 200, 402, 404
+{   
+    if (!std::filesystem::is_directory(path))
+		throw Forbidden();
 
-    // create file 
-    std::string fileName = "/upload";
-    fileName += getTimeStamp();
-    // fileName += ".bin"; //use map to determine file extension
-    std::string type = headers[ "content-type" ];
-    // if ( !type )
-        // content-type is empty
-    std::string extension = getExtension( type );
-    fileName += extension; //use map to determine file extension
-    
-    std::cout << "FileName: " << fileName << "\n" << "JoinedPath: " << path + fileName << "\n\nPosted Body:\n" << contentBody << std::endl;
-    _postedFile =  path + fileName;
-    std::ofstream ofs( _postedFile );
-    
+	auto it = parser.getHeaders().find("content-type");
+	if (it == parser.getHeaders().end())
+		throw BadRequest();
+
+    std::string fileName = "/upload" + getTimeStamp() + getExtension(it->second);
+
+    std::ofstream ofs(path + fileName);
     if ( !ofs )
         throw BadRequest();
+    ofs << parser.getBody();
 
-    ofs << contentBody;
-    _setResponse(res, "201", "Created", path);
-    return ;
+    _setResponse(res, "201", "Created", getFileType(path));
 }
 
-void    Method::runCgi(const std::string& path, Response &res, const HttpParser& parser) ///dynamic path form request instead of hardcoded getCgiScript function
+void    Method::runCgi(
+	const std::string& path, Response &res, const HttpParser& parser) ///dynamic path form request instead of hardcoded getCgiScript function
 {
     if (!std::filesystem::is_regular_file(path))
 		throw NotFound();
@@ -144,10 +144,7 @@ void    Method::runCgi(const std::string& path, Response &res, const HttpParser&
 
     if ( pid == 0 )
     {
-        std::string cgi; //= getCgiPath();
-        std::string script; //= getScript();
-
-		std::string gateway = "GATEWAY_INTERFACE=" + parser.getQuery();
+		std::string gateway = "GATEWAY_INTERFACE=" + std::string("CGI/1.1");
         std::string query = "QUERY_STRING=" + parser.getQuery();
 		std::string raddr = "REMOTE_ADDR=" + std::string("203.0.113.42");
 		std::string reqMethod = "REQUEST_METHOD=" + parser.getMethodStr();
@@ -184,8 +181,8 @@ void    Method::runCgi(const std::string& path, Response &res, const HttpParser&
         char *argv[] = {(char *)path.c_str(), NULL};
         execve(path.c_str(), argv, envp ); // returned direkt aus function?
 
-        perror( "execve failed" );
-        _exit( 1 );
+        perror("execve failed");
+        _exit(1);
     }
     else
     {
@@ -196,8 +193,7 @@ void    Method::runCgi(const std::string& path, Response &res, const HttpParser&
         ssize_t bytesRead;
 
 		std::string	content;
-        while ( ( bytesRead = read( outPipe[ 0 ], buffer, sizeof( buffer ))) > 0 )
-        {
+        while ( ( bytesRead = read( outPipe[ 0 ], buffer, sizeof( buffer ))) > 0 ) {
             content.append( buffer, bytesRead );
         }
 
