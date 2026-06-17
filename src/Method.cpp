@@ -142,7 +142,7 @@ void    Method::deleteMethod( std::string path, Response &res, const LocNode& lo
 }
 
 // test: printf 'POST /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
-void    Method::postMethod( std::string path, Response &res, std::string contentBody, const LocNode& location ) // status codes 200, 402, 404
+void    Method::postMethod( std::string path, Response &res, std::string contentBody, const LocNode& location, std::unordered_map<std::string, std::string>	headers ) // status codes 200, 402, 404
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
     (void)location;
@@ -153,7 +153,12 @@ void    Method::postMethod( std::string path, Response &res, std::string content
     // create file 
     std::string fileName = "upload";
     fileName += getTimeStamp();
-    fileName += ".bin"; //use map to determine file extension
+    // fileName += ".bin"; //use map to determine file extension
+    std::string type = headers[ "content-type" ];
+    // if ( !type )
+        // content-type is empty
+    std::string extension = getExtension( type );
+    fileName += extension; //use map to determine file extension
     
     std::cout << "FileName: " << fileName << "\n" << "JoinedPath: " << path + fileName << "\n\nPosted Body:\n" << contentBody << std::endl;
     _postedFile =  path + fileName;

@@ -88,6 +88,28 @@ std::string getFileType( std::string path )
         return "application/octet-stream";
 }
 
+std::string getExtension( std::string type )
+{
+    if ( type == "text/html" )
+        return ".html";
+    else if ( type == "text/css")
+        return ".css";
+    else if ( type == "text/plain")
+        return ".text";
+    else if ( type == "application/javascript" )
+        return ".js";
+    else if ( type == "application/json")
+        return ".json";
+    else if ( type == "application/xml")
+        return ".xml";
+    else if ( type == "image/png")
+        return ".png";
+    else if ( type == "image/jpeg")
+        return ".jpeg";
+    else
+        return ".bin";
+}
+
 void createAutoIndex( std::string mockUri, Response &res )
 {
     std::vector<std::string> all;

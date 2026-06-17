@@ -11,3 +11,4 @@ std::string setStatus(int code);
 std::string getFileType( std::string path );
 // bool        autoIndexActive();
 void        createAutoIndex( std::string mockUri, Response &res );
+std::string getExtension( std::string type );

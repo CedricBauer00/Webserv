@@ -33,7 +33,9 @@ class Method
         Method();
         ~Method();
         void    getMethod( std::string newPath, Response &res, const LocNode& location );
-        void    postMethod( std::string newPath, Response &res, std::string contentBody, const LocNode& location ); // status codes 200, 402, 404
+        // void    postMethod( std::string newPath, Response &res, std::string contentBody, const LocNode& location ); // status codes 200, 402, 404
+        void    postMethod( std::string path, Response &res, std::string contentBody, const LocNode& location, std::unordered_map<std::string, std::string>	headers ); // status codes 200, 402, 404
+
         void    deleteMethod( std::string newPath, Response &res, const LocNode& location ); // status codes 200, 402, 404
         void    runCgi( std::string &content, bool isPost );
         std::string getCgiPath();
