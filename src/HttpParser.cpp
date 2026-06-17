@@ -405,6 +405,11 @@ const std::vector<std::string>&    HttpParser::getStartLine() const
 	return _startLine;
 }
 
+const std::string&	HttpParser::getQuery() const
+{
+	return _query;
+}
+
 const std::unordered_map<std::string, std::string>&    HttpParser::getHeaders() const
 {
 	return _headers;
@@ -418,6 +423,11 @@ const std::string&    HttpParser::getBody() const
 method  HttpParser::getMethod() const
 {
     return _method;
+}
+
+const std::string&	HttpParser::getMethodStr() const
+{
+	return _startLine[0];
 }
 
 unsigned int    HttpParser::getMethodMask() const

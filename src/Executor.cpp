@@ -106,29 +106,37 @@ void	Executor::process(uint32_t events) {
 			}
 			else
 				_setWorkingDirAsFilesystemPath();
-			
-            method whichMethod = _parser.getMethod();
-			if (whichMethod == METHOD_POST) {
-				if (_parser.headerHasContlen() && MAX_BODY_SIZE < _parser.getContlen())
-					throw PayloadTooLarge();
-				_parser.parseBody(nullptr, 0); //consume body remaining from header parsing
-				if (_parser.bodyStopReceived()) {
-					m.postMethod(_filesystemPath, _res, _parser.getBody(), *_loc, _parser.getHeaders());
+
+			if (_loc->name != "/cgi") {
+				method whichMethod = _parser.getMethod();
+				if (whichMethod == METHOD_POST) {
+					if (_parser.headerHasContlen() && MAX_BODY_SIZE < _parser.getContlen())
+						throw PayloadTooLarge();
+					_parser.parseBody(nullptr, 0); //consume body remaining from header parsing
+					if (_parser.bodyStopReceived()) {
+						m.postMethod(_filesystemPath, _res, _parser.getBody(), *_loc, _parser.getHeaders());
+						_res.build();
+						new Writer(*this, std::move(_res));
+					}
+					else
+						new BodyReader(*this, std::move(_parser));
+				}
+				else {
+					if (whichMethod == METHOD_GET)
+						m.getMethod( _filesystemPath, _res, *_loc );
+					else if (whichMethod == METHOD_DELETE)
+						m.deleteMethod(_filesystemPath, _res);
+					/// Response Buidling 
 					_res.build();
 					new Writer(*this, std::move(_res));
-				}
-				else
-					new BodyReader(*this, std::move(_parser));
+				} 
 			}
 			else {
-				if (whichMethod == METHOD_GET)
-					m.getMethod( _filesystemPath, _res, *_loc );
-				else if (whichMethod == METHOD_DELETE)
-					m.deleteMethod( _filesystemPath, _res, *_loc );
-				/// Response Buidling 
+				m.runCgi(_filesystemPath, _res, _parser);
 				_res.build();
 				new Writer(*this, std::move(_res));
 			}
+
 		}
 		catch ( const HttpException& e )
 		{

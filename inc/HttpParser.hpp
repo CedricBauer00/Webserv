@@ -71,8 +71,10 @@ class HttpParser
         // void    setHttpVersion();
         
         const std::vector<std::string>&					getStartLine() const;
+        const std::string&								getQuery() const;
         const std::unordered_map<std::string, std::string>&	getHeaders() const;
         const std::string&								getBody() const;
+		const std::string&								getMethodStr() const;
         method										    getMethod() const;
         unsigned int									getMethodMask() const;
         const std::string&								getHostName() const;

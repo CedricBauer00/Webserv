@@ -15,14 +15,14 @@
 #include "../inc/Configparsing/WebservCoreModule.hpp"
 #include "../inc/Configparsing/WebservIndexModule.hpp"
 
+class HttpParser;
+
 class Method
 {
     private:
         std::string _path;
-        std::string _query;
         std::string _postedFile;
         std::string _fileContent;
-        bool        _isCgiFile;
 
         void    _setResponse(Response &res,
             const std::string& statusCode,
@@ -36,21 +36,9 @@ class Method
         // void    postMethod( std::string newPath, Response &res, std::string contentBody, const LocNode& location ); // status codes 200, 402, 404
         void    postMethod( std::string path, Response &res, std::string contentBody, const LocNode& location, std::unordered_map<std::string, std::string>	headers ); // status codes 200, 402, 404
 
-        void    deleteMethod( std::string newPath, Response &res, const LocNode& location ); // status codes 200, 402, 404
-        void    runCgi( std::string &content, bool isPost );
-        std::string getCgiPath();
-        std::string getScript();
+        void    deleteMethod(std::string newPath, Response &res); // status codes 200, 402, 404
+        void    runCgi(const std::string &path, Response &res, const HttpParser& parser);
         void    checkCgiExtension();
 };
 
-// bool        autoIndexActive();
-// void        createAutoIndex( std::string mockUri, Response &res );
-
-std::string getRootPath();
-bool        getUploadEnabled();
-std::string getUploadPath();
-bool        getAllowDeleteDir();
-bool        getAllowedToOverwrite();
 std::string getTimeStamp();
-bool        getIsCgiLocation();
-bool        autoIndexActive(); // still to implement: return bool for autoindex
