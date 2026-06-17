@@ -5,7 +5,7 @@
 WebservCoreMerger::WebservCoreMerger() :
 HttpCoreConf(),
 SrvCoreConf({}, 10000, WebservMsec{1000}, true, true, true, 0),
-LocCoreConf(11,
+LocCoreConf(7,
 	std::filesystem::current_path().string(),
 	false,
 	{},

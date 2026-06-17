@@ -78,7 +78,8 @@ void    HeadReader::process(uint32_t events) {
 			new Executor(*this, std::move(_parser), _selectServerFactory());
 		}
 		catch (const HttpException& e) {
-			std::cerr << "FD " << _fd << ": [HeadReader] HTTP error: " << std::endl;
+			std::cerr << "FD " << _fd 
+			<< ": [HeadReader] HTTP error: " << e.what() << std::endl;
 		}
 	}
     catch (const wouldBlockException& e) {

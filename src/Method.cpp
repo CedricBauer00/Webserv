@@ -151,7 +151,7 @@ void    Method::postMethod( std::string path, Response &res, std::string content
         throw Forbidden();
 
     // create file 
-    std::string fileName = "upload";
+    std::string fileName = "/upload";
     fileName += getTimeStamp();
     // fileName += ".bin"; //use map to determine file extension
     std::string type = headers[ "content-type" ];

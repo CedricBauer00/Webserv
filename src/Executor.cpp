@@ -113,6 +113,7 @@ void	Executor::process(uint32_t events) {
 					throw PayloadTooLarge();
 				_parser.parseBody(nullptr, 0); //consume body remaining from header parsing
 				if (_parser.bodyStopReceived()) {
+					m.postMethod(_filesystemPath, _res, _parser.getBody(), *_loc, _parser.getHeaders());
 					_res.build();
 					new Writer(*this, std::move(_res));
 				}
