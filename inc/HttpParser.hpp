@@ -77,7 +77,7 @@ class HttpParser
         const std::unordered_map<std::string, std::string>&	getHeaders() const;
         const std::string&								getBody() const;
         whichMethod										getMethod() const;
-        unsigned int									getReqMethod() const;
+        unsigned int									getReqMethodMask() const;
         const std::string&								getHostName() const;
         const std::string&								getHostPort() const;
 		const std::string&								getPath() const;

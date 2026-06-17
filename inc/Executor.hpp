@@ -9,14 +9,14 @@ class	Executor: public AEventHandler {
 		HttpParser			_parser;
 		std::function<const Srv*(const std::string&)> _selectServer;
 		Response			_res;
-		const LocNode*		_loc;
+		const LocNode*		_loc{nullptr};
 		const LocCoreConf*	_locCoreConf{nullptr};
 		const LocIndexConf*	_locIndexConf{nullptr};
 		std::string			_filesystemPath;
 
-		void	_selectLocation(const std::string& path, const LocNode& root);
 		void	_resolveLocConfs();
-		void	_setWorkingDirAsPath();
+		void	_selectLocation(const LocNode& root);
+		void	_setWorkingDirAsFilesystemPath();
 		void	_assertHttpMethodAllowed();
 		void	_resolveFilesystemPath();
 

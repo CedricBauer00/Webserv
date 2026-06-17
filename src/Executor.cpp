@@ -21,28 +21,6 @@ Executor::~Executor() {
 	std::cout << "FD " << _fd << ": [Executor] destroyed" << std::endl;
 }
 
-void	Executor::_selectLocation(const std::string& path, const LocNode& root)
-{
-	std::deque<const LocNode*> queue;
-	queue.push_back(&root);
-	while (!queue.empty()) {
-		const LocNode* node = queue.front();
-		queue.pop_front();
-		if (node->matchType == 0 && node->name == path) {
-			_loc = node;
-			_resolveLocConfs();
-			return;
-		}
-		else if (path.compare(0, node->name.size(), node->name) == 0) {
-			if (_loc == nullptr || _loc->name.size() < node->name.size())
-				_loc = node;
-		}
-		for (const auto& loc : node->locations)
-			queue.push_back(loc.get());
-	}
-	_resolveLocConfs();
-}
-
 void	Executor::_resolveLocConfs() {
 	if (!_loc)
 		return;
@@ -52,7 +30,31 @@ void	Executor::_resolveLocConfs() {
 		_locIndexConf = dynamic_cast<const LocIndexConf*>(_loc->locConfs[1].get());
 }
 
-void	Executor::_setWorkingDirAsPath() {
+void	Executor::_selectLocation(const LocNode& root)
+{
+	auto& uriPath = _parser.getPath();
+	std::deque<const LocNode*> queue;
+
+	queue.push_back(&root);
+	while (!queue.empty()) {
+		const LocNode* node = queue.front();
+		queue.pop_front();
+		if (node->matchType == 0 && node->name == uriPath) {
+			_loc = node;
+			_resolveLocConfs();
+			return;
+		}
+		else if (uriPath.compare(0, node->name.size(), node->name) == 0) {
+			if (_loc == nullptr || _loc->name.size() < node->name.size())
+				_loc = node;
+		}
+		for (const auto& loc : node->locations)
+			queue.push_back(loc.get());
+	}
+	_resolveLocConfs();
+}
+
+void	Executor::_setWorkingDirAsFilesystemPath() {
 	_filesystemPath = std::filesystem::current_path().string();
 }
 
@@ -95,7 +97,7 @@ void	Executor::process(uint32_t events) {
 				std::cout << '\n';
 			}
 
-			_selectLocation(_parser.getPath(), *server->location.get()); // select location based on URI
+			_selectLocation(*server->location.get()); // select location based on URI path
 			std::cout << "Selected location: '" << _loc->name << "' with match type " << _loc->matchType << "\n";
 	
 			if (_locCoreConf) {
@@ -103,7 +105,7 @@ void	Executor::process(uint32_t events) {
 				_resolveFilesystemPath();
 			}
 			else
-				_setWorkingDirAsPath();
+				_setWorkingDirAsFilesystemPath();
 			
             whichMethod whichMethod = _parser.getMethod();
 			if (whichMethod == METHOD_POST) {
@@ -119,9 +121,9 @@ void	Executor::process(uint32_t events) {
 			}
 			else {
 				if ( whichMethod == METHOD_GET )
-					m.getMethod( _filesystemPath, _res, *_loc ); // && if GET method is allowed
+					m.getMethod( _filesystemPath, _res, *_loc );
 				else if ( whichMethod == METHOD_DELETE )
-					m.deleteMethod( _filesystemPath, _res, *_loc ); // && if DELETE method is allowed
+					m.deleteMethod( _filesystemPath, _res, *_loc );
 				/// Response Buidling 
 				_res.build();
 				new Writer(*this, std::move(_res));

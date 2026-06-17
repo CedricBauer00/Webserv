@@ -239,6 +239,8 @@ void    HttpParser::_setMethod() // eventuell hier Execution class instance crea
         _method = METHOD_POST;
     else if ( _startLine[ 0 ] == "DELETE" )
         _method = METHOD_DELETE;
+    else
+        _method = METHOD_UNKNOWN;
     _reqMethodMask = m.at(_startLine[ 0 ]);
     std::cout << "_method:" << _method << std::endl;
     
@@ -423,7 +425,7 @@ whichMethod  HttpParser::getMethod() const
     return _method;
 }
 
-unsigned int    HttpParser::getReqMethod() const
+unsigned int    HttpParser::getReqMethodMask() const
 {
     return _reqMethodMask;
 }
