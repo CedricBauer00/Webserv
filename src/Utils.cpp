@@ -115,9 +115,9 @@ void createAutoIndex( std::string mockUri, Response &res )
     buffer += "</body>\n";
     buffer += "</html>\n";
 
-    res.setBody( buffer );
-    res.setCodeAndPhrase( "200", "OK" );
     res.setHeaders( "Content-Length", std::to_string( buffer.size() ) );
+    res.setBody( std::move(buffer) );
+    res.setCodeAndPhrase( "200", "OK" );
     res.setHeaders( "Content-Type", "text/html" );
     res.build();
 }

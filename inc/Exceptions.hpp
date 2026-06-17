@@ -21,6 +21,12 @@ class MethodNotAllowed : public HttpException
         MethodNotAllowed() : HttpException( 405, "Method Not Allowed") {}
 };
 
+class MethodNotImplemented : public HttpException
+{
+    public:
+        MethodNotImplemented() : HttpException( 501, "Not Implemented") {}
+};
+
 class HttpVersionNotSupported : public HttpException
 {
     public:

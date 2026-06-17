@@ -4,6 +4,18 @@ Method::Method() : _isCgiFile( false ) {}
 
 Method::~Method() {}
 
+void    Method::_setResponse(Response &res,
+    const std::string& statusCode,
+    const std::string& reasonPhrase,
+    const std::string& path) {
+        res.setCodeAndPhrase(statusCode, reasonPhrase);
+        res.setHeaders("Content-Length", std::to_string(_fileContent.size()));
+        if (!_fileContent.empty()) {
+            res.setHeaders("Content-Type", getFileType(path));
+            res.setBody(std::move(_fileContent));
+        }
+}
+
 void    Method::getMethod( std::string path, Response &res, const LocNode& location ) // status codes 200, 402, 404
 {
     std::error_code ec;
@@ -15,32 +27,14 @@ void    Method::getMethod( std::string path, Response &res, const LocNode& locat
         if ( !( std::filesystem::exists( path, ec ) ) )
             throw NotFound();
 
-        std::string content;
+        std::ifstream ifs(path, std::ios::binary); 
+        if ( !( ifs.is_open() ) ) // permissions check
+            throw NotFound();
 
-        if ( _isCgiFile ) // || getIsCgiLocation()
-            runCgi( content, false ); // put CGI output to response
-        else
-        {
-            std::cout << "is a file2" << std::endl;
-
-            std::ifstream ifs( path ); 
-        
-            if ( !( ifs.is_open() ) ) // permissions check
-                throw NotFound();
-            
-            std::ostringstream oss;
-            
-            oss << ifs.rdbuf();
-
-            content = oss.str();
-        }
-
-        std::cout << "is a file3" << std::endl;
-
-        res.setBody( content );
-        res.setCodeAndPhrase( "200", "OK" );
-        res.setHeaders( "Content-Length", std::to_string( content.size() ) );
-        res.setHeaders( "Content-Type", getFileType( path ) );
+        _fileContent = std::string(
+            (std::istreambuf_iterator<char>(ifs)),
+            std::istreambuf_iterator<char>());
+        _setResponse(res, "200", "OK", path);
         return ;
     }
     else if ( std::filesystem::is_directory( path ) )
@@ -68,17 +62,18 @@ void    Method::getMethod( std::string path, Response &res, const LocNode& locat
     
                     if ( !( ifs.is_open() ) ) // permissions check
                         throw NotFound();
-                    std::string content;
+
                     std::ostringstream oss;
             
                     oss << ifs.rdbuf();
     
-                    content = oss.str();
+                    _fileContent = oss.str();
     
-                    res.setBody( content );
-                    res.setCodeAndPhrase( "200", "OK" );
-                    res.setHeaders( "Content-Length", std::to_string( content.size() ) );
-                    res.setHeaders( "Content-Type", getFileType( joinedPath ) );
+                    _setResponse(res, "200", "OK", path);
+                    // res.setBody( content );
+                    // res.setCodeAndPhrase( "200", "OK" );
+                    // res.setHeaders( "Content-Length", std::to_string( content.size() ) );
+                    // res.setHeaders( "Content-Type", getFileType( joinedPath ) );
                     std::cout << "GET function is done" << std::endl;
     
                     return ;
@@ -151,84 +146,35 @@ void    Method::postMethod( std::string path, Response &res, std::string content
 {
     // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
     (void)location;
-        
-    if ( std::filesystem::is_regular_file( path ) )
-    {
-        if ( !getAllowedToOverwrite() )
-            throw Forbidden();
-        else
-        {
-            _postedFile = path;
-            std::ofstream ofs( _postedFile, std::ios::binary | std::ios::trunc );
-            if ( !ofs )
-                throw BadRequest();
+    
+    if ( !std::filesystem::is_directory( path ) )
+        throw Forbidden();
 
-            // put content
-            ofs << contentBody;
-            ofs.close();
+    // create file 
+    std::string fileName = "upload";
+    fileName += getTimeStamp();
+    fileName += ".bin"; //use map to determine file extension
+    
+    std::cout << "FileName: " << fileName << "\n" << "JoinedPath: " << path + fileName << "\n\nPosted Body:\n" << contentBody << std::endl;
+    _postedFile =  path + fileName;
+    std::ofstream ofs( _postedFile );
+    
+    if ( !ofs )
+        throw BadRequest();
 
-            res.setCodeAndPhrase( "200", "OK" );
-
-            if ( getIsCgiLocation() ) //_isCgiFile fuer .py endungen 
-            {
-                std::string content;
-                runCgi( content, true ); // put CGI output to response
-
-                res.setBody( content );
-                res.setHeaders( "Content-Length", std::to_string( content.size() ) );
-                res.setHeaders( "Content-Type", getFileType( _postedFile ) );
-            }
-            else
-                res.setHeaders( "Content-Length", "0" );
-            
-            return ;
-        }        
-    }
-    else
-    {
-        if ( path.back() != '/' )
-        {
-            size_t pos = path.find_last_of( '/' );
-            if ( pos != std::string::npos )
-                path.erase( pos + 1 );
-            
-        }
-        // create file 
-        std::string fileName = "upload";
-        fileName += getTimeStamp();
-        fileName += ".bin";
-        
-        std::cout << "FileName: " << fileName << "\n" << "JoinedPath: " << path + fileName << "\n\nPosted Body:\n" << contentBody << std::endl;
-        _postedFile =  path + fileName;
-        std::ofstream ofs( _postedFile );
-        
-        if ( !ofs )
-            throw BadRequest();
-
-        ofs << contentBody;
-
-        ofs.close();
-        
-        res.setCodeAndPhrase( "201", "Created" );
-        
-        if ( getIsCgiLocation() )
-        {
-            std::string content;
-            runCgi( content, true ); // put CGI output to response
-            
-            res.setBody( content );
-            res.setHeaders( "Content-Length", std::to_string( content.size() ) );
-            res.setHeaders( "Content-Type", getFileType( _postedFile ) );
-        }
-        else
-            res.setHeaders( "Content-Length", "0" );
-            
-        return ;
-    }
+    ofs << contentBody;
+    _setResponse(res, "201", "Created", path);
+    return ;
 }
 
 void    Method::runCgi( std::string &content, bool isPost ) ///dynamic path form request instead of hardcoded getCgiScript function
 {
+    //std::string content;
+        // runCgi( content, true ); // put CGI output to response
+        
+        // res.setBody(std::move(_fileContent));
+        // res.setHeaders( "Content-Length", std::to_string( content.size() ) );
+        // res.setHeaders( "Content-Type", getFileType( _postedFile ) );
     int inPipe[2];
     int outPipe[2];
 

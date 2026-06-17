@@ -3,6 +3,7 @@
 #include <cctype>
 #include "../../inc/Configparsing/WebservCoreParser.hpp"
 #include "../../inc/Configparsing/ConfigParser.hpp"
+#include "../../inc/MethodTypes.hpp"
 
 WebservCoreParser::WebservCoreParser(int& ctxIndex) :
 	AWebservParser(ctxIndex) {
@@ -140,18 +141,15 @@ void WebservCoreParser::_parseRoot(const std::string& d,
 
 void WebservCoreParser::_parseAllow(const std::string& d,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
-    static const std::unordered_map<std::string, unsigned int> m = {
-        {"GET", 1u<<0}, {"POST", 1u<<1}, {"PUT", 1u<<2},
-        {"DELETE", 1u<<3}, {"HEAD", 1u<<4}, {"OPTIONS", 1u<<5}};
     unsigned int mask = 0;
     Tokens values;
 
 	while (1) {
-        if (m.count(t.front()))
+        if (methodMap.count(t.front()))
             if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
                 values.push_back(t.front());
             else
-                mask |= m.at(t.front());
+                mask |= methodMap.at(t.front()).second;
         else
             throw std::runtime_error("Invalid value '" + t.front()
                 + "'for directive '" + d + "'");

@@ -75,7 +75,7 @@ void    PageHandler::setErrorPage( Response &res )
     res.setCodeAndPhrase( std::to_string( _statusCode), _reasonPhrase );
     res.setHeaders( "Content-Length", std::to_string( buffer.size() ) );
     res.setHeaders( "Content-Type", getFileType( path ) );
-    res.setBody( buffer );
+    res.setBody( std::move(buffer) );
 }
 
 

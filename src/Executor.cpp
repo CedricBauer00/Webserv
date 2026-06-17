@@ -59,7 +59,7 @@ void	Executor::_setWorkingDirAsFilesystemPath() {
 }
 
 void	Executor::_assertHttpMethodAllowed() {
-	if (!(_parser.getReqMethod() & *_locCoreConf->allowedMethods)) {
+	if (!(_parser.getMethodMask() & *_locCoreConf->allowedMethods)) {
 		std::cerr << "Requested method not allowed" << "\n";
 		throw MethodNotAllowed();
 	}
@@ -107,7 +107,7 @@ void	Executor::process(uint32_t events) {
 			else
 				_setWorkingDirAsFilesystemPath();
 			
-            whichMethod whichMethod = _parser.getMethod();
+            method whichMethod = _parser.getMethod();
 			if (whichMethod == METHOD_POST) {
 				if (_parser.headerHasContlen() && MAX_BODY_SIZE < _parser.getContlen())
 					throw PayloadTooLarge();
@@ -120,9 +120,9 @@ void	Executor::process(uint32_t events) {
 					new BodyReader(*this, std::move(_parser));
 			}
 			else {
-				if ( whichMethod == METHOD_GET )
+				if (whichMethod == METHOD_GET)
 					m.getMethod( _filesystemPath, _res, *_loc );
-				else if ( whichMethod == METHOD_DELETE )
+				else if (whichMethod == METHOD_DELETE)
 					m.deleteMethod( _filesystemPath, _res, *_loc );
 				/// Response Buidling 
 				_res.build();

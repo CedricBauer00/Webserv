@@ -21,13 +21,17 @@ class Method
         std::string _path;
         std::string _query;
         std::string _postedFile;
+        std::string _fileContent;
         bool        _isCgiFile;
-        std::string _root;
+
+        void    _setResponse(Response &res,
+            const std::string& statusCode,
+            const std::string& reasonPhrase,
+            const std::string& path);
 
     public:
         Method();
         ~Method();
-        std::string    joinRootAndPath(std::string uri, whichMethod whichMethod, const LocNode& location);
         void    getMethod( std::string newPath, Response &res, const LocNode& location );
         void    postMethod( std::string newPath, Response &res, std::string contentBody, const LocNode& location ); // status codes 200, 402, 404
         void    deleteMethod( std::string newPath, Response &res, const LocNode& location ); // status codes 200, 402, 404

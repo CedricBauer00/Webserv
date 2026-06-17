@@ -33,7 +33,7 @@ HttpParser::HttpParser(HttpParser&& other) noexcept
 , _hostPort( std::move( other._hostPort ) )
 , _hostName( std::move( other._hostName ) )
 , _method( other._method )
-, _reqMethodMask( other._reqMethodMask )
+, _methodMask( other._methodMask )
 {
 	std::cout << "HttpParser move constructor called" << std::endl;
 }
@@ -233,15 +233,10 @@ void    HttpParser::_checkStartLine() // eventuell direkt Execution instance cre
 void    HttpParser::_setMethod() // eventuell hier Execution class instance createn, die die Method selbst speichert
 {
     std::cout << "startline:" << _startLine[ 0 ] << std::endl;
-    if ( _startLine[ 0 ] == "GET" )
-        _method = METHOD_GET;
-    else if ( _startLine[ 0 ] == "POST" )
-        _method = METHOD_POST;
-    else if ( _startLine[ 0 ] == "DELETE" )
-        _method = METHOD_DELETE;
-    else
-        _method = METHOD_UNKNOWN;
-    _reqMethodMask = m.at(_startLine[ 0 ]);
+    if (!methodMap.count(_startLine[0]))
+		throw MethodNotImplemented();
+	_methodMask = methodMap.at(_startLine[0]).first;
+	_method = methodMap.at(_startLine[0]).second;
     std::cout << "_method:" << _method << std::endl;
     
 }
@@ -420,14 +415,14 @@ const std::string&    HttpParser::getBody() const
     return _body;
 }
 
-whichMethod  HttpParser::getMethod() const
+method  HttpParser::getMethod() const
 {
     return _method;
 }
 
-unsigned int    HttpParser::getReqMethodMask() const
+unsigned int    HttpParser::getMethodMask() const
 {
-    return _reqMethodMask;
+    return _methodMask;
 }
 
 const std::string&     HttpParser::getHostName() const

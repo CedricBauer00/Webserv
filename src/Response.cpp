@@ -31,38 +31,37 @@ Response::~Response() {}
 
 void    Response::build()
 {
-    std::ostringstream oss;
-    // HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n
-    oss << "HTTP/1.0 " << _statusCode << " " << _reasonPhrase << "\r\n";
-    
+    _response = "HTTP/1.0 ";
+    _response += _statusCode + " " + _reasonPhrase + "\r\n";
 
-    for ( auto x : _headers ) //set headers
-    {
-        oss << x.first << ": " << x.second << "\r\n";
-    }
+    //set headers
+    for (auto& x : _headers)
+        _response += x.first + ": " + x.second + "\r\n";
 
-    oss << "Connection: Closed\r\n\r\n";
-    oss << _body;
-    _response = oss.str();
+    _response += "Connection: Closed\r\n\r\n";
+    _response += _body;
+
 }
 
-void    Response::setBody( std::string content )
+void    Response::setBody(std::string&& content)
 {
-    _body = content;
+    _body = std::move(content);
 }
 
-void    Response::setCodeAndPhrase( std::string statusCode, std::string reasonPhrase )
+void    Response::setCodeAndPhrase(const std::string& statusCode,
+    const std::string& reasonPhrase )
 {
     _statusCode = statusCode;
     _reasonPhrase = reasonPhrase;
 }
 
-void    Response::setHeaders( std::string key, std::string content )
+void    Response::setHeaders(const std::string& key,
+    const std::string& content )
 {
-    _headers[ key ] = content;
+    _headers[key] = content;
 }
 
-std::string Response::getResponse() const
+const std::string& Response::getResponse() const
 {
     return _response;
 }

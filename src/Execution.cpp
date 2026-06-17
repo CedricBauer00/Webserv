@@ -103,7 +103,7 @@ void    Execution::execution(Response &res,
         if ( whichMethod == METHOD_POST )
         {
             _parser.setBody(); // for POST requests - last step of execution
-            m.postMethod( joinedPath, res, _parser.getBody(), *loc ); // && if POST method is allowed
+            m.postMethod( joinedPath, res, _parser.getBody(), *loc, parser.getHeaders() ); // && if POST method is allowed
             std::cout << ORANGE << _parser.getBody() << RESET << std::endl;
         }
         /// Response Buidling 
