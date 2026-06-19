@@ -11,7 +11,6 @@ SRC	=	main.cpp \
 		Configparsing/WebservIndexModule.cpp \
 		Configparsing/ConfigParser.cpp \
 		Configparsing/modules.cpp \
-		PageHandler.cpp \
 		HttpException.cpp \
 		Response.cpp \
 		Utils.cpp \

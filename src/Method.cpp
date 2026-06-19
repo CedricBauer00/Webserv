@@ -44,6 +44,10 @@ void    Method::getMethod(const std::string &path, Response &res,
 
     if ( std::filesystem::is_regular_file(path) )
     {
+		if (parser.getPath().compare(0, 5, "/cgi/") == 0) {
+			runCgi(path, res, parser);
+			return;
+		}
         std::ifstream ifs(path, std::ios::binary); 
         if (!ifs) // permissions check
             throw Forbidden();
@@ -58,8 +62,9 @@ void    Method::getMethod(const std::string &path, Response &res,
     else if ( std::filesystem::is_directory(path) )
     {
         if (path.back() != '/') {
-			
-			throw MovedPermanently(parser.getPath() + "/");
+			res.build({{"Location", parser.getPath() + "/"}},
+				"301", "Moved Permanently");
+			return ;
 		}
     
         if (locIndexConf) {
@@ -94,8 +99,14 @@ void    Method::getMethod(const std::string &path, Response &res,
         throw Forbidden();
 }
 
-void    Method::deleteMethod( std::string path, Response &res) // status codes 200, 402, 404
+void    Method::deleteMethod(
+	std::string path, Response &res, const HttpParser& parser) // status codes 200, 402, 404
 {
+	if (parser.getPath().compare(0, 5, "/cgi/") == 0) {
+		runCgi(path, res, parser);
+		return;
+	}
+
     std::error_code ec;
     if ( !std::filesystem::exists( path, ec ) )
         throw NotFound();
@@ -109,9 +120,13 @@ void    Method::deleteMethod( std::string path, Response &res) // status codes 2
 void    Method::postMethod(
 	const std::string &path, Response &res, const HttpParser& parser) // status codes 200, 402, 404
 {   
+	if (parser.getPath().compare(0, 5, "/cgi/") == 0) {
+		runCgi(path, res, parser);
+		return;
+	}
     if (!std::filesystem::is_directory(path))
 		throw Forbidden();
-
+	
 	auto it = parser.getHeaders().find("content-type");
 	if (it == parser.getHeaders().end())
 		throw BadRequest();
@@ -131,8 +146,6 @@ void    Method::postMethod(
 void    Method::runCgi(
 	const std::string& path, Response &res, const HttpParser& parser) ///dynamic path form request instead of hardcoded getCgiScript function
 {
-    if (!std::filesystem::is_regular_file(path))
-		throw NotFound();
     int inPipe[2];
     int outPipe[2];
 
@@ -152,8 +165,6 @@ void    Method::runCgi(
 		std::string srvPort = "SERVER_PORT=" + parser.getHostPort();
 		std::string srvProtocol = "SERVER_PROTOCOL=" + parser.getHttp();
 
-
-
         char *envp[] = {(char *)gateway.c_str(),
 			(char *)query.c_str(),
 			(char *)raddr.c_str(),
@@ -163,19 +174,13 @@ void    Method::runCgi(
 			(char *)srvPort.c_str(),
 			(char *)srvProtocol.c_str(),
 			NULL };
-        std::cout << "Evnp: " << envp[0] << ", "
-		<< envp[1] << ", "
-		<< envp[2] << ", "
-		<< envp[3] << ", "
-		<< envp[4] << ", "
-		<< envp[5] << ", "
-		<< envp[6] << ", "
-		<< envp[7] << std::endl;
 
+		close( inPipe[ 1 ] );
+        close( outPipe[ 0 ] );
         dup2( inPipe[ 0 ], STDIN_FILENO );
         dup2( outPipe[ 1 ], STDOUT_FILENO );
-        close( inPipe[ 1 ] );
-        close( outPipe[ 0 ] );
+        close( inPipe[ 0 ] );
+        close( outPipe[ 1 ] );
 
         char *argv[] = {(char *)path.c_str(), NULL};
         execve(path.c_str(), argv, envp ); // returned direkt aus function?
@@ -185,8 +190,10 @@ void    Method::runCgi(
     }
     else
     {
-        close( inPipe[ 0 ] );
+		close( inPipe[ 0 ] );
         close( outPipe[ 1 ] );
+		write(inPipe[1], parser.getBody().c_str(), parser.getBody().size());
+		close(inPipe[ 1 ]);
 
         char buffer[ 1024 ];
         ssize_t bytesRead;
@@ -200,7 +207,79 @@ void    Method::runCgi(
 
         int status;
         waitpid( pid, &status, 0 );
-		res.setBody(std::move(content));
+		if (WIFEXITED(status)) {
+			int code = WEXITSTATUS(status);
+			if (code)
+				throw InternalServerError();
+		}
+		_parseCGIResponse(content, res);
+    }
+}
+
+void	Method::_parseCGIResponse(const std::string& cgiRes, Response &htmlRes) {
+	bool	hasContentType{false};
+    bool    hasLocation{false};
+	bool	hasStatus{false};
+
+	std::string::size_type start = 0;
+    std::string::size_type pos;
+
+    while ((pos = cgiRes.find("\r\n", start)) != std::string::npos)
+    {
+        std::string_view line(cgiRes.data() + start, pos - start);
+        if (line.empty())
+        {
+			if (!hasContentType && !hasLocation)
+				throw InternalServerError();
+            if (!hasStatus)
+				htmlRes.setCodeAndPhrase("200", "OK");
+            htmlRes.setBody(cgiRes.substr(pos + 2));
+			htmlRes.build();
+            return;
+        }
+
+		std::size_t colon = line.find(':');
+		if (colon == std::string_view::npos || colon == 0)
+			throw InternalServerError();
+		if (line[colon - 1] == ' ')
+			throw InternalServerError();
+
+		std::string key(line.substr(0, colon));
+		std::string value(line.substr(colon + 1));
+
+		if (key == "Status" && !hasStatus) {
+			std::string::size_type spPos = value.find(' ');
+			if (spPos == std::string::npos)
+				throw InternalServerError();
+			std::string statusCode = value.substr(0, spPos);
+			if (!isAllDigits(statusCode))
+				throw InternalServerError();
+			std::string reasonPhrase = value.substr(spPos + 1);
+			if (!hasSingleSpacesOnly(reasonPhrase))
+				throw InternalServerError();
+			htmlRes.setCodeAndPhrase(std::move(statusCode),
+				std::move(reasonPhrase));
+			hasStatus = true;
+		}
+		else if (key == "Content-Type" && !hasContentType)
+		{
+			if (hasLocation)
+				throw InternalServerError();
+			htmlRes.setHeaders(key, value);
+			hasContentType = true;
+		}
+		else if (key == "Location" && !hasLocation)
+		{
+			if (hasContentType)
+				throw InternalServerError();
+			htmlRes.setHeaders(key, value);
+			hasLocation = true;
+		}
+		else
+		{
+			htmlRes.setHeaders(key, value);
+		}
+        start = pos + 2;
     }
 }
 

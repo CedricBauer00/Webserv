@@ -1,5 +1,6 @@
 #include "../inc/HttpParser.hpp"
 #include "../inc/Exceptions.hpp"
+#include "../inc/Utils.hpp"
 
 HttpParser::HttpParser() 
 : _startLine(), _headers(), _body(), _bodyLength(0), _headStopReceived(false), _bodyStopReceived(false),
@@ -232,9 +233,7 @@ void    HttpParser::_setMethod() // eventuell hier Execution class instance crea
     if (it == methodMap.end())
 		throw MethodNotImplemented();
 	_methodMask = it->second.first;
-	_method = it->second.second;
-    std::cout << "_method:" << _method << std::endl;
-    
+	_method = it->second.second;    
 }
 
 std::string HttpParser::trim( const std::string& value )
@@ -247,16 +246,6 @@ std::string HttpParser::trim( const std::string& value )
     while ( end > start && std::isspace( static_cast<unsigned char>( value[ end - 1 ] ) ) )
         --end;
     return ( value.substr( start, end - start ) );
-}
-
-bool    HttpParser::isAllDigits( const std::string& word )
-{
-    for ( std::string::const_iterator it = word.begin(); it != word.end(); ++it )
-    {
-        if ( !std::isdigit( static_cast<unsigned char>( *it ) ) )
-            return ( false );
-    }
-    return ( true );
 }
 
 void    HttpParser::validatePort( std::string port )

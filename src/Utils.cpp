@@ -105,3 +105,33 @@ std::string getExtension(const std::string& contentType)
     else
         return ".bin";
 }
+
+bool    isAllDigits( const std::string& word )
+{
+    for ( std::string::const_iterator it = word.begin(); it != word.end(); ++it )
+    {
+        if ( !std::isdigit( static_cast<unsigned char>( *it ) ) )
+            return ( false );
+    }
+    return ( true );
+}
+
+bool	hasSingleSpacesOnly(const std::string& s) {
+    if (s.empty()) return true;
+
+    // no leading or trailing space
+    if (s.front() == ' ' || s.back() == ' ')
+        return false;
+
+    bool prevSpace = false;
+
+    for (char c : s) {
+        if (c == ' ') {
+            if (prevSpace) return false; // found "  "
+            prevSpace = true;
+        } else {
+            prevSpace = false;
+        }
+    }
+    return true;
+}

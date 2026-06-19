@@ -10,3 +10,5 @@ class Response;
 std::string setStatus(int code);
 std::string getFileType(const std::string& path);
 std::string getExtension(const std::string& contentType);
+bool		isAllDigits( const std::string& word );
+bool		hasSingleSpacesOnly(const std::string& s);

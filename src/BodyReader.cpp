@@ -57,7 +57,7 @@ void    BodyReader::process(uint32_t events) {
 		try {
 			_receiveFromClient();
 			std::cout << _parser.getBody() << std::endl;
-			// m.postMethod( joinedPath, _res, _parser.getBody(), *loc ); // && if POST method is allowed
+			new Executor(*this, std::move(_parser), _selectServerFactory());
 		}
 		catch (const HttpException& e) {
 			std::cerr << "FD " << _fd << ": [BodyReader] HTTP error: " << std::endl;

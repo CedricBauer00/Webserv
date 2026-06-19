@@ -60,7 +60,6 @@ class HttpParser
         void        parseHead(char* buffer, std::size_t count);
         void        parseBody(char* buffer, std::size_t count);
         std::string trim( const std::string& value );
-        bool        isAllDigits( const std::string& word );
         void        checkHostHeader( const std::string& value );
         void        validatePort( std::string portStr );
         

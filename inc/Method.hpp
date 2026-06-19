@@ -27,6 +27,7 @@ class Method
             const std::string& path);
 		void	_createAutoIndexPage(
 			const std::string &path, Response &res,const HttpParser& parser);
+		void	_parseCGIResponse(const std::string& cgiRes, Response &htmlRes);
 
     public:
         Method();
@@ -36,7 +37,8 @@ class Method
         void    postMethod(const std::string &path, Response &res,
             const HttpParser& parser); // status codes 200, 402, 404
 
-        void    deleteMethod(std::string newPath, Response &res); // status codes 200, 402, 404
+        void    deleteMethod(std::string newPath, Response &res,
+			const HttpParser& parser); // status codes 200, 402, 404
         void    runCgi(const std::string &path, Response &res, const HttpParser& parser);
 };
 

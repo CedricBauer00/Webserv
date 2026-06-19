@@ -107,42 +107,30 @@ void	Executor::process(uint32_t events) {
 			else
 				_setWorkingDirAsFilesystemPath();
 
-			if (_loc->name != "/cgi") {
-				method whichMethod = _parser.getMethod();
-				if (whichMethod != METHOD_POST) {
-					if (whichMethod == METHOD_GET)
-						m.getMethod( _filesystemPath, _res, _parser, _locIndexConf);
-					else
-						m.deleteMethod(_filesystemPath, _res);
-					new Writer(*this, std::move(_res));
-				}
-				else {
-					if (_parser.headerHasContlen() && MAX_BODY_SIZE < _parser.getContlen())
-						throw PayloadTooLarge();
-					_parser.parseBody(nullptr, 0); //consume body remaining from header parsing
-					if (_parser.bodyStopReceived()) {
-						m.postMethod(_filesystemPath, _res, _parser);
-						new Writer(*this, std::move(_res));
-					}
-					else
-						new BodyReader(*this, std::move(_parser));
-				} 
+			method whichMethod = _parser.getMethod();
+			if (whichMethod != METHOD_POST) {
+				if (whichMethod == METHOD_GET)
+					m.getMethod( _filesystemPath, _res, _parser, _locIndexConf);
+				else
+					m.deleteMethod(_filesystemPath, _res, _parser);
+				new Writer(*this, std::move(_res));
 			}
 			else {
-				m.runCgi(_filesystemPath, _res, _parser);
-				new Writer(*this, std::move(_res));
+				if (_parser.headerHasContlen() && MAX_BODY_SIZE < _parser.getContlen())
+					throw PayloadTooLarge();
+				_parser.parseBody(nullptr, 0); //consume body remaining from header parsing
+				if (_parser.bodyStopReceived()) {
+					m.postMethod(_filesystemPath, _res, _parser);
+					new Writer(*this, std::move(_res));
+				}
+				else
+					new BodyReader(*this, std::move(_parser));
 			}
 		}
 		catch ( const HttpException& e )
 		{
-			PageHandler pageHandler( e.getStatusCode(), e.getReasonPhrase() );
-			if ( e.getStatusCode() == 301 || e.getStatusCode() == 302 )
-			{
-				pageHandler.setRedirectPage( _res, e.getLocation() );
-			}
-			else
-				pageHandler.setErrorPage( _res );
-			_res.build();
+			_res.build(std::to_string(e.getStatusCode()),
+				std::string(e.getReasonPhrase()));
 			new Writer(*this, std::move(_res));
 		}
 	}
