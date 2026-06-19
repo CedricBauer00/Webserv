@@ -54,14 +54,9 @@ void	HttpParser::parseHead(char* buffer, std::size_t count)
         if (line.empty())
         {
             _request.erase(0, pos + 2);
-            for ( const auto& pair : _headers )
-                std::cout << BLUE << pair.first << " : "
-                << pair.second << RESET << std::endl;
 			_headStopReceived = true;
             return;
         }
-
-        std::cout << GREEN << std::string(line) << RESET << std::endl;
 
         if (_startLine.empty())
         {
@@ -262,34 +257,6 @@ bool    HttpParser::isAllDigits( const std::string& word )
             return ( false );
     }
     return ( true );
-}
-
-void    HttpParser::setBody()
-{
-    const std::string::size_type headerEnd = _request.find("\r\n\r\n");
-    if (headerEnd == std::string::npos)
-        throw BadRequest();
-
-    const std::string remaining = _request.substr(headerEnd + 4);
-
-    if (_chunked == true)
-    {
-        (void)remaining;
-        return;
-    }
-    if (_foundContlen)
-    {
-        if (static_cast<std::size_t>(MAX_BODY_SIZE) < _contentLength)
-            throw PayloadTooLarge();
-        if (remaining.size() < _contentLength)
-            throw BadRequest();
-        _body.assign(remaining.begin(), remaining.begin() + static_cast<std::ptrdiff_t>(_contentLength));
-        return;
-    }
-
-    _body = remaining;
-    if (_body.size() > MAX_BODY_SIZE)
-        throw PayloadTooLarge();
 }
 
 void    HttpParser::validatePort( std::string port )

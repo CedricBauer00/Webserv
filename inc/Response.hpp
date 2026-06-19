@@ -25,9 +25,19 @@ class Response
 		~Response();
 
 		void				build();
+		void				build(std::string&& statusCode,
+			std::string&& reasonPhrase);
+        void				build(std::string&& content,
+			std::unordered_map<std::string, std::string>&& headers,
+			std::string&& statusCode,
+			std::string&& reasonPhrase);
+		void				build(
+			std::unordered_map<std::string, std::string>&& headers,
+			std::string&& statusCode,
+			std::string&& reasonPhrase);
 		void				setBody(std::string&& content);
-		void				setCodeAndPhrase(const std::string& statusCode,
-			const std::string& reasonPhrase );
+		void				setCodeAndPhrase(std::string&& statusCode,
+			std::string&& reasonPhrase );
 		void				setHeaders(const std::string& key,
 			const std::string& val);
 		const std::string&	getResponse() const;

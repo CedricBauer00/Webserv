@@ -40,7 +40,30 @@ void    Response::build()
 
     _response += "Connection: Closed\r\n\r\n";
     _response += _body;
+}
 
+void	Response::build(std::string&& content,
+	std::unordered_map<std::string, std::string>&& headers,
+	std::string&& statusCode,
+	std::string&& reasonPhrase)
+{
+	setBody(std::move(content));
+	build(std::move(headers), std::move(statusCode), std::move(reasonPhrase));
+}
+
+void	Response::build(std::unordered_map<std::string, std::string>&& headers,
+	std::string&& statusCode,
+	std::string&& reasonPhrase)
+{
+	_headers = std::move(headers);
+	build(std::move(statusCode), std::move(reasonPhrase));
+}
+
+void	Response::build(std::string&& statusCode,
+	std::string&& reasonPhrase)
+{
+	setCodeAndPhrase(std::move(statusCode), std::move(reasonPhrase));
+	build();
 }
 
 void    Response::setBody(std::string&& content)
@@ -48,11 +71,11 @@ void    Response::setBody(std::string&& content)
     _body = std::move(content);
 }
 
-void    Response::setCodeAndPhrase(const std::string& statusCode,
-    const std::string& reasonPhrase )
+void    Response::setCodeAndPhrase(std::string&& statusCode,
+    std::string&& reasonPhrase )
 {
-    _statusCode = statusCode;
-    _reasonPhrase = reasonPhrase;
+    _statusCode = std::move(statusCode);
+    _reasonPhrase = std::move(reasonPhrase);
 }
 
 void    Response::setHeaders(const std::string& key,

@@ -6,7 +6,18 @@ class BadRequest : public HttpException
 {
     public:
         BadRequest() : HttpException( 400, "Bad Request" ) {}
-        // ~BadRequest();
+};
+
+class Unauthorized : public HttpException
+{
+    public:
+        Unauthorized() : HttpException( 401, "Unauthorized") {}
+};
+
+class Forbidden : public HttpException
+{
+    public:
+        Forbidden() : HttpException( 403, "Forbidden") {}
 };
 
 class NotFound : public HttpException
@@ -21,10 +32,28 @@ class MethodNotAllowed : public HttpException
         MethodNotAllowed() : HttpException( 405, "Method Not Allowed") {}
 };
 
+class PayloadTooLarge : public HttpException
+{
+    public:
+        PayloadTooLarge() : HttpException( 413, "Payload Too Large") {}
+};
+
+class InternalServerError : public HttpException
+{
+    public:
+        InternalServerError() : HttpException( 500, "Internal Server Error") {}
+};
+
 class MethodNotImplemented : public HttpException
 {
     public:
         MethodNotImplemented() : HttpException( 501, "Not Implemented") {}
+};
+
+class BadGateway : public HttpException
+{
+    public:
+        BadGateway() : HttpException( 502, "Bad Gateway") {}
 };
 
 class HttpVersionNotSupported : public HttpException
@@ -33,25 +62,6 @@ class HttpVersionNotSupported : public HttpException
         HttpVersionNotSupported() : HttpException( 505, "Http Version Not Allowed") {}
 };
 
-class PayloadTooLarge : public HttpException
-{
-    public:
-        PayloadTooLarge() : HttpException( 413, "Payload Too Large") {}
-};
-
-class Unautthorized : public HttpException
-{
-    public:
-        Unautthorized() : HttpException( 401, "Unauthorized") {}
-};
-
-class Forbidden : public HttpException
-{
-    public:
-        Forbidden() : HttpException( 403, "Forbidden") {}
-};
-
-// redirects
 class MovedPermanently : public HttpException
 {
     public:
@@ -62,4 +72,10 @@ class Found : public HttpException
 {
     public:
         Found(const std::string& location ) : HttpException( 302, "Found", location ) {}
+};
+
+class Created : public HttpException
+{
+    public:
+        Created(const std::string& location ) : HttpException( 201, "Created", location ) {}
 };

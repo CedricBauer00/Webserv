@@ -5,19 +5,6 @@ Method::Method() {}
 
 Method::~Method() {}
 
-void    Method::_setResponse(Response &res,
-    const std::string& statusCode,
-    const std::string& reasonPhrase,
-    const std::string& contentType) {
-        res.setCodeAndPhrase(statusCode, reasonPhrase);
-        res.setHeaders("Content-Length", std::to_string(_fileContent.size()));
-        if (!_fileContent.empty()) {
-            res.setHeaders("Content-Type", contentType);
-            res.setBody(std::move(_fileContent));
-        }
-		res.build();
-}
-
 void	Method::_createAutoIndexPage(const std::string &path, Response &res,
 	const HttpParser& parser)
 {
@@ -42,31 +29,38 @@ void	Method::_createAutoIndexPage(const std::string &path, Response &res,
 
     html += "</pre>\n</body>\n</html>\n";
 
-	_setResponse(res, "200", "OK", "text/html");
+    res.build(std::move(_fileContent), {
+		{"Content-Type", "text/html"},
+		{"Content-Length", std::to_string(_fileContent.size())}},
+		"200", "OK");
 }
 
 void    Method::getMethod(const std::string &path, Response &res,
 	const HttpParser& parser, const LocIndexConf* locIndexConf) // status codes 200, 402, 404
 {
     std::error_code ec;
-    
-    if ( std::filesystem::is_regular_file(path) )
-    {
-        if ( !std::filesystem::exists( path, ec ) )
+    if ( !std::filesystem::exists( path, ec ) )
             throw NotFound();
 
+    if ( std::filesystem::is_regular_file(path) )
+    {
         std::ifstream ifs(path, std::ios::binary); 
         if (!ifs) // permissions check
             throw Forbidden();
 
         _fileContent = std::string(std::istreambuf_iterator<char>(ifs),
 			std::istreambuf_iterator<char>());
-        _setResponse(res, "200", "OK", getFileType(path));
+		res.build(std::move(_fileContent), {
+			{"Content-Type", getFileType(path)},
+			{"Content-Length", std::to_string(_fileContent.size())}},
+			"200", "OK");
     }
     else if ( std::filesystem::is_directory(path) )
     {
-        if (path.back() != '/')
+        if (path.back() != '/') {
+			
 			throw MovedPermanently(parser.getPath() + "/");
+		}
     
         if (locIndexConf) {
             for (auto& x : locIndexConf->indexFiles) // replace stack with all files in directory - indexes from location 
@@ -81,7 +75,10 @@ void    Method::getMethod(const std::string &path, Response &res,
 
                     _fileContent = std::string(std::istreambuf_iterator<char>(ifs),
 						std::istreambuf_iterator<char>());
-					_setResponse(res, "200", "OK", getFileType(indexPath));
+					res.build(std::move(_fileContent), {
+						{"Content-Type", getFileType(indexPath)},
+						{"Content-Length", std::to_string(_fileContent.size())}},
+						"200", "OK");
                     return ;
                 }
             }
@@ -106,7 +103,7 @@ void    Method::deleteMethod( std::string path, Response &res) // status codes 2
     if (std::filesystem::remove_all( path , ec) == (unsigned long)-1)
 		throw Forbidden();
 
-	_setResponse(res, "204", "No Content", "");
+	res.build("204", "No Content");
 }
 
 void    Method::postMethod(
@@ -123,10 +120,12 @@ void    Method::postMethod(
 
     std::ofstream ofs(path + fileName);
     if ( !ofs )
-        throw BadRequest();
+        throw Forbidden();
     ofs << parser.getBody();
 
-    _setResponse(res, "201", "Created", getFileType(path));
+	res.build(std::move(_fileContent), {
+		{"Location", parser.getPath() + fileName}},
+		"201", "Created");
 }
 
 void    Method::runCgi(
