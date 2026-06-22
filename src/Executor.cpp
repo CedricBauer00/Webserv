@@ -131,10 +131,9 @@ void	Executor::process(uint32_t events) {
 					m.deleteMethod(_fsPath, _res, _parser);
 				new Writer(*this, std::move(_res));
 			}
-			catch ( const HttpException& e )
+			catch ( HttpException& e )
 			{
-				_res.build(std::to_string(e.getStatusCode()),
-					std::string(e.getReasonPhrase()));
+				_res.build(std::move(e));
 				new Writer(*this, std::move(_res));
 			}
 			break;

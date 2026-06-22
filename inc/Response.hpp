@@ -8,6 +8,8 @@
 #include <utility>
 #include "Utils.hpp"
 
+class HttpException;
+
 class Response
 {
     private:   
@@ -25,24 +27,23 @@ class Response
 		~Response();
 
 		void				build();
-		void				build(std::string&& statusCode,
-			std::string&& reasonPhrase);
+		void				build(std::string statusCode,
+			std::string reasonPhrase);
         void				build(std::string&& content,
 			std::unordered_map<std::string, std::string>&& headers,
-			std::string&& statusCode,
-			std::string&& reasonPhrase);
+			std::string statusCode,
+			std::string reasonPhrase);
 		void				build(
 			std::unordered_map<std::string, std::string>&& headers,
-			std::string&& statusCode,
-			std::string&& reasonPhrase);
+			std::string statusCode,
+			std::string reasonPhrase);
+		void				build(HttpException&& e);
 		void				setBody(std::string&& content);
-		void				setCodeAndPhrase(std::string&& statusCode,
-			std::string&& reasonPhrase );
+		void				setCodeAndPhrase(std::string statusCode,
+			std::string reasonPhrase );
 		void				setHeaders(const std::string& key,
 			const std::string& val);
 		const std::string&	getResponse() const;
 		void				clear();
 
 };
-
-// std::string setStatus(int code);

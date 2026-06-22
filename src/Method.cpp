@@ -32,7 +32,7 @@ void	Method::_createAutoIndexPage(const std::string &path, Response &res,
     res.build(std::move(html), {
 		{"Content-Type", "text/html"},
 		{"Content-Length", std::to_string(html.size())}},
-		"200", "OK");
+		"200", statusCodeToReasonPhrase.at(200));
 }
 
 bool    Method::getMethod(const std::string &path, Response &res,
@@ -55,13 +55,14 @@ bool    Method::getMethod(const std::string &path, Response &res,
 		res.build(std::move(_fileContent), {
 			{"Content-Type", getFileType(path)},
 			{"Content-Length", std::to_string(_fileContent.size())}},
-			"200", "OK");
+			"200", statusCodeToReasonPhrase.at(200));
 		return true;
     }
     else if ( std::filesystem::is_directory(path) ) {
         if (path.back() != '/') {
-			res.build({{"Location", parser.getPath() + "/"}},
-				"301", "Moved Permanently");
+			PermanentRedirect({{"Location", parser.getPath() + "/"}});
+			// res.build({{"Location", parser.getPath() + "/"}},
+			// 	"301", "Moved Permanently");
 			return true;
 		}
     
@@ -97,7 +98,7 @@ bool    Method::deleteMethod(
     if (std::filesystem::remove_all( path , ec) == (unsigned long)-1)
 		throw Forbidden();
 
-	res.build("204", "No Content");
+	res.build("204", statusCodeToReasonPhrase.at(204));
 	return true;
 }
 
@@ -123,13 +124,14 @@ bool    Method::postMethod(
 
 	res.build(std::move(_fileContent), {
 		{"Location", parser.getPath() + fileName}},
-		"201", "Created");
+		"201", statusCodeToReasonPhrase.at(201));
 	return true;
 }
 
 bool    Method::_ranCGI(
 	const std::string &path, Response &res, const HttpParser& parser)
 {
+	std::cout << "-------------------here----------------------" << std::endl;
 	if (parser.getPath().compare(0, 5, "/cgi/") == 0) {
 		_runCgi(path, res, parser);
 		return true;

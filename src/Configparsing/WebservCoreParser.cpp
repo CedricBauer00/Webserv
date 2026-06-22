@@ -5,7 +5,7 @@
 #include "../../inc/Configparsing/WebservCoreParser.hpp"
 #include "../../inc/Configparsing/ConfigParser.hpp"
 #include "../../inc/MethodTypes.hpp"
-#include "../../inc/responseCodes.hpp"
+#include "../../inc/statusCodes.hpp"
 
 WebservCoreParser::WebservCoreParser(int& ctxIndex) :
 	AWebservParser(ctxIndex) {
@@ -269,11 +269,16 @@ void WebservCoreParser::_parseErrorPage(const std::string& d,
 		auto assertErrCode = [](unsigned long n, unsigned long excp) {
 			if (0 < excp && n == excp)
 				return;
-			if (validResCodes.find(n) == validResCodes.end() || n < 300) {
+			if (statusCodeToReasonPhrase.find(n) == statusCodeToReasonPhrase.end()
+			|| n < 300) {
+				std::vector<int> keys;
+				for (const auto& item : statusCodeToReasonPhrase)
+					keys.push_back(item.first);
+				std::sort(keys.begin(), keys.end());
 				std::ostringstream	msg;
 				msg << "Wrong error code! Use only these: ";
-				for (auto code : validResCodes)
-					if (300 <= code) msg << code << " ";
+				for (auto key : keys)
+					if (300 <= key) msg << key << " ";
 				throw std::runtime_error(msg.str());
 			}
 		};

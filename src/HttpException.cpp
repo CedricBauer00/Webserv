@@ -1,27 +1,35 @@
 #include "../inc/HttpException.hpp"
 
-HttpException::HttpException(int statusCode, std::string&& reasonPhrase)
+HttpException::HttpException(int statusCode, std::string reasonPhrase)
 	: _statusCode(statusCode),
 	_reasonPhrase(std::move(reasonPhrase))
 {}
 
-HttpException::HttpException(int statusCode, std::string&& reasonPhrase,
+HttpException::HttpException(int statusCode, std::string reasonPhrase,
 	std::unordered_map<std::string, std::string>&& headers)
     : _statusCode(statusCode),
 	_reasonPhrase(std::move(reasonPhrase)),
-	_headers(headers)
+	_headers(std::move(headers))
 {}
 
 int HttpException::getStatusCode() const {
 	return _statusCode;
 }
 
-const std::string& HttpException::getReasonPhrase() const {
+const std::string& HttpException::getReasonPhrase() const & {
 	return _reasonPhrase;
 }
 
-const std::unordered_map<std::string, std::string>& HttpException::getHeaders() const {
+const std::unordered_map<std::string, std::string>& HttpException::getHeaders() const & {
 	return _headers;
+}
+
+std::string	HttpException::getReasonPhrase() && {
+	return std::move(_reasonPhrase);
+}
+
+std::unordered_map<std::string, std::string>	HttpException::getHeaders() && {
+	return std::move(_headers);
 }
 
 HttpException::~HttpException() {}
