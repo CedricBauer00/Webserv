@@ -104,7 +104,7 @@ struct WebservErrorLog {
 };
 
 struct	ErrorPage {
-	unsigned int	resCode;
+	unsigned long	resCode;
 	std::string		path;
 };
 

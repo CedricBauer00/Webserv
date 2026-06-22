@@ -5,7 +5,8 @@
 WebservCoreMerger::WebservCoreMerger() :
 HttpCoreConf(),
 SrvCoreConf({}, 10000, WebservMsec{1000}, true, true, true, 0),
-LocCoreConf(7,
+LocCoreConf(
+	7,
 	std::filesystem::current_path().string(),
 	false,
 	{},
@@ -15,7 +16,8 @@ LocCoreConf(7,
 	WebservMsec{1000},
 	true,
 	false,
-	false) {
+	false,
+	{}) {
 }
 
 WebservCoreMerger::~WebservCoreMerger() {
@@ -99,5 +101,13 @@ void	WebservCoreMerger::printLocConf(const LocCoreConf& locConf) {
 		<< " ; ";
 	std::cout << "chunkedTransferEncoding: "
 		<< (locConf.chunkedTransferEncoding.has_value() ? (locConf.chunkedTransferEncoding.value() ? "true" : "false") : "nullopt")
-		<< " ; " << std::endl;
+		<< " ; ";
+	std::cout << "errorPage: ";
+	for (const auto& item : locConf.errPages)
+		std::cout << item.first << "/" << item.second.resCode << " ";
+	if (!locConf.errPages.empty()) {
+		const auto& item = *locConf.errPages.begin();
+		std::cout << item.second.path;
+	}
+	std::cout << ";" << std::endl;
 }

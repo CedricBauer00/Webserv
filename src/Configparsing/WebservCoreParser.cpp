@@ -1,9 +1,11 @@
 #include <array>
 #include <algorithm>
 #include <cctype>
+#include <sstream>
 #include "../../inc/Configparsing/WebservCoreParser.hpp"
 #include "../../inc/Configparsing/ConfigParser.hpp"
 #include "../../inc/MethodTypes.hpp"
+#include "../../inc/responseCodes.hpp"
 
 WebservCoreParser::WebservCoreParser(int& ctxIndex) :
 	AWebservParser(ctxIndex) {
@@ -259,10 +261,53 @@ void WebservCoreParser::_parseLogNotFound(const std::string& d,
 
 void WebservCoreParser::_parseErrorPage(const std::string& d,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
-	(void)d;
-    (void)t;
-    (void)c;
-    (void)l;
+	if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
+        _addLowerLevelDirective(d,
+            _getDirectiveVals(t),
+            dynamic_cast<HttpCoreConf*>(getHttpConfPtr(c))->lowerLevelDirectives);
+    else {
+		auto assertErrCode = [](unsigned long n, unsigned long excp) {
+			if (0 < excp && n == excp)
+				return;
+			if (validResCodes.find(n) == validResCodes.end() || n < 300) {
+				std::ostringstream	msg;
+				msg << "Wrong error code! Use only these: ";
+				for (auto code : validResCodes)
+					if (300 <= code) msg << code << " ";
+				throw std::runtime_error(msg.str());
+			}
+		};
+		std::unordered_set<unsigned long>	errCodes;
+		unsigned long						num;
+		unsigned long						resCode{0};
+
+		while (!t.empty() && isDigits(t.front())) {
+			num = std::stoul(t.front());
+			assertErrCode(num, 0);
+			errCodes.insert(num);
+			t.pop_front();
+		}
+		if (errCodes.empty() || t.empty())
+			throw std::runtime_error("Invalid 'error_page' directive");
+		if (t.front()[0] == '=') {
+			if (!isDigits(t.front().substr(1)))
+				throw std::runtime_error("Invalid 'error_page' directive");
+			resCode = std::stoul(t.front().substr(1));
+			assertErrCode(resCode, 200);
+			t.pop_front();
+			if (t.empty())
+				throw std::runtime_error("Invalid 'error_page' directive");
+		}
+		if (resCode != 0)
+			for (auto code: errCodes)
+				dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->errPages[code] =\
+				{resCode, t.front()};
+		else
+			for (auto code: errCodes)
+				dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->errPages[code] =\
+				{code, t.front()};
+		t.pop_front();
+	}
 }
 
 void WebservCoreParser::_parseTryFiles(const std::string& d,

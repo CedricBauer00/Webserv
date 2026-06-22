@@ -14,13 +14,7 @@ std::pair<WebservConfLevel, AWebservParser::parseFunc>>&	WebservIndexParser::_ge
 
 void WebservIndexParser::_parseIndex(const std::string& directive,
 	Tokens& t, const ConfCtx& c, WebservConfLevel l) {
-    Tokens values;
-	while (1) {
-		values.push_back(t.front());
-		t.pop_front();
-        if (t.empty() || _isDelimiter(t.front()))
-            break;
-	}
+    Tokens values = _getDirectiveVals(t);
     if ((l & WebservConfLevel::HTTP) != static_cast<WebservConfLevel>(0))
 		_addLowerLevelDirective(directive,
             values,

@@ -3,6 +3,7 @@
 #include <optional>
 #include <vector>
 #include <unordered_set>
+#include <unordered_map>
 #include "modules.hpp"
 
 struct HttpCoreConf : HttpConf {
@@ -83,6 +84,8 @@ struct LocCoreConf : LocConf {
 
 	std::optional<bool>				chunkedTransferEncoding; // whether to use chunked transfer encoding for responses with unknown content length
 
+	std::unordered_map<unsigned long, ErrorPage>	errPages;
+
 	LocCoreConf() = delete;
 	LocCoreConf(
 		const LocNode* locNodePtr) 
@@ -100,7 +103,8 @@ struct LocCoreConf : LocConf {
 		std::optional<WebservMsec> _sendTimeout,
 		std::optional<bool> _absoluteRedirect,
 		std::optional<bool> _logNotFound,
-		std::optional<bool> _chunkedTransferEncoding)
+		std::optional<bool> _chunkedTransferEncoding,
+		std::unordered_map<unsigned long, ErrorPage> _errPages)
 		:
 		allowedMethods(_allowedMethods),
 		root(std::move(_root)),
@@ -112,7 +116,8 @@ struct LocCoreConf : LocConf {
 		sendTimeout(_sendTimeout),
 		absoluteRedirect(_absoluteRedirect),
 		logNotFound(_logNotFound),
-		chunkedTransferEncoding(_chunkedTransferEncoding)
+		chunkedTransferEncoding(_chunkedTransferEncoding),
+		errPages(std::move(_errPages))
 	{}
 	void	inheritFrom(const LocConf& other) override {
 		auto& conf = dynamic_cast<const LocCoreConf&>(other);

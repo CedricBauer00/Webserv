@@ -89,3 +89,14 @@ void	AWebservParser::_addLowerLevelDirective(const std::string& directive,
 	arr.insert(arr.end(), vals.begin(), vals.end());
     arr.push_back(";");
 }
+
+Tokens	AWebservParser::_getDirectiveVals(Tokens& tokens) {
+	Tokens	values;
+	while (1) {
+		values.push_back(tokens.front());
+		tokens.pop_front();
+        if (tokens.empty() || _isDelimiter(tokens.front()))
+            break;
+	}
+	return values;
+}

@@ -58,6 +58,6 @@ class	AWebservMerger : virtual public IWebservModule{
 				dynamic_cast<const SrvConf&>(*this));
 			mergeLocConfs(&parser.getLocNode(), parser.getConfCtx(), nullptr,
 				dynamic_cast<const LocConf&>(*this));
-			// print(parser.getConfCtx(), &parser.getLocNode());
+			print(parser.getConfCtx(), &parser.getLocNode());
 		}
 };

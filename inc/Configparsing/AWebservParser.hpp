@@ -35,6 +35,7 @@ class AWebservParser : virtual public IWebservModule {
 		bool	_parseBooleanValue(const std::string& tok);
 		void	_addLowerLevelDirective(const std::string& directive,
 			Tokens vals, Tokens& arr);
+		Tokens	_getDirectiveVals(Tokens& tokens);
 		virtual const std::unordered_map<
 		std::string, std::pair<WebservConfLevel, parseFunc>>&	_getParseMap() = 0;
 
