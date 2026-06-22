@@ -55,7 +55,7 @@ void	Executor::_selectLocation(const LocNode& root)
 }
 
 void	Executor::_setWorkingDirAsFilesystemPath() {
-	_filesystemPath = std::filesystem::current_path().string();
+	_fsPath = std::filesystem::current_path().string();
 }
 
 void	Executor::_assertHttpMethodAllowed() {
@@ -67,11 +67,11 @@ void	Executor::_assertHttpMethodAllowed() {
 
 void	Executor::_resolveFilesystemPath() {
 	if (*_locCoreConf->alias)
-		_filesystemPath = _locCoreConf->root\
+		_fsPath = _locCoreConf->root\
 			+ _parser.getPath().substr(_loc->name.size());
 	else 
-		_filesystemPath = _locCoreConf->root + _parser.getPath();
-	std::cout << "FilesystemPath: " << _filesystemPath << std::endl;
+		_fsPath = _locCoreConf->root + _parser.getPath();
+	std::cout << "FilesystemPath: " << _fsPath << std::endl;
 }
 
 void	Executor::process(uint32_t events) {
@@ -83,55 +83,61 @@ void	Executor::process(uint32_t events) {
     }
 
 	try {
-		try {
-			Method m;
-	
-			auto server = _selectServer(_parser.getHostName()); // select server based on Host name
-			if (!server->srvConfs.empty()) {
-                std::cout << "server_name: ";
-				for (const auto& item :
-					dynamic_cast<SrvCoreConf*>(
-						server->srvConfs[0].get())->serverNames) {
-					std::cout << item << " ";
+		while (true) {
+			try {
+				Method m;
+		
+				auto server = _selectServer(_parser.getHostName()); // select server based on Host name
+				if (!server->srvConfs.empty()) {
+					std::cout << "server_name: ";
+					for (const auto& item :
+						dynamic_cast<SrvCoreConf*>(
+							server->srvConfs[0].get())->serverNames) {
+						std::cout << item << " ";
+					}
+					std::cout << '\n';
 				}
-				std::cout << '\n';
-			}
 
-			_selectLocation(*server->location.get()); // select location based on URI path
-			std::cout << "Selected location: '" << _loc->name << "' with match type " << _loc->matchType << "\n";
-	
-			if (_locCoreConf) {
-				_assertHttpMethodAllowed();
-				_resolveFilesystemPath();
-			}
-			else
-				_setWorkingDirAsFilesystemPath();
-
-			method whichMethod = _parser.getMethod();
-			if (whichMethod != METHOD_POST) {
-				if (whichMethod == METHOD_GET)
-					m.getMethod( _filesystemPath, _res, _parser, _locIndexConf);
+				_selectLocation(*server->location.get()); // select location based on URI path
+				std::cout << "Selected location: '" << _loc->name << "' with match type " << _loc->matchType << "\n";
+		
+				if (_locCoreConf) {
+					_assertHttpMethodAllowed();
+					_resolveFilesystemPath();
+				}
 				else
-					m.deleteMethod(_filesystemPath, _res, _parser);
+					_setWorkingDirAsFilesystemPath();
+
+				method whichMethod = _parser.getMethod();
+				if (whichMethod == METHOD_POST) {
+					if (_parser.headerHasContlen() && MAX_BODY_SIZE < _parser.getContlen())
+						throw PayloadTooLarge();
+					_parser.parseBody(nullptr, 0); //consume body remaining from header parsing
+					if (_parser.bodyStopReceived()) {
+						m.postMethod(_fsPath, _res, _parser);
+						new Writer(*this, std::move(_res));
+					}
+					else {
+						new BodyReader(*this, std::move(_parser));
+					}
+					break;
+				}
+				
+				if (whichMethod == METHOD_GET) {
+					if (!m.getMethod(_fsPath, _res, _parser, _locIndexConf))
+						continue;
+				}
+				else
+					m.deleteMethod(_fsPath, _res, _parser);
 				new Writer(*this, std::move(_res));
 			}
-			else {
-				if (_parser.headerHasContlen() && MAX_BODY_SIZE < _parser.getContlen())
-					throw PayloadTooLarge();
-				_parser.parseBody(nullptr, 0); //consume body remaining from header parsing
-				if (_parser.bodyStopReceived()) {
-					m.postMethod(_filesystemPath, _res, _parser);
-					new Writer(*this, std::move(_res));
-				}
-				else
-					new BodyReader(*this, std::move(_parser));
+			catch ( const HttpException& e )
+			{
+				_res.build(std::to_string(e.getStatusCode()),
+					std::string(e.getReasonPhrase()));
+				new Writer(*this, std::move(_res));
 			}
-		}
-		catch ( const HttpException& e )
-		{
-			_res.build(std::to_string(e.getStatusCode()),
-				std::string(e.getReasonPhrase()));
-			new Writer(*this, std::move(_res));
+			break;
 		}
 	}
 	catch (const std::exception& e) {

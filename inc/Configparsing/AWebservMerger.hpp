@@ -26,26 +26,27 @@ class	AWebservMerger : virtual public IWebservModule{
 			}
 		};
 
-		void	assignDefaults(const ConfCtx& ctx,
-			const SrvConf& defaultSrvConf,
-			const LocConf& defaultLocConf) {
+		void	assignSrvDefaults(const ConfCtx& ctx,
+			const SrvConf& defaultSrvConf) {
 			if (getSrvConfPtr(ctx) != nullptr)
 				getSrvConfPtr(ctx)->inheritFrom(defaultSrvConf);
-			if (getLocConfPtr(ctx) != nullptr)
-				getLocConfPtr(ctx)->inheritFrom(defaultLocConf);
 		};
 
-		void	mergeLocConfs(const LocNode* node,
-			ConfCtx confctx, LocConf* parentLocConf) {
+		void	mergeLocConfs(const LocNode* node, ConfCtx ctx,
+            LocConf* parentLocConf, const LocConf& defaultLocConf) {
 			if (parentLocConf != nullptr) { 
 				initConfIfEmptyAtLevel(
-					confctx, WebservConfLevel::LOCATION, node);
-				getLocConfPtr(confctx)->inheritFrom(*parentLocConf);
+					ctx, WebservConfLevel::LOCATION, node);
+				getLocConfPtr(ctx)->inheritFrom(*parentLocConf);
 			}
-			parentLocConf = getLocConfPtr(confctx);
+			else {
+				if (getLocConfPtr(ctx) != nullptr)
+					getLocConfPtr(ctx)->inheritFrom(defaultLocConf);
+			}
+			parentLocConf = getLocConfPtr(ctx);
 			for (auto& loc : node->locations) {
-				confctx.locConfs = &loc.get()->locConfs;
-				mergeLocConfs(loc.get(), confctx, parentLocConf);
+				ctx.locConfs = &loc.get()->locConfs;
+				mergeLocConfs(loc.get(), ctx, parentLocConf, defaultLocConf);
 			}
 		}
 
@@ -53,10 +54,10 @@ class	AWebservMerger : virtual public IWebservModule{
 
 		void	mergeConfs(ConfigParser& parser) override {
 			inheritFromHttpConf(parser);
-			assignDefaults(parser.getConfCtx(),
-				dynamic_cast<const SrvConf&>(*this),
+			assignSrvDefaults(parser.getConfCtx(),
+				dynamic_cast<const SrvConf&>(*this));
+			mergeLocConfs(&parser.getLocNode(), parser.getConfCtx(), nullptr,
 				dynamic_cast<const LocConf&>(*this));
-			mergeLocConfs(&parser.getLocNode(), parser.getConfCtx(), nullptr);
-			print(parser.getConfCtx(), &parser.getLocNode());
+			// print(parser.getConfCtx(), &parser.getLocNode());
 		}
 };

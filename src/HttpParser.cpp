@@ -344,6 +344,11 @@ void    HttpParser::checkHostHeader(const std::string& value )
     _foundHost = true;
 }
 
+void	HttpParser::setRedirectPath(std::string&& redirectPath) {
+	_path = std::move(redirectPath);
+	_internalRedirect = true;
+}
+
 const std::vector<std::string>&    HttpParser::getStartLine() const
 {
 	return _startLine;

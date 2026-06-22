@@ -12,7 +12,7 @@ class	Executor: public AEventHandler {
 		const LocNode*		_loc{nullptr};
 		const LocCoreConf*	_locCoreConf{nullptr};
 		const LocIndexConf*	_locIndexConf{nullptr};
-		std::string			_filesystemPath;
+		std::string			_fsPath;
 
 		void	_resolveLocConfs();
 		void	_selectLocation(const LocNode& root);

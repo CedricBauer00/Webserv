@@ -3,11 +3,11 @@
 WebServ::WebServ(char* configFilename)
 	: _confParser(configFilename), _epoller() {
     _confParser.parseConfig();
-	std::cout << "WebServ created" << std::endl;
+	// std::cout << "WebServ created" << std::endl;
 }
 
 WebServ::~WebServ() {
-	std::cout << "WebServ destroyed" << std::endl;
+	// std::cout << "WebServ destroyed" << std::endl;
 }
 
 void	WebServ::_createListeners() {

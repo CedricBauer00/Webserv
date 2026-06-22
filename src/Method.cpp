@@ -8,7 +8,7 @@ Method::~Method() {}
 void	Method::_createAutoIndexPage(const std::string &path, Response &res,
 	const HttpParser& parser)
 {
-    std::string& html = _fileContent;
+    std::string html;
 
     html += "<!DOCTYPE html>\n";
 	html += "<html>\n";
@@ -29,25 +29,23 @@ void	Method::_createAutoIndexPage(const std::string &path, Response &res,
 
     html += "</pre>\n</body>\n</html>\n";
 
-    res.build(std::move(_fileContent), {
+    res.build(std::move(html), {
 		{"Content-Type", "text/html"},
-		{"Content-Length", std::to_string(_fileContent.size())}},
+		{"Content-Length", std::to_string(html.size())}},
 		"200", "OK");
 }
 
-void    Method::getMethod(const std::string &path, Response &res,
-	const HttpParser& parser, const LocIndexConf* locIndexConf) // status codes 200, 402, 404
+bool    Method::getMethod(const std::string &path, Response &res,
+	HttpParser& parser, const LocIndexConf* locIndexConf) // status codes 200, 402, 404
 {
     std::error_code ec;
     if ( !std::filesystem::exists( path, ec ) )
             throw NotFound();
 
-    if ( std::filesystem::is_regular_file(path) )
-    {
-		if (parser.getPath().compare(0, 5, "/cgi/") == 0) {
-			runCgi(path, res, parser);
-			return;
-		}
+    if ( std::filesystem::is_regular_file(path) ) {
+		if (_ranCGI(path, res, parser))
+			return true;
+
         std::ifstream ifs(path, std::ios::binary); 
         if (!ifs) // permissions check
             throw Forbidden();
@@ -58,39 +56,26 @@ void    Method::getMethod(const std::string &path, Response &res,
 			{"Content-Type", getFileType(path)},
 			{"Content-Length", std::to_string(_fileContent.size())}},
 			"200", "OK");
+		return true;
     }
-    else if ( std::filesystem::is_directory(path) )
-    {
+    else if ( std::filesystem::is_directory(path) ) {
         if (path.back() != '/') {
 			res.build({{"Location", parser.getPath() + "/"}},
 				"301", "Moved Permanently");
-			return ;
+			return true;
 		}
     
         if (locIndexConf) {
-            for (auto& x : locIndexConf->indexFiles) // replace stack with all files in directory - indexes from location 
-            {
-                std::string indexPath = path + x;
-                    
-                if (std::filesystem::exists(indexPath, ec))
-                {
-                    std::ifstream ifs(indexPath); 
-                    if (!ifs) // permissions check
-                        continue;
-
-                    _fileContent = std::string(std::istreambuf_iterator<char>(ifs),
-						std::istreambuf_iterator<char>());
-					res.build(std::move(_fileContent), {
-						{"Content-Type", getFileType(indexPath)},
-						{"Content-Length", std::to_string(_fileContent.size())}},
-						"200", "OK");
-                    return ;
+            for (auto& x : locIndexConf->indexFiles) {
+                if (std::filesystem::exists(path + x, ec)) {
+					parser.setRedirectPath(parser.getPath() + x);
+					return false;
                 }
             }
             
             if (*locIndexConf->autoindex) {
                 _createAutoIndexPage(path, res, parser);
-                return ;
+                return true;
             }
         }
         throw Forbidden();
@@ -99,13 +84,11 @@ void    Method::getMethod(const std::string &path, Response &res,
         throw Forbidden();
 }
 
-void    Method::deleteMethod(
+bool    Method::deleteMethod(
 	std::string path, Response &res, const HttpParser& parser) // status codes 200, 402, 404
 {
-	if (parser.getPath().compare(0, 5, "/cgi/") == 0) {
-		runCgi(path, res, parser);
-		return;
-	}
+	if (_ranCGI(path, res, parser))
+		return true;
 
     std::error_code ec;
     if ( !std::filesystem::exists( path, ec ) )
@@ -115,15 +98,15 @@ void    Method::deleteMethod(
 		throw Forbidden();
 
 	res.build("204", "No Content");
+	return true;
 }
 
-void    Method::postMethod(
+bool    Method::postMethod(
 	const std::string &path, Response &res, const HttpParser& parser) // status codes 200, 402, 404
-{   
-	if (parser.getPath().compare(0, 5, "/cgi/") == 0) {
-		runCgi(path, res, parser);
-		return;
-	}
+{
+	if (_ranCGI(path, res, parser))
+		return true;
+
     if (!std::filesystem::is_directory(path))
 		throw Forbidden();
 	
@@ -141,20 +124,36 @@ void    Method::postMethod(
 	res.build(std::move(_fileContent), {
 		{"Location", parser.getPath() + fileName}},
 		"201", "Created");
+	return true;
 }
 
-void    Method::runCgi(
+bool    Method::_ranCGI(
+	const std::string &path, Response &res, const HttpParser& parser)
+{
+	if (parser.getPath().compare(0, 5, "/cgi/") == 0) {
+		_runCgi(path, res, parser);
+		return true;
+	}
+	return false;
+}
+
+void    Method::_runCgi(
 	const std::string& path, Response &res, const HttpParser& parser) ///dynamic path form request instead of hardcoded getCgiScript function
 {
-    int inPipe[2];
-    int outPipe[2];
+	pid_t	pid;
+    int 	inPipe[2];
+    int 	outPipe[2];
 
-    pipe( inPipe );
-    pipe( outPipe );
+    pipe(inPipe);
+    pipe(outPipe);
 
-    pid_t pid = fork();
+    pid = fork();
+	if (pid == -1) {
+		perror("fork");
+		throw InternalServerError();
+	}
 
-    if ( pid == 0 )
+    if (pid == 0)
     {
 		std::string gateway = "GATEWAY_INTERFACE=" + std::string("CGI/1.1");
         std::string query = "QUERY_STRING=" + parser.getQuery();

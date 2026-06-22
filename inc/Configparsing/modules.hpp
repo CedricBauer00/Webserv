@@ -103,6 +103,11 @@ struct WebservErrorLog {
 	int	fd;
 };
 
+struct	ErrorPage {
+	unsigned int	resCode;
+	std::string		path;
+};
+
 bool	isDigits(const std::string& str);
 bool	isValidPort(const std::string& str);
 bool 	isValidIpv4(const std::string& address);

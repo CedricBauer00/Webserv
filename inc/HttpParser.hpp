@@ -42,6 +42,7 @@ class HttpParser
 		std::size_t 		_currentChunkSize = 0;
 		bool 				_waitingForChunkData = false;
 		bool 				_waitingForLastChunkCRLF = false;
+        bool                _internalRedirect = false;
 
         void	_setMethod();
         void	_checkStartLine();
@@ -62,6 +63,7 @@ class HttpParser
         std::string trim( const std::string& value );
         void        checkHostHeader( const std::string& value );
         void        validatePort( std::string portStr );
+        void		setRedirectPath(std::string&& redirectPath);
         
         const std::vector<std::string>&					getStartLine() const;
         const std::string&								getQuery() const;

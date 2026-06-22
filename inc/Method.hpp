@@ -21,25 +21,23 @@ class Method
     private:
         std::string _fileContent;
 
-        void    _setResponse(Response &res,
-            const std::string& statusCode,
-            const std::string& reasonPhrase,
-            const std::string& path);
 		void	_createAutoIndexPage(
 			const std::string &path, Response &res,const HttpParser& parser);
 		void	_parseCGIResponse(const std::string& cgiRes, Response &htmlRes);
+        bool    _ranCGI(
+            const std::string &path, Response &res, const HttpParser& parser);
+        void    _runCgi(
+            const std::string &path, Response &res, const HttpParser& parser);
 
     public:
         Method();
         ~Method();
-        void    getMethod(const std::string &path, Response &res,
-            const HttpParser& parser, const LocIndexConf* locIndexConf);
-        void    postMethod(const std::string &path, Response &res,
+        bool    getMethod(const std::string &path, Response &res,
+            HttpParser& parser, const LocIndexConf* locIndexConf);
+        bool    postMethod(const std::string &path, Response &res,
             const HttpParser& parser); // status codes 200, 402, 404
-
-        void    deleteMethod(std::string newPath, Response &res,
+        bool    deleteMethod(std::string newPath, Response &res,
 			const HttpParser& parser); // status codes 200, 402, 404
-        void    runCgi(const std::string &path, Response &res, const HttpParser& parser);
 };
 
 std::string getTimeStamp();

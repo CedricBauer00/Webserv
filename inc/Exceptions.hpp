@@ -61,21 +61,3 @@ class HttpVersionNotSupported : public HttpException
     public:
         HttpVersionNotSupported() : HttpException( 505, "Http Version Not Allowed") {}
 };
-
-class MovedPermanently : public HttpException
-{
-    public:
-        MovedPermanently(const std::string& location ) : HttpException( 301, "Moved Permanently", location ) {}
-};
-
-class Found : public HttpException
-{
-    public:
-        Found(const std::string& location ) : HttpException( 302, "Found", location ) {}
-};
-
-class Created : public HttpException
-{
-    public:
-        Created(const std::string& location ) : HttpException( 201, "Created", location ) {}
-};
