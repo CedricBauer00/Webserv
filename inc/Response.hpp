@@ -9,7 +9,6 @@
 #include "Utils.hpp"
 
 class HttpException;
-struct ErrorPage;
 
 class Response
 {
@@ -43,10 +42,11 @@ class Response
 		void				setBody(std::string&& content);
 		void				setCodeAndPhrase(std::string statusCode,
 			std::string reasonPhrase );
-		void				setCodeAndPhrase(const ErrorPage& e);
+		void				setRedirect(unsigned long statusCode);
 		void				setHeaders(const std::string& key,
 			const std::string& val);
 		const std::string&	getResponse() const;
+		bool				wasRedirected() const;
 		void				clear();
 
 };

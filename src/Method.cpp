@@ -45,7 +45,6 @@ bool    Method::getMethod(const std::string &path, Response &res,
     if ( std::filesystem::is_regular_file(path) ) {
 		if (_ranCGI(path, res, parser))
 			return true;
-
         std::ifstream ifs(path, std::ios::binary); 
         if (!ifs) // permissions check
             throw Forbidden();
@@ -59,12 +58,8 @@ bool    Method::getMethod(const std::string &path, Response &res,
 		return true;
     }
     else if ( std::filesystem::is_directory(path) ) {
-        if (path.back() != '/') {
-			PermanentRedirect({{"Location", parser.getPath() + "/"}});
-			// res.build({{"Location", parser.getPath() + "/"}},
-			// 	"301", "Moved Permanently");
-			return true;
-		}
+        if (path.back() != '/')
+			throw PermanentRedirect({{"Location", parser.getPath() + "/"}});
     
         if (locIndexConf) {
             for (auto& x : locIndexConf->indexFiles) {
@@ -230,7 +225,7 @@ void	Method::_parseCGIResponse(const std::string& cgiRes, Response &htmlRes) {
         if (line.empty())
         {
 			if (!hasContentType && !hasLocation)
-				throw InternalServerError();
+				throw BadGateway();
             if (!hasStatus)
 				htmlRes.setCodeAndPhrase("200", "OK");
             htmlRes.setBody(cgiRes.substr(pos + 2));
@@ -240,9 +235,9 @@ void	Method::_parseCGIResponse(const std::string& cgiRes, Response &htmlRes) {
 
 		std::size_t colon = line.find(':');
 		if (colon == std::string_view::npos || colon == 0)
-			throw InternalServerError();
+			throw BadGateway();
 		if (line[colon - 1] == ' ')
-			throw InternalServerError();
+			throw BadGateway();
 
 		std::string key(line.substr(0, colon));
 		std::string value(line.substr(colon + 1));
@@ -250,13 +245,13 @@ void	Method::_parseCGIResponse(const std::string& cgiRes, Response &htmlRes) {
 		if (key == "Status" && !hasStatus) {
 			std::string::size_type spPos = value.find(' ');
 			if (spPos == std::string::npos)
-				throw InternalServerError();
+				throw BadGateway();
 			std::string statusCode = value.substr(0, spPos);
 			if (!isAllDigits(statusCode))
-				throw InternalServerError();
+				throw BadGateway();
 			std::string reasonPhrase = value.substr(spPos + 1);
 			if (!hasSingleSpacesOnly(reasonPhrase))
-				throw InternalServerError();
+				throw BadGateway();
 			htmlRes.setCodeAndPhrase(std::move(statusCode),
 				std::move(reasonPhrase));
 			hasStatus = true;
@@ -264,14 +259,14 @@ void	Method::_parseCGIResponse(const std::string& cgiRes, Response &htmlRes) {
 		else if (key == "Content-Type" && !hasContentType)
 		{
 			if (hasLocation)
-				throw InternalServerError();
+				throw BadGateway();
 			htmlRes.setHeaders(key, value);
 			hasContentType = true;
 		}
 		else if (key == "Location" && !hasLocation)
 		{
 			if (hasContentType)
-				throw InternalServerError();
+				throw BadGateway();
 			htmlRes.setHeaders(key, value);
 			hasLocation = true;
 		}

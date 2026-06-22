@@ -1,11 +1,11 @@
 #include "../inc/HttpException.hpp"
 
-HttpException::HttpException(int statusCode, std::string reasonPhrase)
+HttpException::HttpException(unsigned long statusCode, std::string reasonPhrase)
 	: _statusCode(statusCode),
 	_reasonPhrase(std::move(reasonPhrase))
 {}
 
-HttpException::HttpException(int statusCode, std::string reasonPhrase,
+HttpException::HttpException(unsigned long statusCode, std::string reasonPhrase,
 	std::unordered_map<std::string, std::string>&& headers)
     : _statusCode(statusCode),
 	_reasonPhrase(std::move(reasonPhrase)),

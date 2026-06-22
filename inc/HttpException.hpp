@@ -12,8 +12,8 @@ class HttpException : public std::exception
         std::unordered_map<std::string, std::string> _headers;
 
     public:
-        HttpException(int statusCode, std::string reasonPhrase);
-        HttpException(int statusCode, std::string reasonPhrase,
+        HttpException(unsigned long statusCode, std::string reasonPhrase);
+        HttpException(unsigned long statusCode, std::string reasonPhrase,
             std::unordered_map<std::string, std::string>&& headers);
         ~HttpException();
         

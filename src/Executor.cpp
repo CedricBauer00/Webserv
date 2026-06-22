@@ -32,6 +32,7 @@ void	Executor::_resolveLocConfs() {
 
 void	Executor::_selectLocation(const LocNode& root)
 {
+	_loc = nullptr;
 	auto& uriPath = _parser.getPath();
 	std::deque<const LocNode*> queue;
 
@@ -83,20 +84,19 @@ void	Executor::process(uint32_t events) {
     }
 
 	try {
+		auto server = _selectServer(_parser.getHostName()); // select server based on Host name
+		if (!server->srvConfs.empty()) {
+			std::cout << "server_name: ";
+			for (const auto& item :
+				dynamic_cast<SrvCoreConf*>(
+					server->srvConfs[0].get())->serverNames) {
+				std::cout << item << " ";
+			}
+			std::cout << '\n';
+		}
 		while (true) {
 			try {
 				Method m;
-		
-				auto server = _selectServer(_parser.getHostName()); // select server based on Host name
-				if (!server->srvConfs.empty()) {
-					std::cout << "server_name: ";
-					for (const auto& item :
-						dynamic_cast<SrvCoreConf*>(
-							server->srvConfs[0].get())->serverNames) {
-						std::cout << item << " ";
-					}
-					std::cout << '\n';
-				}
 
 				_selectLocation(*server->location.get()); // select location based on URI path
 				std::cout << "Selected location: '" << _loc->name << "' with match type " << _loc->matchType << "\n";
@@ -137,12 +137,11 @@ void	Executor::process(uint32_t events) {
 					auto it = _locCoreConf->errPages.find(e.getStatusCode());
 					if (it != _locCoreConf->errPages.end()
 					&& it->second.path != _parser.getPath()) {
-						_res.build()
+						_res.setRedirect(it->second.resCode);
+						_parser.setRedirectPath(std::string(it->second.path));
+						continue;
 					}
 				}
-					&& _parser.getPath() != _locCoreConf->errPages[e.getStatusCode()].) {
-						_locCoreConf->errPages[e.getStatusCode()]
-					}
 				_res.build(std::move(e));
 				new Writer(*this, std::move(_res));
 			}
