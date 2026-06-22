@@ -133,6 +133,16 @@ void	Executor::process(uint32_t events) {
 			}
 			catch ( HttpException& e )
 			{
+				if (_locCoreConf) {
+					auto it = _locCoreConf->errPages.find(e.getStatusCode());
+					if (it != _locCoreConf->errPages.end()
+					&& it->second.path != _parser.getPath()) {
+						_res.build()
+					}
+				}
+					&& _parser.getPath() != _locCoreConf->errPages[e.getStatusCode()].) {
+						_locCoreConf->errPages[e.getStatusCode()]
+					}
 				_res.build(std::move(e));
 				new Writer(*this, std::move(_res));
 			}

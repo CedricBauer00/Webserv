@@ -35,6 +35,10 @@ HttpParser::HttpParser(HttpParser&& other) noexcept
 , _hostName( std::move( other._hostName ) )
 , _method( other._method )
 , _methodMask( other._methodMask )
+, _currentChunkSize(other._currentChunkSize)
+, _waitingForChunkData(other._waitingForChunkData)
+, _waitingForLastChunkCRLF(other._waitingForLastChunkCRLF)
+, _internalRedirect(other._internalRedirect)
 {
 	std::cout << "HttpParser move constructor called" << std::endl;
 }

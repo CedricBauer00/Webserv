@@ -12,7 +12,7 @@ HttpException::HttpException(int statusCode, std::string reasonPhrase,
 	_headers(std::move(headers))
 {}
 
-int HttpException::getStatusCode() const {
+unsigned long	HttpException::getStatusCode() const {
 	return _statusCode;
 }
 

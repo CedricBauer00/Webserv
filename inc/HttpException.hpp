@@ -7,8 +7,8 @@
 class HttpException : public std::exception
 {
     private:
-        int         _statusCode;
-        std::string _reasonPhrase;
+        unsigned long	_statusCode;
+        std::string		_reasonPhrase;
         std::unordered_map<std::string, std::string> _headers;
 
     public:
@@ -17,7 +17,7 @@ class HttpException : public std::exception
             std::unordered_map<std::string, std::string>&& headers);
         ~HttpException();
         
-        int					getStatusCode() const;
+        unsigned long		getStatusCode() const;
         const std::string&	getReasonPhrase() const &;
         const std::unordered_map<std::string, std::string>&	getHeaders() const &;
         std::string			getReasonPhrase() &&;

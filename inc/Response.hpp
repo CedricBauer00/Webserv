@@ -9,6 +9,7 @@
 #include "Utils.hpp"
 
 class HttpException;
+struct ErrorPage;
 
 class Response
 {
@@ -19,6 +20,7 @@ class Response
         std::string _reasonPhrase;
         std::unordered_map<std::string, std::string>	_headers;
         std::string _body;
+		bool		_internalRedirect = false;
 
 	public:
 		Response();
@@ -41,6 +43,7 @@ class Response
 		void				setBody(std::string&& content);
 		void				setCodeAndPhrase(std::string statusCode,
 			std::string reasonPhrase );
+		void				setCodeAndPhrase(const ErrorPage& e);
 		void				setHeaders(const std::string& key,
 			const std::string& val);
 		const std::string&	getResponse() const;

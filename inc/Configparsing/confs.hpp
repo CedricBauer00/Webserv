@@ -143,6 +143,10 @@ struct LocCoreConf : LocConf {
 			logNotFound = conf.logNotFound;
 		if (!chunkedTransferEncoding.has_value() && conf.chunkedTransferEncoding.has_value())
 			chunkedTransferEncoding = conf.chunkedTransferEncoding;
+		for (const auto& item: conf.errPages) {
+			if (errPages.find(item.first) == errPages.end())
+				errPages[item.first] = item.second;
+		}
 	}
 };
 

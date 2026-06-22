@@ -1,5 +1,7 @@
 #include "../inc/Response.hpp"
 #include "HttpException.hpp"
+#include "modules.hpp"
+#include "statusCodes.hpp"
 
 Response::Response() : _response(), _httpVersion(), _statusCode(), _reasonPhrase(), _headers(), _body() {}
 
@@ -10,6 +12,7 @@ Response::Response(Response&& other) noexcept
     , _reasonPhrase(std::move(other._reasonPhrase))
     , _headers(std::move(other._headers))
     , _body(std::move(other._body))
+	, _internalRedirect(other._internalRedirect)
 {
     std::cout << "Response move constructor called" << std::endl;
 }
@@ -24,6 +27,7 @@ Response& Response::operator=(Response&& other) noexcept
         _reasonPhrase = std::move(other._reasonPhrase);
         _headers = std::move(other._headers);
         _body = std::move(other._body);
+		_internalRedirect = other._internalRedirect;
     }
     return *this;
 }
@@ -82,6 +86,11 @@ void    Response::setCodeAndPhrase(std::string statusCode,
 {
     _statusCode = std::move(statusCode);
     _reasonPhrase = std::move(reasonPhrase);
+}
+
+void	Response::setCodeAndPhrase(const ErrorPage& e) {
+	setCodeAndPhrase(std::to_string(e.resCode),
+		statusCodeToReasonPhrase.at(e.resCode));
 }
 
 void    Response::setHeaders(const std::string& key,

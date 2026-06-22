@@ -131,7 +131,6 @@ bool    Method::postMethod(
 bool    Method::_ranCGI(
 	const std::string &path, Response &res, const HttpParser& parser)
 {
-	std::cout << "-------------------here----------------------" << std::endl;
 	if (parser.getPath().compare(0, 5, "/cgi/") == 0) {
 		_runCgi(path, res, parser);
 		return true;
