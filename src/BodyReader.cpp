@@ -3,13 +3,16 @@
 #include "../inc/constants.h"
 #include "../inc/Executor.hpp"
 
-BodyReader::BodyReader(const AEventHandler& handler,
+BodyReader::BodyReader(AEventHandler& handler,
 	HttpParser&& parser)
-    : AEventHandler(_dupFd(handler.getFd()),
+    : AEventHandler(handler.getFd(),
         handler.getServers(),
         handler.getEpoller(),
-        EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET),
-		_parser(std::move(parser)) {
+        EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET,
+        Epoller::EpollOperation::Modify),
+	_parser(std::move(parser)) {
+    handler.setFd(-1);
+	std::cout << "FD " << _fd << ": [BodyReader] created" << std::endl;
 }
 
 BodyReader::~BodyReader() {

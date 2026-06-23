@@ -6,7 +6,11 @@
 Listener::Listener(const std::string& addr, 
 	const std::vector<const Srv*>& servers,
 	const Epoller& epoller)
-	: AEventHandler(_createListenFd(addr), servers, epoller, EPOLLIN | EPOLLET),
+	: AEventHandler(_createListenFd(addr),
+		servers,
+		epoller,
+		EPOLLIN | EPOLLET,
+		Epoller::EpollOperation::Add),
 	_addr(addr) {
 }
 
@@ -68,6 +72,13 @@ int	Listener::_createListenFd(const std::string& addr) {
 		throw std::runtime_error(std::string("listen: ") + strerror(errno));
 	}
 	
+	try {
+		_setNonBlocking(fd);
+	}
+	catch (const std::exception& e) {
+		close(fd);
+		throw;
+	}
 	std::cout << "FD " << fd << ": [Listener] Listening on " << addr << std::endl;
 	return fd;
 }

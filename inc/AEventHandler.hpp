@@ -11,19 +11,17 @@
 #include <functional>
 #include "Configparsing/ConfigParser.hpp"
 #include "Configparsing/WebservCoreModule.hpp"
-
-class Epoller;
+#include "Epoller.hpp"
 
 class AEventHandler {
 	protected:
-		const int											_fd;
-		const std::vector<const Srv*>&		_servers;
-		const Epoller&										_epoller;
+		int								_fd;
+		const std::vector<const Srv*>&	_servers;
+		const Epoller&					_epoller;
 
-        static int		_dupFd(int fd);
-
-		void			_setNonBlocking(int fd);
-        void    		_printSocketError();
+        static int	_dupFd(int fd);
+		void		_setNonBlocking(int fd);
+        void    	_printSocketError();
         std::function<const Srv*(const std::string&)>
 		_selectServerFactory();
 
@@ -36,17 +34,19 @@ class AEventHandler {
 		};
 
 		AEventHandler() = delete;
-        AEventHandler(const int fd,
+        AEventHandler(int fd,
 			const std::vector<const Srv*>& servers,
 			const Epoller& epoller,
-			const uint32_t events);
+			const uint32_t events,
+			const Epoller::EpollOperation op);
         virtual ~AEventHandler();
 
 		const std::vector<const Srv*>&	getServers() const;
-		int				getFd() const;
 		const Epoller&	getEpoller() const;
-		void			closeFd(int fd);
+		int				getFd() const;
         void*			getInAddr(struct sockaddr_storage& st) const;
 		in_port_t		getPort(struct sockaddr_storage& st) const;
+		void			closeFd();
+        void            setFd(int fd);
         virtual void	process(uint32_t events) = 0;
 };

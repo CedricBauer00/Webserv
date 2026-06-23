@@ -232,7 +232,6 @@ void    HttpParser::_checkStartLine() // eventuell direkt Execution instance cre
 
 void    HttpParser::_setMethod() // eventuell hier Execution class instance createn, die die Method selbst speichert
 {
-    std::cout << "startline:" << _startLine[ 0 ] << std::endl;
     auto it = methodMap.find(_startLine[0]);
     if (it == methodMap.end())
 		throw MethodNotImplemented();
@@ -481,7 +480,6 @@ void    HttpParser::_normalizePath() {
     }
     if ( endsWithSlash )
         nPath += '/';
-    std::cout << "Normalized path: " << nPath << std::endl;
     _path = std::move(nPath);
 }
 

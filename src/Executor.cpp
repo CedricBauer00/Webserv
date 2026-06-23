@@ -3,17 +3,18 @@
 #include "../inc/constants.h"
 #include "../inc/Writer.hpp"
 #include "../inc/BodyReader.hpp"
-#include "../inc/PageHandler.hpp"
 
-Executor::Executor(const AEventHandler& handler,
+Executor::Executor(AEventHandler& handler,
 	HttpParser&& parser,
 	std::function<const Srv*(const std::string&)>&& selectServer)
-    : AEventHandler(_dupFd(handler.getFd()),
+    : AEventHandler(handler.getFd(),
         handler.getServers(),
         handler.getEpoller(),
-        EPOLLOUT | EPOLLRDHUP | EPOLLET),
-		_parser(std::move(parser)),
-		_selectServer(std::move(selectServer)) {
+        EPOLLOUT | EPOLLRDHUP | EPOLLET,
+		Epoller::EpollOperation::Modify),
+	_parser(std::move(parser)),
+	_selectServer(std::move(selectServer)) {
+	handler.setFd(-1);
 	std::cout << "FD " << _fd << ": [Executor] created" << std::endl;
 }
 
@@ -72,7 +73,7 @@ void	Executor::_resolveFilesystemPath() {
 			+ _parser.getPath().substr(_loc->name.size());
 	else 
 		_fsPath = _locCoreConf->root + _parser.getPath();
-	std::cout << "FilesystemPath: " << _fsPath << std::endl;
+	// std::cout << "FilesystemPath: " << _fsPath << std::endl;
 }
 
 void	Executor::process(uint32_t events) {
@@ -86,20 +87,20 @@ void	Executor::process(uint32_t events) {
 	try {
 		auto server = _selectServer(_parser.getHostName()); // select server based on Host name
 		if (!server->srvConfs.empty()) {
-			std::cout << "server_name: ";
-			for (const auto& item :
-				dynamic_cast<SrvCoreConf*>(
-					server->srvConfs[0].get())->serverNames) {
-				std::cout << item << " ";
-			}
-			std::cout << '\n';
+			// std::cout << "server_name: ";
+			// for (const auto& item :
+			// 	dynamic_cast<SrvCoreConf*>(
+			// 		server->srvConfs[0].get())->serverNames) {
+			// 	std::cout << item << " ";
+			// }
+			// std::cout << '\n';
 		}
 		while (true) {
 			try {
 				Method m;
 
 				_selectLocation(*server->location.get()); // select location based on URI path
-				std::cout << "Selected location: '" << _loc->name << "' with match type " << _loc->matchType << "\n";
+				// std::cout << "Selected location: '" << _loc->name << "' with match type " << _loc->matchType << "\n";
 		
 				if (_locCoreConf) {
 					_assertHttpMethodAllowed();

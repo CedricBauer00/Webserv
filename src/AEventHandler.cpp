@@ -3,23 +3,23 @@
 #include "../inc/Epoller.hpp"
 
 AEventHandler::AEventHandler(
-	const int fd,
+	int fd,
 	const std::vector<const Srv*>& servers,
 	const Epoller& epoller,
-	const uint32_t events)
+	const uint32_t events,
+	const Epoller::EpollOperation op)
     : _fd(fd), _servers(servers), _epoller(epoller) {
-    try {
-        _setNonBlocking(_fd);
-        _epoller.addEventHandler(this, events);
-    }
-    catch (const std::exception& e) {
-        throw;
-    }
+	if (op == Epoller::EpollOperation::Modify)
+		_epoller.modifyEventHandler(this, events);
+	else
+		_epoller.addEventHandler(this, events);
 }
 
 AEventHandler::~AEventHandler() {
-	_epoller.deleteEventHandler(this);
-	closeFd(_fd);
+    if (_fd != -1) {
+        _epoller.deleteEventHandler(this);
+        closeFd();
+    }
 }
 
 void	AEventHandler::_setNonBlocking(int fd) {
@@ -91,12 +91,6 @@ int	AEventHandler::getFd() const {
 	return _fd;
 }
 
-void	AEventHandler::closeFd(int fd) {
-	if (close(fd) == -1)
-		std::cerr << "FD " << fd << ": " << strerror(errno) << std::endl;
-	std::cout << "FD " << fd << ": closed" << std::endl;
-}
-
 void*	AEventHandler::getInAddr(struct sockaddr_storage& st) const {
     if (st.ss_family == AF_INET) {
         return &(((struct sockaddr_in&)st).sin_addr);
@@ -109,4 +103,14 @@ in_port_t	AEventHandler::getPort(struct sockaddr_storage& st) const {
         return ((struct sockaddr_in&)st).sin_port;
     }
     return ((struct sockaddr_in6&)st).sin6_port;
+}
+
+void	AEventHandler::closeFd() {
+	if (close(_fd) == -1)
+		std::cerr << "FD " << _fd << ": " << strerror(errno) << std::endl;
+	std::cout << "FD " << _fd << ": closed" << std::endl;
+}
+
+void	AEventHandler::setFd(int fd) {
+	_fd = fd;
 }

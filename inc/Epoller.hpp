@@ -28,6 +28,11 @@ class Epoller {
 		const char*	_eventsToStr(uint32_t events) const;
 
 	public:
+        enum class EpollOperation {
+            Add,
+            Modify
+        };
+
 		Epoller();
 		~Epoller();
         int		getFd() const;
