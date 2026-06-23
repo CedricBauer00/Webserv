@@ -1,4 +1,6 @@
 #include "../inc/Response.hpp"
+#include "HttpException.hpp"
+#include "statusCodes.hpp"
 
 Response::Response() : _response(), _httpVersion(), _statusCode(), _reasonPhrase(), _headers(), _body() {}
 
@@ -9,6 +11,7 @@ Response::Response(Response&& other) noexcept
     , _reasonPhrase(std::move(other._reasonPhrase))
     , _headers(std::move(other._headers))
     , _body(std::move(other._body))
+    , _internalRedirect(other._internalRedirect)
 {
     std::cout << "Response move constructor called" << std::endl;
 }
@@ -23,6 +26,7 @@ Response& Response::operator=(Response&& other) noexcept
         _reasonPhrase = std::move(other._reasonPhrase);
         _headers = std::move(other._headers);
         _body = std::move(other._body);
+        _internalRedirect = other._internalRedirect;
     }
     return *this;
 }
@@ -42,25 +46,30 @@ void    Response::build()
     _response += _body;
 }
 
+void	Response::build(HttpException&& e) {
+	build(std::move(e).getHeaders(), std::to_string(e.getStatusCode()),
+		std::move(e).getReasonPhrase());
+}
+
 void	Response::build(std::string&& content,
 	std::unordered_map<std::string, std::string>&& headers,
-	std::string&& statusCode,
-	std::string&& reasonPhrase)
+	std::string statusCode,
+	std::string reasonPhrase)
 {
 	setBody(std::move(content));
 	build(std::move(headers), std::move(statusCode), std::move(reasonPhrase));
 }
 
 void	Response::build(std::unordered_map<std::string, std::string>&& headers,
-	std::string&& statusCode,
-	std::string&& reasonPhrase)
+	std::string statusCode,
+	std::string reasonPhrase)
 {
 	_headers = std::move(headers);
 	build(std::move(statusCode), std::move(reasonPhrase));
 }
 
-void	Response::build(std::string&& statusCode,
-	std::string&& reasonPhrase)
+void	Response::build(std::string statusCode,
+	std::string reasonPhrase)
 {
 	setCodeAndPhrase(std::move(statusCode), std::move(reasonPhrase));
 	build();
@@ -71,11 +80,19 @@ void    Response::setBody(std::string&& content)
     _body = std::move(content);
 }
 
-void    Response::setCodeAndPhrase(std::string&& statusCode,
-    std::string&& reasonPhrase )
+void    Response::setCodeAndPhrase(std::string statusCode,
+    std::string reasonPhrase )
 {
-    _statusCode = std::move(statusCode);
-    _reasonPhrase = std::move(reasonPhrase);
+    if (!_internalRedirect) {
+        _statusCode = std::move(statusCode);
+        _reasonPhrase = std::move(reasonPhrase);
+    }
+}
+
+void	Response::setRedirect(unsigned long statusCode) {
+	setCodeAndPhrase(std::to_string(statusCode),
+		statusCodeToReasonPhrase.at(statusCode));
+	_internalRedirect = true;
 }
 
 void    Response::setHeaders(const std::string& key,
@@ -87,6 +104,10 @@ void    Response::setHeaders(const std::string& key,
 const std::string& Response::getResponse() const
 {
     return _response;
+}
+
+bool	Response::wasRedirected() const {
+	return _internalRedirect;
 }
 
 void    Response::clear()

@@ -3,13 +3,15 @@
 #include "../inc/constants.h"
 // #include "../inc/Execution.hpp"
 
-Writer::Writer(const AEventHandler& handler,
+Writer::Writer(AEventHandler& handler,
 	Response&& res)
-    : AEventHandler(_dupFd(handler.getFd()),
+    : AEventHandler(handler.getFd(),
         handler.getServers(),
         handler.getEpoller(),
-        EPOLLOUT | EPOLLRDHUP | EPOLLET),
-		_res(std::move(res)) {
+        EPOLLOUT | EPOLLRDHUP | EPOLLET,
+        Epoller::EpollOperation::Modify),
+    _res(std::move(res)) {
+    handler.setFd(-1);
 	std::cout << "FD " << _fd << ": [Writer] created" << std::endl;
 }
 

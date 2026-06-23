@@ -104,10 +104,7 @@ void	WebservCoreMerger::printLocConf(const LocCoreConf& locConf) {
 		<< " ; ";
 	std::cout << "errorPage: ";
 	for (const auto& item : locConf.errPages)
-		std::cout << item.first << "/" << item.second.resCode << " ";
-	if (!locConf.errPages.empty()) {
-		const auto& item = *locConf.errPages.begin();
-		std::cout << item.second.path;
-	}
+		std::cout << item.first << "/" << item.second.resCode << " "
+		<< item.second.path << "  ";
 	std::cout << ";" << std::endl;
 }

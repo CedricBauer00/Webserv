@@ -12,8 +12,7 @@ class Writer: public AEventHandler {
 
     public:
         Writer() = delete;
-        Writer(const AEventHandler& handler,
-			Response&& res);
+        Writer(AEventHandler& handler, Response&& res);
         virtual ~Writer();
 
         void	process(uint32_t events) override;

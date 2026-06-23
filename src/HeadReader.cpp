@@ -2,12 +2,14 @@
 #include "../inc/Epoller.hpp"
 #include "../inc/constants.h"
 #include "../inc/Executor.hpp"
+#include "../inc/Writer.hpp"
 
 HeadReader::HeadReader(const Listener& listener)
     : AEventHandler(_acceptConn(listener.getFd()),
         listener.getServers(),
         listener.getEpoller(),
-        EPOLLIN | EPOLLRDHUP | EPOLLET) {
+        EPOLLIN | EPOLLRDHUP | EPOLLET,
+		Epoller::EpollOperation::Add) {
 }
 
 HeadReader::~HeadReader() {
@@ -28,6 +30,7 @@ int	HeadReader::_acceptConn(int listenFd) {
 		throw std::runtime_error(std::string("FD ")
 		+ std::to_string(listenFd) + ": [HeadReader] " + strerror(errno));
 	}
+    _setNonBlocking(fd);
 	inet_ntop(st.ss_family, getInAddr(st), s, sizeof s);
 	std::cout << "FD " << fd << ": [HeadReader] accepted connection from "
 	<< s << ":" << ntohs(getPort(st)) << std::endl;
@@ -77,9 +80,9 @@ void    HeadReader::process(uint32_t events) {
 			_receiveFromClient();
 			new Executor(*this, std::move(_parser), _selectServerFactory());
 		}
-		catch (const HttpException& e) {
-			std::cerr << "FD " << _fd 
-			<< ": [HeadReader] HTTP error: " << e.what() << std::endl;
+		catch (HttpException& e) {
+			_res.build(std::move(e));
+			new Writer(*this, std::move(_res));
 		}
 	}
     catch (const wouldBlockException& e) {

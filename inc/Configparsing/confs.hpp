@@ -147,10 +147,17 @@ struct LocCoreConf : LocConf {
 			logNotFound = conf.logNotFound;
 		if (!chunkedTransferEncoding.has_value() && conf.chunkedTransferEncoding.has_value())
 			chunkedTransferEncoding = conf.chunkedTransferEncoding;
+<<<<<<< HEAD
 		if (!redirectCode.has_value() && conf.redirectCode.has_value())
 			redirectCode = conf.redirectCode;
 		if (!redirectUri.has_value() && conf.redirectUri.has_value())
 			redirectUri = conf.redirectUri;
+=======
+		for (const auto& item: conf.errPages) {
+			if (errPages.find(item.first) == errPages.end())
+				errPages[item.first] = item.second;
+		}
+>>>>>>> c7d20ad56c0c69de451886ef9a61dbe0c9d15b7a
 	}
 };
 

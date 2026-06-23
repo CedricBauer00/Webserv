@@ -8,6 +8,7 @@ class HeadReader: public AEventHandler {
 	private:
 		const size_t	BUFFER_SIZE{4096};
 		HttpParser		_parser;
+        Response        _res;
 
 		int			_acceptConn(int listenFd);
 		void		_receiveFromClient();

@@ -22,7 +22,7 @@ class	Executor: public AEventHandler {
 
 	public:
 		Executor() = delete;
-		Executor(const AEventHandler& handler,
+		Executor(AEventHandler& handler,
 			HttpParser&& parser,
             std::function<const Srv*(const std::string&)>&& selectServer);
 		virtual ~Executor();
