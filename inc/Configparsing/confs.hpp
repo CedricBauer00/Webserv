@@ -86,6 +86,8 @@ struct LocCoreConf : LocConf {
 
 	std::unordered_map<unsigned long, ErrorPage>	errPages;
 
+	std::optional<unsigned long>	redirectCode;
+
 	LocCoreConf() = delete;
 	LocCoreConf(
 		const LocNode* locNodePtr) 
@@ -104,7 +106,8 @@ struct LocCoreConf : LocConf {
 		std::optional<bool> _absoluteRedirect,
 		std::optional<bool> _logNotFound,
 		std::optional<bool> _chunkedTransferEncoding,
-		std::unordered_map<unsigned long, ErrorPage> _errPages)
+		std::unordered_map<unsigned long, ErrorPage> _errPages,
+		std::optional<int>	_redirectCode = std::nullopt) // 301, 302, 303
 		:
 		allowedMethods(_allowedMethods),
 		root(std::move(_root)),
@@ -117,7 +120,8 @@ struct LocCoreConf : LocConf {
 		absoluteRedirect(_absoluteRedirect),
 		logNotFound(_logNotFound),
 		chunkedTransferEncoding(_chunkedTransferEncoding),
-		errPages(std::move(_errPages))
+		errPages(std::move(_errPages)),
+		redirectCode( _redirectCode )
 	{}
 	void	inheritFrom(const LocConf& other) override {
 		auto& conf = dynamic_cast<const LocCoreConf&>(other);
@@ -143,6 +147,10 @@ struct LocCoreConf : LocConf {
 			logNotFound = conf.logNotFound;
 		if (!chunkedTransferEncoding.has_value() && conf.chunkedTransferEncoding.has_value())
 			chunkedTransferEncoding = conf.chunkedTransferEncoding;
+		if (!redirectCode.has_value() && conf.redirectCode.has_value())
+			redirectCode = conf.redirectCode;
+		if (!redirectUri.has_value() && conf.redirectUri.has_value())
+			redirectUri = conf.redirectUri;
 	}
 };
 

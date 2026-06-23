@@ -41,6 +41,25 @@ bool    Method::getMethod(const std::string &path, Response &res,
     std::error_code ec;
     if ( !std::filesystem::exists( path, ec ) )
             throw NotFound();
+    locIndexConf.
+    if ( locIndexConf && locIndexConf->redirectCode )
+    {
+        int code = *locIndexConf->redirectCode;
+        
+        const std::string targetUri = locIndexConf.redirectUri.value_or( parser.getPath() );
+        
+        std::string statusText;
+        if ( code == 301 )
+            statusText = "Moved Permanently";
+        else if ( code == 302 )
+            statusText = "Found";
+        else if ( code == 303 )
+            statusText = "See Other";
+        else
+            statusText = "Redirect";
+
+        res.build( "", { {"Location", targetUri} }, std::to_string( code ), statusText );
+    }
 
     if ( std::filesystem::is_regular_file(path) ) {
 		if (_ranCGI(path, res, parser))
@@ -125,6 +144,28 @@ bool    Method::postMethod(
 		{"Location", parser.getPath() + fileName}},
 		"201", "Created");
 	return true;
+}
+
+void    Method::whichRedirect( Response &res, const HttpParser& parser)
+{
+    if ( 303 )
+    {
+        res.build(std::move(_fileContent), {
+		{"Location", parser.getPath()}},
+		"303", "See Other");
+    }
+    else if ( 302 )
+    {
+        res.build(std::move(_fileContent), {
+		{"Location", parser.getPath()}},
+		"302", "Found");
+    }
+    else
+    {
+        res.build(std::move(_fileContent), {
+		{"Location", parser.getPath()}},
+		"301", "Moved Permanently");
+    }
 }
 
 bool    Method::_ranCGI(

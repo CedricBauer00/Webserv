@@ -177,7 +177,15 @@ class WebservCoreParser : public AWebservParser {
 					}
 				}
 			},
-		};
+			{"return",
+				{WebservConfLevel::LOCATION | WebservConfLevel::SERVER,
+					[this](const std::string& d, Tokens& t, const ConfCtx& c,
+						WebservConfLevel l, ConfigParser& p) {
+					(void)d; (void)l; (void)p;
+					_parseReturn(t, c, 301); // 301 = Moved Permanently
+				}}
+			},
+};
 
 		const std::unordered_map<
 		std::string,
@@ -217,4 +225,6 @@ class WebservCoreParser : public AWebservParser {
 			Tokens& tokens, const ConfCtx& confCtx, WebservConfLevel level);
 		void	_parseTryFiles(const std::string& directive,
 			Tokens& tokens, const ConfCtx& confCtx, WebservConfLevel level);
+		void 	_parseReturn(Tokens& t, const ConfCtx& c, int code);
+
 };
