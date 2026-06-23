@@ -1,385 +1,200 @@
 #include "../inc/Method.hpp"
+#include "../inc/Executor.hpp"
 
 Method::Method() {}
 
 Method::~Method() {}
 
-std::string    Method::modifyPath( std::string uri, whichMethod whichMethod )
+void	Method::_createAutoIndexPage(const std::string &path, Response &res,
+	const HttpParser& parser)
 {
-        // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
+    std::string html;
 
-    std::string::size_type pos = uri.find( '?' );
-    std::string path = uri;
-    
-    if ( pos != std::string::npos )
+    html += "<!DOCTYPE html>\n";
+	html += "<html>\n";
+	html += "<head><title>index of " + parser.getPath() + "</title></head>\n";
+    html += "<body>\n";
+	html += "<h1>Index of " + parser.getPath() + "</h1>\n";
+    html += "<hr>\n";
+    html += "<pre>\n";
+
+    for (const auto& x : std::filesystem::directory_iterator(path)) /// filesystem issues
     {
-        path = uri.substr( 0, pos );
-        _query = uri.substr( pos + 1 );
+        auto name = x.path().filename().string();    
+        if (x.is_regular_file())
+            html += "<a href=\"" +  name + "\">" + name + "</a>\n";
+        else if (x.is_directory())
+            html += "<a href=\"" +  name + "/\">" + name + "/</a>\n";
     }
 
-    for ( size_t i = 0; i < path.size(); ++i )
-    {
-        if ( path[ i ] == '%' && i + 2 < path.size() )
-        {
-            std::string hex = path.substr( i + 1, 2 );
-            char c = static_cast<char>( std::strtol( hex.c_str(), 0, 16 ) ); // 
-            path.replace( i, 3, 1, c );
-        }
-    }
+    html += "</pre>\n</body>\n</html>\n";
 
-    std::vector<std::string> wholePath;
-    std::istringstream iss(path);
-    std::string partStr;
-    // int i = 0;
-    while ( getline( iss, partStr, '/' ) )
-    {
-        // std::cout << "partStr:" << partStr << std::endl;
-
-        if ( partStr.empty() || partStr == "." ) // "." heisst dieses Verzeichnis
-            continue ;
-        if ( partStr == ".." )
-        {
-            if ( wholePath.empty() )
-                throw BadRequest();
-                
-            wholePath.pop_back(); // one directory out  
-        }
-        else
-            wholePath.push_back( partStr );
-        // std::cout << "wholePath:" << wholePath[ i ] << std::endl;
-        // i++;
-    }
-
-    std::string newPath;
-    newPath = "/";
-    for ( size_t i = 0; i < wholePath.size(); ++i )
-    {
-        newPath += wholePath[ i ];
-        if ( i + 1 < wholePath.size() )
-            newPath += "/";
-    }
-    
-    // std::cout << "newPath == " << newPath << std::endl; 
-
-    std::string mockLocation = "/images";
-    std::string mockRoot = getRootPath();
-
-    if ( whichMethod == METHOD_POST )
-    {
-        if ( !getUploadEnabled() )
-            throw Forbidden();
-        if( !( path.empty() ) )
-            mockRoot = getUploadPath().empty() ? mockRoot : getUploadPath();
-        std::cout << mockRoot << std::endl;
-    }
-    
-    newPath = newPath.substr( mockLocation.size() );
-    
-    // /DO.PNG
-    if ( !( newPath.empty() ) && newPath[ 0 ] == '/' )
-        newPath = newPath.substr( 1 );
-    if ( mockRoot.back() != '/' )
-        mockRoot += '/';
-    newPath = mockRoot + newPath;
-
-    // std::cout << "newPath:" << newPath << std::endl;
-    
-    std::cout << "finished modify path" << std::endl;
-    return newPath;
+    res.build(std::move(html), {
+		{"Content-Type", "text/html"},
+		{"Content-Length", std::to_string(html.size())}},
+		"200", statusCodeToReasonPhrase.at(200));
 }
 
-
-void    Method::getMethod( std::string newPath, Response &res, bool _isCgiFile ) // status codes 200, 402, 404
+bool    Method::getMethod(const std::string &path, Response &res,
+	HttpParser& parser, const LocIndexConf* locIndexConf) // status codes 200, 402, 404
 {
-    // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
-    std::vector<std::string> stack;
-    stack.push_back("index1.html");
-    stack.push_back("index2.html");
-    stack.push_back("index3.html");
-
-    // std::cout << "newPath:" << newPath << std::endl;
-
-    //  printf 'GET /servers/server1/cgi/test.py HTTP/1.1\r\n\r\n' | nc 127.0.0.2 3490
-
     std::error_code ec;
-    if ( !( std::filesystem::exists( newPath, ec ) ) )
-        throw NotFound();
+    if ( !std::filesystem::exists( path, ec ) )
+            throw NotFound();
 
-    if ( std::filesystem::is_regular_file( newPath ) )
-    {
-        std::string content;
+    if ( std::filesystem::is_regular_file(path) ) {
+		if (_ranCGI(path, res, parser))
+			return true;
+        std::ifstream ifs(path, std::ios::binary); 
+        if (!ifs) // permissions check
+            throw Forbidden();
 
-        if ( _isCgiFile )
-            runCgi( content, false ); // put CGI output to response
-        else
-        {
-            std::ifstream ifs( newPath ); 
-        
-            if ( !( ifs.is_open() ) ) // permissions check
-                throw NotFound();
-            
-            std::ostringstream oss;
-            
-            oss << ifs.rdbuf();
-
-            content = oss.str();
-        }
-
-        res.setBody( content );
-        res.setCodeAndPhrase( "200", "OK" );
-        res.setHeaders( "Content-Length", std::to_string( content.size() ) );
-        res.setHeaders( "Content-Type", getFileType( newPath ) );
-        return ;
+        _fileContent = std::string(std::istreambuf_iterator<char>(ifs),
+			std::istreambuf_iterator<char>());
+		res.build(std::move(_fileContent), {
+			{"Content-Type", getFileType(path)},
+			{"Content-Length", std::to_string(_fileContent.size())}},
+			"200", statusCodeToReasonPhrase.at(200));
+		return true;
     }
-    else //    if ( std::filesystem::is_directory( newPath ) )
-    {
-        if ( newPath.back() != '/' )
-        {
-            std::string newStr = newPath + "/";
-            throw MovedPermanently( newStr );
-        }
-        for ( auto x : stack ) // replace stack with all files in directory - indexes from location 
-        {
-            std::string joinedPath = newPath + x;
-            if ( std::filesystem::exists( joinedPath, ec ) )
-            {
-                std::ifstream ifs( joinedPath ); 
-                std::cout  << joinedPath << std::endl;
-
-                if ( !( ifs.is_open() ) ) // permissions check
-                    throw NotFound();
-                std::string content;
-                std::ostringstream oss;
-        
-                oss << ifs.rdbuf();
-
-                content = oss.str();
-
-                res.setBody( content );
-                res.setCodeAndPhrase( "200", "OK" );
-                res.setHeaders( "Content-Length", std::to_string( content.size() ) );
-                res.setHeaders( "Content-Type", getFileType( joinedPath ) );
-                std::cout << "GET function is done" << std::endl;
-
-                return ;
+    else if ( std::filesystem::is_directory(path) ) {
+        if (path.back() != '/')
+			throw PermanentRedirect({{"Location", parser.getPath() + "/"}});
+    
+        if (locIndexConf) {
+            for (auto& x : locIndexConf->indexFiles) {
+                if (std::filesystem::exists(path + x, ec)) {
+					parser.setRedirectPath(parser.getPath() + x);
+					return false;
+                }
+            }
+            
+            if (*locIndexConf->autoindex) {
+                _createAutoIndexPage(path, res, parser);
+                return true;
             }
         }
-
-        if ( autoIndexActive() ) // not implemented yet   
-        {
-            createAutoIndex( newPath, res ); // not implemented yet
-            return ;
-        }
-        else
-            throw NotFound();
-    }
-
-    // 1) Method permissions pruefen passiert in execution func - check ob syntax korrekt?
-    //  wenn ein body bei GET method - ignoreiren
-
-    // 2) URI - Filesystem-path ( join root + uri, Normalisierung, Traversal-Check )
-    // Exists - nein? - 404
-    
-    // 3) is a directory?
-        // ja -> Indexsuche 
-        // if found - follow file path
-        // if not - check autoindex
-        // otherwise 403
-    
-    // 4) Is a file? 
-        // yes - read file
-        // get content-type
-        // set content-length
-        // build response
-    // 5) I/O-Fehler - 500
-
-}
-
-bool    getUploadEnabled()
-{
-    return true;
-}
-
-std::string getUploadPath()
-{
-    return "./servers/server1/uploads";
-}
-
-std::string getRootPath()
-{
-    return "./servers/server1/cgi";
-}
-
-// test: printf 'DELETE /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490
-void    Method::deleteMethod( std::string newPath, Response &res ) // status codes 200, 402, 404
-{
-    // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
-    std::cout << "newPath:" << newPath << std::endl;
-
-
-    std::error_code ec;
-    if ( !( std::filesystem::exists( newPath, ec ) ) )
-        throw NotFound();
-
-    if ( std::filesystem::is_regular_file( newPath ) )
-    {
-        std::cout << "Enter delete function" << std::endl;
-
-        std::ifstream ifs( newPath ); 
-    
-        if ( !( ifs.is_open() ) ) // permissions check
-            throw NotFound();
-        // delete file
-        std::filesystem::remove( newPath );
-
-        res.setCodeAndPhrase( "204", "No Content" );
-        res.setHeaders( "Content-Length", "0" );
-        return ;
-    }
-    else // is directory, 403 Forbidden oder wenn delete directory explizit erlaubt ist
-    {
-        if ( getAllowDeleteDir() == true ) // deleting directory is allowed
-        {
-            std::filesystem::remove_all( newPath );
-            res.setCodeAndPhrase( "204", "No Content" );
-            res.setHeaders( "Content-Length", "0" );
-            return ;
-        }
-
         throw Forbidden();
     }
+    else
+        throw Forbidden();
 }
 
-// test: printf 'POST /images HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\nHoST: example.com\r\n\r\nprint ("Hello POST METHOD!!!")\r\n\r\n' | nc 127.0.0.2 3490
-void    Method::postMethod( std::string newPath, Response &res, std::string contentBody, bool _isCgiFile ) // status codes 200, 402, 404
+bool    Method::deleteMethod(
+	std::string path, Response &res, const HttpParser& parser) // status codes 200, 402, 404
 {
-    // std::string uri = "/images/cat%20pics/../dog.png?size=large&debug=1";
-    // std::cout << "newPath:" << newPath << std::endl;
+	if (_ranCGI(path, res, parser))
+		return true;
 
-    // std::error_code ec;
-    // if ( !( std::filesystem::exists( newPath, ec ) ) ) // wenn file existiert muessen wir checken, ob wir ueberschreiben duerfen? sonst exception?
-    // {
-    //     std::cout << "here" << std::endl;
-    //     throw NotFound();
-    // }    
+    std::error_code ec;
+    if ( !std::filesystem::exists( path, ec ) )
+        throw NotFound();
 
-        
-    if ( std::filesystem::is_regular_file( newPath ) )
-    {
-        std::cout << "Enter delete function" << std::endl;
-        
-        if ( !getAllowedToOverwrite() )
-            throw Forbidden();
-        else
-        {
-            _postedFile = newPath;
-            std::ofstream ofs( _postedFile, std::ios::binary | std::ios::trunc );
-            if ( !ofs )
-                throw BadRequest();
-            //write
-            // put content
-            ofs << contentBody;
-            ofs.close();
+    if (std::filesystem::remove_all( path , ec) == (unsigned long)-1)
+		throw Forbidden();
 
-            res.setCodeAndPhrase( "200", "OK" );
-
-            if ( _isCgiFile )
-            {
-                std::string content;
-                runCgi( content, true ); // put CGI output to response
-            
-                res.setBody( content );
-                res.setHeaders( "Content-Length", std::to_string( content.size() ) );
-                res.setHeaders( "Content-Type", getFileType( _postedFile ) );
-            }
-            else
-                res.setHeaders( "Content-Length", "0" );
-            
-            return ;
-        }        
-    }
-    else // is directory, 403 Forbidden oder wenn delete directory explizit erlaubt ist
-    {
-        // create file 
-        std::string fileName = "upload";
-        fileName += getTimeStamp();
-        fileName += ".bin";
-        
-        std::cout << "FileName:" << fileName << "\n" << "JoinedPath:" << newPath + fileName << "\nBody:\n" << contentBody << std::endl;
-        _postedFile =  newPath + fileName;
-        std::ofstream ofs( _postedFile );
-        
-        if ( !ofs )
-            throw BadRequest();
-
-        ofs << contentBody;
-
-        ofs.close();
-        
-        res.setCodeAndPhrase( "201", "Created" );
-        
-        if ( _isCgiFile )
-        {
-            std::cout << "here" << std::endl;
-
-            std::string content;
-            runCgi( content, true ); // put CGI output to response
-            
-            res.setBody( content );
-            res.setHeaders( "Content-Length", std::to_string( content.size() ) );
-            res.setHeaders( "Content-Type", getFileType( _postedFile ) );
-        }
-        else
-            res.setHeaders( "Content-Length", "0" );
-            
-        return ;
-    }
+	res.build("204", statusCodeToReasonPhrase.at(204));
+	return true;
 }
 
-void    Method::runCgi( std::string &content, bool isPost ) ///dynamic path form request instead of hardcoded getCgiScript function
+bool    Method::postMethod(
+	const std::string &path, Response &res, const HttpParser& parser) // status codes 200, 402, 404
 {
-    int inPipe[2];
-    int outPipe[2];
+	if (_ranCGI(path, res, parser))
+		return true;
 
-    pipe( inPipe );
-    pipe( outPipe );
+    if (!std::filesystem::is_directory(path))
+		throw Forbidden();
+	
+	auto it = parser.getHeaders().find("content-type");
+	if (it == parser.getHeaders().end())
+		throw BadRequest();
 
-    pid_t pid = fork();
+    std::string fileName = "/upload" + getTimeStamp() + getExtension(it->second);
 
-    if ( pid == 0 )
+    std::ofstream ofs(path + fileName);
+    if ( !ofs )
+        throw Forbidden();
+    ofs << parser.getBody();
+
+	res.build(std::move(_fileContent), {
+		{"Location", parser.getPath() + fileName}},
+		"201", statusCodeToReasonPhrase.at(201));
+	return true;
+}
+
+bool    Method::_ranCGI(
+	const std::string &path, Response &res, const HttpParser& parser)
+{
+	if (parser.getPath().compare(0, 5, "/cgi/") == 0) {
+		_runCgi(path, res, parser);
+		return true;
+	}
+	return false;
+}
+
+void    Method::_runCgi(
+	const std::string& path, Response &res, const HttpParser& parser) ///dynamic path form request instead of hardcoded getCgiScript function
+{
+	pid_t	pid;
+    int 	inPipe[2];
+    int 	outPipe[2];
+
+    pipe(inPipe);
+    pipe(outPipe);
+
+    pid = fork();
+	if (pid == -1) {
+		perror("fork");
+		throw InternalServerError();
+	}
+
+    if (pid == 0)
     {
-        std::string cgi = getCgiPath();
-        std::string script = getScript();
+		std::string gateway = "GATEWAY_INTERFACE=" + std::string("CGI/1.1");
+        std::string query = "QUERY_STRING=" + parser.getQuery();
+		std::string raddr = "REMOTE_ADDR=" + std::string("203.0.113.42");
+		std::string reqMethod = "REQUEST_METHOD=" + parser.getMethodStr();
+		std::string scriptName = "SCRIPT_NAME=" + parser.getPath();
+		std::string srvName = "SERVER_NAME=" + parser.getHostName();
+		std::string srvPort = "SERVER_PORT=" + parser.getHostPort();
+		std::string srvProtocol = "SERVER_PROTOCOL=" + parser.getHttp();
 
-        if ( isPost )
-            script = _postedFile;
+        char *envp[] = {(char *)gateway.c_str(),
+			(char *)query.c_str(),
+			(char *)raddr.c_str(),
+			(char *)reqMethod.c_str(),
+			(char *)scriptName.c_str(),
+			(char *)srvName.c_str(),
+			(char *)srvPort.c_str(),
+			(char *)srvProtocol.c_str(),
+			NULL };
 
-        _query += "QUERY_STRING=" + _query;
-        char *envp[] = { ( char *)_query.c_str(), NULL };
-        char *argv[] = { ( char *)cgi.c_str(), ( char *)script.c_str(), NULL };
-
+		close( inPipe[ 1 ] );
+        close( outPipe[ 0 ] );
         dup2( inPipe[ 0 ], STDIN_FILENO );
         dup2( outPipe[ 1 ], STDOUT_FILENO );
-        close( inPipe[ 1 ] );
-        close( outPipe[ 0 ] );
+        close( inPipe[ 0 ] );
+        close( outPipe[ 1 ] );
 
-        // std::cout << "cgi = " << cgi << std::endl;
-        // std::cout << "script = " << script << std::endl;
-        execve( cgi.c_str(), argv, envp ); // returned direkt aus function?
+        char *argv[] = {(char *)path.c_str(), NULL};
+        execve(path.c_str(), argv, envp ); // returned direkt aus function?
 
-        perror( "execve failed" );
-        _exit( 1 );
+        perror("execve failed");
+        _exit(1);
     }
     else
     {
-        close( inPipe[ 0 ] );
+		close( inPipe[ 0 ] );
         close( outPipe[ 1 ] );
+		write(inPipe[1], parser.getBody().c_str(), parser.getBody().size());
+		close(inPipe[ 1 ]);
 
         char buffer[ 1024 ];
         ssize_t bytesRead;
 
-        while ( ( bytesRead = read( outPipe[ 0 ], buffer, sizeof( buffer ))) > 0 )
-        {
+		std::string	content;
+        while ( ( bytesRead = read( outPipe[ 0 ], buffer, sizeof( buffer ))) > 0 ) {
             content.append( buffer, bytesRead );
         }
 
@@ -387,30 +202,83 @@ void    Method::runCgi( std::string &content, bool isPost ) ///dynamic path form
 
         int status;
         waitpid( pid, &status, 0 );
+		if (WIFEXITED(status)) {
+			int code = WEXITSTATUS(status);
+			if (code)
+				throw InternalServerError();
+		}
+		_parseCGIResponse(content, res);
     }
 }
 
-bool    getAllowDeleteDir()
-{
-    return false;
-}
+void	Method::_parseCGIResponse(const std::string& cgiRes, Response &htmlRes) {
+	bool	hasContentType{false};
+    bool    hasLocation{false};
+	bool	hasStatus{false};
 
-bool    getAllowedToOverwrite()
-{
-    return false;
+	std::string::size_type start = 0;
+    std::string::size_type pos;
+
+    while ((pos = cgiRes.find("\r\n", start)) != std::string::npos)
+    {
+        std::string_view line(cgiRes.data() + start, pos - start);
+        if (line.empty())
+        {
+			if (!hasContentType && !hasLocation)
+				throw BadGateway();
+            if (!hasStatus)
+				htmlRes.setCodeAndPhrase("200", "OK");
+            htmlRes.setBody(cgiRes.substr(pos + 2));
+			htmlRes.build();
+            return;
+        }
+
+		std::size_t colon = line.find(':');
+		if (colon == std::string_view::npos || colon == 0)
+			throw BadGateway();
+		if (line[colon - 1] == ' ')
+			throw BadGateway();
+
+		std::string key(line.substr(0, colon));
+		std::string value(line.substr(colon + 1));
+
+		if (key == "Status" && !hasStatus) {
+			std::string::size_type spPos = value.find(' ');
+			if (spPos == std::string::npos)
+				throw BadGateway();
+			std::string statusCode = value.substr(0, spPos);
+			if (!isAllDigits(statusCode))
+				throw BadGateway();
+			std::string reasonPhrase = value.substr(spPos + 1);
+			if (!hasSingleSpacesOnly(reasonPhrase))
+				throw BadGateway();
+			htmlRes.setCodeAndPhrase(std::move(statusCode),
+				std::move(reasonPhrase));
+			hasStatus = true;
+		}
+		else if (key == "Content-Type" && !hasContentType)
+		{
+			if (hasLocation)
+				throw BadGateway();
+			htmlRes.setHeaders(key, value);
+			hasContentType = true;
+		}
+		else if (key == "Location" && !hasLocation)
+		{
+			if (hasContentType)
+				throw BadGateway();
+			htmlRes.setHeaders(key, value);
+			hasLocation = true;
+		}
+		else
+		{
+			htmlRes.setHeaders(key, value);
+		}
+        start = pos + 2;
+    }
 }
 
 std::string getTimeStamp()
 {
     return std::to_string( std::time( 0 ) );
-}
-
-std::string Method::getCgiPath()
-{
-    return "/usr/bin/python3";
-}
-
-std::string Method::getScript()
-{
-    return "./servers/server1/cgi/test.py";
 }

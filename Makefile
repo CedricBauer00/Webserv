@@ -1,17 +1,28 @@
 NAME = server
 
-SRC = main.cpp \
-		HttpServer.cpp \
+SRC	=	main.cpp \
 		HttpParser.cpp \
-		Client.cpp \
-		ConfigParsing.cpp \
-		PageHandler.cpp \
+		Configparsing/AWebservParser.cpp \
+		Configparsing/WebservCoreParser.cpp \
+		Configparsing/WebservCoreMerger.cpp \
+		Configparsing/WebservCoreModule.cpp \
+		Configparsing/WebservIndexParser.cpp \
+		Configparsing/WebservIndexMerger.cpp \
+		Configparsing/WebservIndexModule.cpp \
+		Configparsing/ConfigParser.cpp \
+		Configparsing/modules.cpp \
 		HttpException.cpp \
-		Socket.cpp \
-		Execution.cpp \
 		Response.cpp \
 		Utils.cpp \
-		Method.cpp
+		Method.cpp \
+		Epoller.cpp \
+		AEventHandler.cpp \
+		Listener.cpp \
+		HeadReader.cpp \
+		BodyReader.cpp \
+		Writer.cpp \
+		Executor.cpp \
+		WebServ.cpp
 
 
 OBJ_DIR = obj
@@ -21,15 +32,15 @@ OBJ := $(SRC:%.cpp=$(OBJ_DIR)/%.o)
 vpath %.cpp src
 
 CXX = c++
-CXXFLAGS = -Wall -Wextra -Werror -std=c++17 -Iinc
+CXXFLAGS = -g -Wall -Wextra -Werror -std=c++17 -Iinc
 
 all: $(NAME)
 
 $(NAME): $(OBJ)
-	@$(CXX) $(CXXFLAGS) $(OBJ) -o $(NAME) && echo "\033[32mCompilation successful!\033[31m"
+	@$(CXX) $(CXXFLAGS) $(OBJ) -o $(NAME) && echo "\033[32mCompilation successful!\033[0m"
 
 $(OBJ_DIR)/%.o: %.cpp
-	@mkdir -p $(OBJ_DIR)
+	@mkdir -p $(dir $@)
 	@$(CXX) $(CXXFLAGS) -o $@ -c $<
 
 clean:

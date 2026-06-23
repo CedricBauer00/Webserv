@@ -2,22 +2,26 @@
 
 #include <string>
 #include <iostream>
-// #include <map>
+#include <unordered_map>
 
 class HttpException : public std::exception
 {
     private:
-        int         _statusCode;
-        std::string _reasonPhrase;
-        std::string _location;
+        unsigned long	_statusCode;
+        std::string		_reasonPhrase;
+        std::unordered_map<std::string, std::string> _headers;
+
     public:
-        HttpException( int statusCode, std::string reasonPhrase );
-        HttpException( int statusCode, std::string reasonPhrase, std::string location );
+        HttpException(unsigned long statusCode, std::string reasonPhrase);
+        HttpException(unsigned long statusCode, std::string reasonPhrase,
+            std::unordered_map<std::string, std::string>&& headers);
         ~HttpException();
         
-        int         getStatusCode() const;
-        std::string getReasonPhrase() const;
-        std::string getLocation() const;
+        unsigned long		getStatusCode() const;
+        const std::string&	getReasonPhrase() const &;
+        const std::unordered_map<std::string, std::string>&	getHeaders() const &;
+        std::string			getReasonPhrase() &&;
+		std::unordered_map<std::string, std::string>	getHeaders() &&;
 };
 
 

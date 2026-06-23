@@ -12,35 +12,32 @@
 #include <ctime>
 #include <unistd.h>
 #include <sys/wait.h>
-#include <sys/wait.h>
+#include "../inc/Configparsing/WebservCoreModule.hpp"
+#include "../inc/Configparsing/WebservIndexModule.hpp"
+#include "HttpParser.hpp"
 
 class Method
 {
     private:
-        std::string _path;
-        std::string _query;
-        std::string _postedFile;
+        std::string _fileContent;
+
+		void	_createAutoIndexPage(
+			const std::string &path, Response &res,const HttpParser& parser);
+		void	_parseCGIResponse(const std::string& cgiRes, Response &htmlRes);
+        bool    _ranCGI(
+            const std::string &path, Response &res, const HttpParser& parser);
+        void    _runCgi(
+            const std::string &path, Response &res, const HttpParser& parser);
+
     public:
         Method();
         ~Method();
-        std::string    modifyPath( std::string uri, whichMethod whichMethod );
-        void    getMethod( std::string newPath, Response &res, bool _isCgiFile );
-        void    postMethod( std::string newPath, Response &res, std::string contentBody, bool _isCgiFile ); // status codes 200, 402, 404
-        void    deleteMethod( std::string newPath, Response &res ); // status codes 200, 402, 404
-        void    runCgi( std::string &content, bool isPost );
-        std::string getCgiPath();
-        std::string getScript();
-
-
-
+        bool    getMethod(const std::string &path, Response &res,
+            HttpParser& parser, const LocIndexConf* locIndexConf);
+        bool    postMethod(const std::string &path, Response &res,
+            const HttpParser& parser); // status codes 200, 402, 404
+        bool    deleteMethod(std::string newPath, Response &res,
+			const HttpParser& parser); // status codes 200, 402, 404
 };
 
-// bool        autoIndexActive();
-// void        createAutoIndex( std::string mockUri, Response &res );
-
-std::string getRootPath();
-bool        getUploadEnabled();
-std::string getUploadPath();
-bool        getAllowDeleteDir();
-bool        getAllowedToOverwrite();
 std::string getTimeStamp();

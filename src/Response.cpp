@@ -1,46 +1,113 @@
 #include "../inc/Response.hpp"
+#include "HttpException.hpp"
+#include "statusCodes.hpp"
 
 Response::Response() : _response(), _httpVersion(), _statusCode(), _reasonPhrase(), _headers(), _body() {}
+
+Response::Response(Response&& other) noexcept
+    : _response(std::move(other._response))
+    , _httpVersion(std::move(other._httpVersion))
+    , _statusCode(std::move(other._statusCode))
+    , _reasonPhrase(std::move(other._reasonPhrase))
+    , _headers(std::move(other._headers))
+    , _body(std::move(other._body))
+    , _internalRedirect(other._internalRedirect)
+{
+    std::cout << "Response move constructor called" << std::endl;
+}
+
+Response& Response::operator=(Response&& other) noexcept
+{
+    if (this != &other)
+    {
+        _response = std::move(other._response);
+        _httpVersion = std::move(other._httpVersion);
+        _statusCode = std::move(other._statusCode);
+        _reasonPhrase = std::move(other._reasonPhrase);
+        _headers = std::move(other._headers);
+        _body = std::move(other._body);
+        _internalRedirect = other._internalRedirect;
+    }
+    return *this;
+}
 
 Response::~Response() {}
 
 void    Response::build()
 {
-    std::ostringstream oss;
-    // HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n
-    oss << "HTTP/1.0 " << _statusCode << " " << _reasonPhrase << "\r\n";
-    
+    _response = "HTTP/1.0 ";
+    _response += _statusCode + " " + _reasonPhrase + "\r\n";
 
-    for ( auto x : _headers ) //set headers
-    {
-        oss << x.first << ": " << x.second << "\r\n";
+    //set headers
+    for (auto& x : _headers)
+        _response += x.first + ": " + x.second + "\r\n";
+
+    _response += "Connection: Closed\r\n\r\n";
+    _response += _body;
+}
+
+void	Response::build(HttpException&& e) {
+	build(std::move(e).getHeaders(), std::to_string(e.getStatusCode()),
+		std::move(e).getReasonPhrase());
+}
+
+void	Response::build(std::string&& content,
+	std::unordered_map<std::string, std::string>&& headers,
+	std::string statusCode,
+	std::string reasonPhrase)
+{
+	setBody(std::move(content));
+	build(std::move(headers), std::move(statusCode), std::move(reasonPhrase));
+}
+
+void	Response::build(std::unordered_map<std::string, std::string>&& headers,
+	std::string statusCode,
+	std::string reasonPhrase)
+{
+	_headers = std::move(headers);
+	build(std::move(statusCode), std::move(reasonPhrase));
+}
+
+void	Response::build(std::string statusCode,
+	std::string reasonPhrase)
+{
+	setCodeAndPhrase(std::move(statusCode), std::move(reasonPhrase));
+	build();
+}
+
+void    Response::setBody(std::string&& content)
+{
+    _body = std::move(content);
+}
+
+void    Response::setCodeAndPhrase(std::string statusCode,
+    std::string reasonPhrase )
+{
+    if (!_internalRedirect) {
+        _statusCode = std::move(statusCode);
+        _reasonPhrase = std::move(reasonPhrase);
     }
-
-    oss << "Connection: Closed\r\n\r\n";
-    oss << _body;
-    _response = oss.str();
 }
 
-void    Response::setBody( std::string content )
+void	Response::setRedirect(unsigned long statusCode) {
+	setCodeAndPhrase(std::to_string(statusCode),
+		statusCodeToReasonPhrase.at(statusCode));
+	_internalRedirect = true;
+}
+
+void    Response::setHeaders(const std::string& key,
+    const std::string& content )
 {
-    // <html><body>Hello, World!</body></html>
-    _body = content;
+    _headers[key] = content;
 }
 
-void    Response::setCodeAndPhrase( std::string statusCode, std::string reasonPhrase )
-{
-    _statusCode = statusCode;
-    _reasonPhrase = reasonPhrase;
-}
-
-void    Response::setHeaders( std::string key, std::string content )
-{
-    _headers[ key ] = content;
-}
-
-std::string Response::getResponse() const
+const std::string& Response::getResponse() const
 {
     return _response;
+}
+
+bool	Response::wasRedirected() const {
+	return _internalRedirect;
 }
 
 void    Response::clear()

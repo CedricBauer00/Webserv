@@ -3,7 +3,7 @@
 
 std::string setStatus(int code)
 {
-    static const std::map<int, std::string> reasons = {
+    static const std::unordered_map<int, std::string> reasons = {
         {200, "OK"},
         {201, "Created"},
         {204, "No Content"},
@@ -51,76 +51,87 @@ std::string setStatus(int code)
         {511, "Network Authentication Required"}
     };
 
-    if (reasons.count(code))
-        return reasons.at(code);
+    auto it = reasons.find(code);
+    if (it != reasons.end())
+        return it->second;
     else
         return "Unknown";
 }
 
-std::string getFileType( std::string path )
+std::string getFileType(const std::string& path)
 {
-    size_t pos = path.rfind( "." );
+    static const std::unordered_map<std::string, std::string> map = {
+        {".html", "text/html"},
+        {".css", "text/css"},
+        {".text", "text/plain"},
+        {".js", "application/javascript"},
+        {".json", "application/json"},
+        {".xml", "application/xml"},
+        {".png", "image/png"},
+        {".jpeg", "image/jpeg"}
+    };
+
+    size_t pos = path.rfind(".");
     if ( pos == std::string::npos )
         return "application/octet-stream";
-    
-    std::string type = path.substr( pos );
 
-    for ( auto& x : type )
+    std::string ext = path.substr(pos);
+    for ( auto& x : ext )
         x = tolower( static_cast<unsigned char>( x ) );
 
-    if ( type == ".html" )
-        return "text/html";
-    else if ( type == ".css" )
-        return "text/css";
-    else if ( type == ".text" )
-        return "text/plain";
-    else if ( type == ".js" )
-        return "application/javascript";
-    else if ( type == ".json" )
-        return "application/json";
-    else if ( type == ".xml" )
-        return "application/xml";
-    else if ( type == ".png" )
-        return "image/png";
-    else if ( type == ".jpeg" )
-        return "image/jpeg";
+    auto it = map.find(ext);
+    if (it != map.end())
+        return it->second;
     else
         return "application/octet-stream";
 }
 
-bool autoIndexActive() // still to implement: return bool for autoindex
+std::string getExtension(const std::string& contentType)
 {
-    return true;
+    static const std::unordered_map<std::string, std::string> map = {
+        {"text/html", ".html"},
+        {"text/css", ".css"},
+        {"text/plain", ".text"},
+        {"application/javascript", ".js"},
+        {"application/json", ".json"},
+        {"application/xml", ".xml"},
+        {"image/png", ".png"},
+        {"image/jpeg", ".jpeg"}
+    };
+
+    auto it = map.find(contentType);
+    if (it != map.end())
+        return it->second;
+    else
+        return ".bin";
 }
 
-void createAutoIndex( std::string mockUri, Response &res )
+bool    isAllDigits( const std::string& word )
 {
-    std::vector<std::string> all;
-    std::string buffer;
-
-    buffer += "<!DOCTYPE html>\n";
-    buffer += "<html>\n";
-    buffer += "<head>\n";
-    buffer += "<title>index of " + mockUri + "/<title>\n";
-    buffer += "<hr>\n";
-    buffer += "<pre>\n";
-
-    for ( auto x : std::filesystem::directory_iterator( mockUri ) )
+    for ( std::string::const_iterator it = word.begin(); it != word.end(); ++it )
     {
-        std::filesystem::path path = x.path();    
-        if ( std::filesystem::is_regular_file( path ) )
-            buffer += "<a href=\"" + mockUri +  path.filename().string() + "\">" + path.filename().string() + "</a>\n";
-        else if ( std::filesystem::is_directory( path ) )
-            buffer += "<a href=\"" + mockUri +  path.filename().string() + "/\">" + path.filename().string() + "</a>\n";
+        if ( !std::isdigit( static_cast<unsigned char>( *it ) ) )
+            return ( false );
     }
+    return ( true );
+}
 
-    buffer += "</pre>\n";
-    buffer += "</hr>\n";
-    buffer += "</body>\n";
-    buffer += "</html>\n";
-    res.setBody( buffer );
-    res.setCodeAndPhrase( "200", "OK" );
-    res.setHeaders( "Content-Length", std::to_string( buffer.size() ) );
-    res.setHeaders( "Content-Type", "txt/html" );
-    res.build();
+bool	hasSingleSpacesOnly(const std::string& s) {
+    if (s.empty()) return true;
+
+    // no leading or trailing space
+    if (s.front() == ' ' || s.back() == ' ')
+        return false;
+
+    bool prevSpace = false;
+
+    for (char c : s) {
+        if (c == ' ') {
+            if (prevSpace) return false; // found "  "
+            prevSpace = true;
+        } else {
+            prevSpace = false;
+        }
+    }
+    return true;
 }

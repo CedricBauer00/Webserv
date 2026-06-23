@@ -1,132 +1,242 @@
 #include "../inc/HttpParser.hpp"
+#include "../inc/Exceptions.hpp"
+#include "../inc/Utils.hpp"
 
-HttpParser::HttpParser() {}
-
-
-HttpParser::~HttpParser() { std::cout << "HttpParsing END" << std::endl; }
-
-
-HttpParser::HttpParser( std::string reqeust ) : _startLine(), _headers(), _body(), _bodyLength( 0 ), _foundContlen( false ), _foundHost( false ), _contentLength( 0 ), _chunked( false ), _iss( reqeust ), _method( METHOD_GET ), _isCgiFile( false )
-{
-    std::cout << "HttpParsing BEGIN" << std::endl;
+HttpParser::HttpParser() 
+: _startLine(), _headers(), _body(), _bodyLength(0), _headStopReceived(false), _bodyStopReceived(false),
+_foundContlen( false ), _foundHost( false ), _contentLength( 0 ),
+_chunked( false ), _request(), _method( METHOD_GET ),
+_currentChunkSize(0), _waitingForChunkData(false), _waitingForLastChunkCRLF(false) {
 }
 
-void    HttpParser::setHeaders()
+HttpParser::HttpParser(const std::string& request ) 
+: _startLine(), _headers(), _body(), _bodyLength(0), _headStopReceived(false), _bodyStopReceived(false),
+_foundContlen( false ), _foundHost( false ), _contentLength( 0 ),
+_chunked( false ), _request(request), _method( METHOD_GET ),
+_currentChunkSize(0), _waitingForChunkData(false), _waitingForLastChunkCRLF(false) {
+}
+
+HttpParser::HttpParser(HttpParser&& other) noexcept
+: _startLine( std::move( other._startLine ) )
+, _headers( std::move( other._headers ) )
+, _httpVersion( std::move( other._httpVersion ) )
+, _path( std::move( other._path ) )
+, _query( std::move( other._query ) )
+, _body( std::move( other._body ) )
+, _bodyLength( other._bodyLength )
+, _headStopReceived( other._headStopReceived )
+, _bodyStopReceived( other._bodyStopReceived )
+, _foundContlen( other._foundContlen )
+, _foundHost( other._foundHost )
+, _contentLength( other._contentLength )
+, _chunked( other._chunked )
+, _request( std::move( other._request ) )
+, _hostPort( std::move( other._hostPort ) )
+, _hostName( std::move( other._hostName ) )
+, _method( other._method )
+, _methodMask( other._methodMask )
+, _currentChunkSize(other._currentChunkSize)
+, _waitingForChunkData(other._waitingForChunkData)
+, _waitingForLastChunkCRLF(other._waitingForLastChunkCRLF)
+, _internalRedirect(other._internalRedirect)
 {
-    std::string         line;
+	std::cout << "HttpParser move constructor called" << std::endl;
+}
 
-    int whichline = 0;
-    while ( std::getline( _iss, line ) )
+HttpParser::~HttpParser() {
+}
+
+void	HttpParser::parseHead(char* buffer, std::size_t count)
+{
+    _request.append(buffer, count);
+    std::string::size_type start = 0;
+    std::string::size_type pos;
+
+    while ((pos = _request.find("\r\n", start)) != std::string::npos)
     {
-        whichline++;
-        std::cout << GREEN << line << RESET << std::endl;
-        if ( !line.empty() && line.back() == '\r' )
-            line.pop_back();
+        std::string_view line(_request.data() + start, pos - start);
 
-        if ( line.empty() )
-            break ;
-
-        if ( _startLine.empty() )
+        if (line.empty())
         {
-            setStartLine( line );
-            checkStartLine();
-            setMethod();
-            setUri();
-            checkCgiExtension();
+            _request.erase(0, pos + 2);
+			_headStopReceived = true;
+            return;
+        }
+
+        if (_startLine.empty())
+        {
+            std::size_t fieldStart = 0;
+            std::size_t fieldEnd = line.find(' ');
+            while (fieldEnd != std::string_view::npos)
+            {
+                _startLine.emplace_back(line.substr(fieldStart, fieldEnd - fieldStart));
+                fieldStart = fieldEnd + 1;
+                fieldEnd = line.find(' ', fieldStart);
+            }
+            _startLine.emplace_back(line.substr(fieldStart));
+            _checkStartLine();
+            _setMethod();
+            _decodeRequestTarget(_startLine[1]);
+            _splitRequestTarget(_startLine[1]);
+            _normalizePath();
         }
         else
         {
-            std::string::size_type pos = line.find( ":" ); 
-            if ( pos == std::string::npos || pos == 0 )
+            std::size_t colon = line.find(':');
+            if (colon == std::string_view::npos || colon == 0)
+                throw BadRequest();
+            if (line[colon - 1] == ' ')
                 throw BadRequest();
 
-            if ( line[ pos - 1 ] == ' ' ) // vor ":" darf kein Space stehen
-                throw BadRequest();
+            std::string key(line.substr(0, colon));
+            std::string value(line.substr(colon + 1));
 
-            std::string key = line.substr( 0, pos );
-            std::string value = line.substr( pos + 1 );
+            for (auto& x : key)
+                x = tolower(static_cast<unsigned char>(x));
 
-            // key und value entweder komplett lowercase oder uppercase machen, wegen einheitlichem handling - case sensitive 
-            for ( auto& x : key )
-                x = tolower( static_cast<unsigned char>( x ) );
-            for ( auto& x : value )
-                x = tolower( static_cast<unsigned char>( x ) );
-
-            value = trim( value );
-            key = trim( key );
-            if ( key == "content-length" && _foundContlen == false ) // need to be checked when there ist post
+            value = trim(value);
+            key = trim(key);
+            if (key == "content-length" && _foundContlen == false)
             {
+                if (_chunked)
+                    throw BadRequest();
+                if (!isAllDigits(value))
+                    throw BadRequest();
                 _foundContlen = true;
-                if ( isAllDigits( value ) == false )
-                    throw BadRequest(); // fall back to content length from config
-                _contentLength = static_cast<std::size_t>( std::stoi( value ) );
-                // check on content length from config file
+                _contentLength = static_cast<std::size_t>(std::stoi(value));
             }
-            else if ( key == "transfer-encoding" && value == "chunked")
-                _chunked = true;// body endet bei \0\r\n
-            
-            if ( _chunked  && _foundContlen )
-                throw BadRequest();
-            
-            if ( key == "host" )
-                checkHostHeader( value );
-            
-            _headers[ key ] = value;
+            else if (key == "transfer-encoding")
+            {
+				for (auto& x : value)
+                	x = tolower(static_cast<unsigned char>(x));
+				if (value == "chunked")
+				{
+					if (_foundContlen)
+						throw BadRequest();
+					_chunked = true;
+				}
+            }
+            else if (key == "host")
+                checkHostHeader(value);
+
+            _headers[key] = value;
         }
+
+        start = pos + 2;
     }
-    if ( _foundHost == false ) // oder default server - meist erster Serverblock
-        throw BadRequest(); // anscheinend muss! dann default server; keine Bad Request!
-    std::cout << "found Host Header:" << _foundHost << std::endl;
-    
-    std::cout << BLUE << whichline << RESET << std::endl;
-    std::cout << BLUE << "Map printing" << std::endl;
-    for ( const auto& pair : _headers )
-    {
-        std::cout << pair.first << " : " << pair.second << std::endl;
-    }
-    std::cout << "Map End" << RESET << std::endl;
+	_request.erase(0, start);
 }
 
-void    HttpParser::setStartLine( std::string line )
+void	HttpParser::parseBody(char* buffer, std::size_t count)
 {
-    std::istringstream  iss( line );
-    std::string         token;
+	_request.append(buffer, count);
+	if (_chunked) {
+		while (true) {
+			if (!_waitingForChunkData) {
+				std::string::size_type sizeEnd = _request.find("\r\n");
 
-    while ( iss >> token )
-        _startLine.push_back( token );
+				if (sizeEnd == std::string::npos)
+					return;
+				for (size_t i = 0; i < sizeEnd; ++i) {
+					if (!std::isxdigit(
+							static_cast<unsigned char>(_request[i])))
+						throw BadRequest();
+				}
+
+				try {
+					_currentChunkSize =
+						std::stoul(_request.substr(0, sizeEnd), nullptr, 16);
+				}
+				catch (...) {
+					throw BadRequest();
+				}
+
+				_request.erase(0, sizeEnd + 2);
+				if (_currentChunkSize == 0) {
+					_waitingForLastChunkCRLF = true;
+					continue;
+				}
+				if(MAX_BODY_SIZE < _body.size() + _currentChunkSize)
+					throw PayloadTooLarge();
+				_waitingForChunkData = true;
+			}
+
+			if (_waitingForLastChunkCRLF) {
+				if (_request.size() < 2)
+					return;
+				if (_request[0] != '\r' || _request[1] != '\n')
+					throw BadRequest();
+				_request.erase(0, 2);
+				_bodyStopReceived = true;
+				_waitingForLastChunkCRLF = false;
+				return;
+			}
+
+			if (_request.size() < _currentChunkSize + 2)
+				return;
+			if (_request[_currentChunkSize] != '\r'
+				|| _request[_currentChunkSize + 1] != '\n')
+				throw BadRequest();
+			_body.append(_request.data(), _currentChunkSize);
+			_request.erase(0, _currentChunkSize + 2);
+			_currentChunkSize = 0;
+			_waitingForChunkData = false;
+		}
+	}
+	
+	if (_foundContlen) {
+		std::size_t remaining = _contentLength - _body.size();
+		std::size_t toCopy = std::min(remaining, _request.size());
+
+		_body.append(_request.data(), toCopy);
+		_request.erase(0, toCopy);
+		if (_body.size() == _contentLength)
+			_bodyStopReceived = true;
+		return;
+	}
+
+	if (_startLine[2] != "HTTP/1.0")
+    	throw BadRequest();
+	_body.append(_request);
+	if (MAX_BODY_SIZE < _body.size())
+		throw PayloadTooLarge();
+	_request.clear();
+	return;
 }
 
-void    HttpParser::checkStartLine() // eventuell direkt Execution instance createn, die URI speichert
+void    HttpParser::_checkStartLine() // eventuell direkt Execution instance createn, die URI speichert
 {
     if ( _startLine.size() != 3 )
+    {
+        std::cout << RED << "not 3 args in starline" << RESET << std::endl;////
         throw BadRequest();
+    }
     if ( _startLine[ 0 ][ 0 ] == '/' )
+    {
+        std::cout << RED << "'/' as first char" << RESET << std::endl;////
         throw BadRequest();
+    }
     if ( _startLine[ 0 ] != "GET" && _startLine[ 0 ] != "POST" && _startLine[ 0 ] != "DELETE" )
         throw MethodNotAllowed();    
     if ( _startLine[ 2 ].substr( 0, 4 ) != "HTTP" )
+    {
+        std::cout << RED << "Not an HTTP protocol" << RESET << std::endl;////
         throw BadRequest();
+    }
     if ( _startLine[ 2 ] != "HTTP/1.0" && _startLine[ 2 ] != "HTTP/1.1" )
+    {
+        std::cout << RED << "HTTP Version not supported" << RESET << std::endl; ////
         throw HttpVersionNotSupported();
+    }
 }
 
-void    HttpParser::setUri()
+void    HttpParser::_setMethod() // eventuell hier Execution class instance createn, die die Method selbst speichert
 {
-    _uri = _startLine[ 1 ];
-}
-
-
-void    HttpParser::setMethod() // eventuell hier Execution class instance createn, die die Method selbst speichert
-{
-    std::cout << "startline:" << _startLine[ 0 ] << std::endl;
-    if ( _startLine[ 0 ] == "GET" )
-        _method = METHOD_GET;
-    else if ( _startLine[ 0 ] == "POST" )
-        _method = METHOD_POST;
-    else if ( _startLine[ 0 ] == "DELETE" )
-        _method = METHOD_DELETE;
-    std::cout << "_method:" << _method << std::endl;
-    
+    auto it = methodMap.find(_startLine[0]);
+    if (it == methodMap.end())
+		throw MethodNotImplemented();
+	_methodMask = it->second.first;
+	_method = it->second.second;    
 }
 
 std::string HttpParser::trim( const std::string& value )
@@ -139,52 +249,6 @@ std::string HttpParser::trim( const std::string& value )
     while ( end > start && std::isspace( static_cast<unsigned char>( value[ end - 1 ] ) ) )
         --end;
     return ( value.substr( start, end - start ) );
-}
-
-bool    HttpParser::isAllDigits( const std::string& word )
-{
-    for ( std::string::const_iterator it = word.begin(); it != word.end(); ++it )
-    {
-        if ( !std::isdigit( static_cast<unsigned char>( *it ) ) )
-            return ( false );
-    }
-    return ( true );
-}
-
-void    HttpParser::setBody()
-{
-    std::string line;
-
-    if ( _chunked == true )
-    {
-        std::cout << "CHUNKED ENCODING" << std::endl;
-        // chunked encoding
-        // until body lenght == 0; -> End of chunked encoding
-    }
-    else
-    {
-        while ( std::getline( _iss, line ) )
-        {
-            _body.append( line + "\n" );
-        }
-        
-        // max body size checken
-        if ( _foundContlen )
-        {
-            if ( _contentLength > static_cast<std::size_t>( MAX_BODY_SIZE ) )
-                throw PayloadTooLarge();
-            if ( _body.size() != _contentLength )
-                throw BadRequest();
-            // if ( _body.size() < _contentLength )
-            //     throw RequestTimeout();
-            
-        }
-        else if ( _body.size() > static_cast<std::size_t>( MAX_BODY_SIZE ) )
-            throw PayloadTooLarge();
-            
-    }
-    //check if contentlength and body length are the same
-    // read request body into _body variable after headers were parsed correctly
 }
 
 void    HttpParser::validatePort( std::string port )
@@ -216,7 +280,7 @@ std::string validateHostName( const std::string &hostName )
     return hostName;
 }
 
-void    HttpParser::checkHostHeader( std::string value )
+void    HttpParser::checkHostHeader(const std::string& value )
 {
     if ( value.empty() )
         throw BadRequest();
@@ -282,59 +346,144 @@ void    HttpParser::checkHostHeader( std::string value )
 
     _foundHost = true;
 }
-// [:::::example.com]   faield: wird gepassed!
-// [example.com]        faield: wird gepassed!
-// example.com]
-// printf 'GET /legacy/location/ HTTP/1.1\r\nHOST: ccc[]cc\r\nHEAEDER1: A A \r\n\r\n' | nc 127.0.0.2 3490   
-// ~$ printf 'GET /legacy/location/ HTTP/1.1\r\nHOST: [ccc]\r\nHEAEDER1: A A \r\n\r\n' | nc 127.0.0.2 3490
-// ~$ printf 'GET /legacy/location/ HTTP/1.1\r\nHOST: [:ccc]\r\nHEAEDER1: A A \r\n\r\n' | nc 127.0.0.2 3490
-// ~$ printf 'GET /legacy/location/ HTTP/1.1\r\nHOST: [::ccc]\r\nHEAEDER1: A A \r\n\r\n' | nc 127.0.0.2 3490
-// ~$ printf 'GET /legacy/location/ HTTP/1.1\r\nHOST: [::]:6553\r\nHEAEDER1: A A \r\n\r\n' | nc 127.0.0.2 3490
 
-void    HttpParser::checkCgiExtension()
+void	HttpParser::setRedirectPath(std::string&& redirectPath) {
+	_path = std::move(redirectPath);
+	_internalRedirect = true;
+}
+
+const std::vector<std::string>&    HttpParser::getStartLine() const
 {
-    size_t size = _uri.size(); 
+	return _startLine;
+}
 
-    if ( size >= 3 && _uri.compare( size - 3, 3, ".py" ) == 0 )
+const std::string&	HttpParser::getQuery() const
+{
+	return _query;
+}
+
+const std::unordered_map<std::string, std::string>&    HttpParser::getHeaders() const
+{
+	return _headers;
+}
+
+const std::string&    HttpParser::getBody() const
+{
+    return _body;
+}
+
+const std::string&	HttpParser::getMethodStr() const
+{
+	return _startLine[0];
+}
+
+method  HttpParser::getMethod() const
+{
+    return _method;
+}
+
+unsigned int    HttpParser::getMethodMask() const
+{
+    return _methodMask;
+}
+
+const std::string&     HttpParser::getHostName() const
+{
+    return _hostName;
+}
+
+const std::string&     HttpParser::getHostPort() const
+{
+    return _hostPort;
+}
+
+const std::string&     HttpParser::getPath() const
+{
+    return _path;
+}
+
+const std::string&	HttpParser::getHttp() const 
+{
+	return  _startLine[2];
+}
+
+bool			HttpParser::headStopReceived() const {
+	return _headStopReceived;
+}
+
+bool			HttpParser::bodyStopReceived() const {
+	return _bodyStopReceived;
+}
+
+bool	HttpParser::headerHasContlen() const {
+	return _foundContlen;
+}
+
+std::size_t	HttpParser::getContlen() const {
+	return _contentLength;
+};
+
+bool	HttpParser::isHTTP1p0() const {
+	return _startLine[2] == "HTTP/1.0";
+}
+
+void    HttpParser::_decodeRequestTarget(std::string& requestTarget)
+{
+    for ( size_t i = 0; i < requestTarget.size(); ++i )
     {
-        _isCgiFile = true;
+        if ( requestTarget[ i ] == '%' && i + 2 < requestTarget.size() )
+        {
+            std::string hex = requestTarget.substr( i + 1, 2 );
+            char c = static_cast<char>( std::strtol( hex.c_str(), 0, 16 ) );
+            requestTarget.replace( i, 3, 1, c );
+        }
     }
+}
+
+void    HttpParser::_splitRequestTarget(std::string& requestTarget) {
+    std::string::size_type pos = requestTarget.find( '?' );
+
+    if ( pos != std::string::npos )
+    {
+        _path = requestTarget.substr( 0, pos );
+        _query = requestTarget.substr( pos + 1 );
+    }
+    else
+        _path = requestTarget;
+}
+
+void    HttpParser::_normalizePath() {
+    std::istringstream iss( _path );
+    std::vector<std::string> wholePath;
+    std::string partStr;
+    std::string nPath;
+
+    bool endsWithSlash = !_path.empty() && _path.back() == '/';
+    while ( getline( iss, partStr, '/' ) )
+    {
+        if ( partStr.empty() || partStr == "." ) // "." - dieses Verzeichnis
+            continue ;
+        if ( partStr == ".." ) // Traversal-Check 
+        {
+            if ( wholePath.empty() )
+                throw BadRequest();
+                
+            wholePath.pop_back(); // one directory out  
+        }
+        else
+            wholePath.push_back( partStr );
+    }
+    for ( size_t i = 0; i < wholePath.size(); ++i )
+    {
+        nPath += '/';
+        nPath += wholePath[ i ];
+    }
+    if ( endsWithSlash )
+        nPath += '/';
+    _path = std::move(nPath);
 }
 
 bool    isInRange( int num, int min, int max )
 {
     return ( num >= min && num <= max );
 }
-
-whichMethod  HttpParser::getMethod() const
-{
-    return _method;
-}
-
-std::string     HttpParser::getUri()
-{
-    return _uri;
-}
-
-std::string    HttpParser::getBody() const
-{
-    return _body;
-}
-
-std::string     HttpParser::getHostName()
-{
-    return _hostName;
-}
-
-std::string     HttpParser::getHostPort()
-{
-    return _hostPort;
-}
-
-bool            HttpParser::isCgifile()
-{
-    return _isCgiFile;
-}
-
-// test for carriage return
-// printf 'GET /Something HTTP/1.1\r\nHEAEDER1: A A A A\r\nHEAEDER2: B B B B \r\nHEADER3: C C C C\r\n\r\nTHIS IS A BODY\nWith a newline\nand another one\nnewline\nnewline\rA\rD\rC\r\n\r\n' | nc 127.0.0.2 3490

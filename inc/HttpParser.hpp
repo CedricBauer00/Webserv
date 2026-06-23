@@ -4,15 +4,6 @@
 #include <string>
 #include <cstring>
 #include <iostream>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <sys/wait.h>
-#include <sys/epoll.h>
-#include <signal.h>
-#include <fcntl.h>
 #include <vector>
 #include <unordered_map>
 #include <sstream>
@@ -23,69 +14,73 @@
 #include "MethodTypes.hpp"
 // #include "HttpException.hpp"
 #include "Exceptions.hpp"
+#include "constants.h"
 
-#define RED  "\033[31m"
-#define ELEC_RED "\033[38;2;255;20;20m"
-#define BLUE    "\033[34m"
-#define GREEN  "\033[32m"
-#define ORANGE  "\033[38;2;255;120;0m"
-#define RESET  "\033[0m"
-
-#define MAX_BODY_SIZE 1024
+#define MAX_BODY_SIZE 8192
 
 class HttpParser
 {
     private:
-        std::vector<std::string>                        _startLine;
-        std::unordered_map<std::string, std::string>    _headers;
-        std::string _httpVersion;
-        std::string _uri;
-        std::string _body;
-        std::size_t _bodyLength;
-        bool        _foundContlen;
-        bool        _foundHost;
-        std::size_t _contentLength;
-        bool        _chunked;
-        std::istringstream  _iss;
-        std::string _hostPort;
-        std::string _hostName;
-        whichMethod _method;
-        bool        _isCgiFile;
+        std::vector<std::string>						_startLine;
+        std::unordered_map<std::string, std::string>	_headers;
+        std::string			_httpVersion;
+        std::string			_path;
+		std::string			_query;
+        std::string 		_body;
+        std::size_t			_bodyLength;
+		bool				_headStopReceived;
+		bool				_bodyStopReceived;
+        bool				_foundContlen;
+        bool				_foundHost;
+        std::size_t			_contentLength;
+        bool				_chunked;
+        std::string		    _request;
+        std::string 		_hostPort;
+        std::string 		_hostName;
+        method 		        _method;
+        unsigned int    	_methodMask;
+		std::size_t 		_currentChunkSize = 0;
+		bool 				_waitingForChunkData = false;
+		bool 				_waitingForLastChunkCRLF = false;
+        bool                _internalRedirect = false;
+
+        void	_setMethod();
+        void	_checkStartLine();
+		void	_decodeRequestTarget(std::string& requestTarget);
+		void	_splitRequestTarget(std::string& requestTarget);
+		void	_normalizePath();
+		// void    _setHttpVersion();
 
     public:
         HttpParser();
-        HttpParser( std::string reqeust );
-        
-        void        setHeaders( );
-        void        setBody();
-        void        setMethod();
-        void        setUri();
-        void        setStartLine( std::string line );
-        void        checkStartLine();
-        std::string trim( const std::string& value );
-        bool        isAllDigits( const std::string& word );
-        void        initIss( std::string request );
-        void        checkHostHeader( std::string value );
-        void        validatePort( std::string portStr );
-        void        checkCgiExtension();
-
-        // void    setHttpVersion();
-        
-        std::vector<std::string>    getStartLine();
-        std::unordered_map<std::string, std::string>  getHeaders();
-        std::string                 getBody() const;
-        std::string                 getUri();
-        whichMethod                 getMethod() const;
-        std::string                 getHostName();
-        std::string                 getHostPort();
-        bool                        isCgifile();
-
+        HttpParser(const std::string& request);
+        HttpParser(HttpParser&& other) noexcept;
+        HttpParser& operator=(HttpParser&& other) noexcept = default;
         ~HttpParser();
+ 
+        void        parseHead(char* buffer, std::size_t count);
+        void        parseBody(char* buffer, std::size_t count);
+        std::string trim( const std::string& value );
+        void        checkHostHeader( const std::string& value );
+        void        validatePort( std::string portStr );
+        void		setRedirectPath(std::string&& redirectPath);
+        
+        const std::vector<std::string>&					getStartLine() const;
+        const std::string&								getQuery() const;
+        const std::unordered_map<std::string, std::string>&	getHeaders() const;
+        const std::string&								getBody() const;
+		const std::string&								getMethodStr() const;
+        method										    getMethod() const;
+        unsigned int									getMethodMask() const;
+        const std::string&								getHostName() const;
+        const std::string&								getHostPort() const;
+		const std::string&								getPath() const;
+        const std::string&                              getHttp() const;
+		bool											headStopReceived() const;
+		bool											bodyStopReceived() const;
+		bool											headerHasContlen() const;
+		std::size_t										getContlen() const;
+		bool											isHTTP1p0() const;
 };
 
 bool    isInRange( int num, int min, int max );
-
-void    HttpParsing( std::string request );
-
-// JSON POST
-// falls POST method, check ob eine json (Content-Type: /json), dann ignore erste '{' und letzte '}' character
