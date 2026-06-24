@@ -108,6 +108,11 @@ struct	ErrorPage {
 	std::string		path;
 };
 
+struct returnDirective {
+	unsigned long	statusCode;
+	std::string		path;
+};
+
 bool	isDigits(const std::string& str);
 bool	isValidPort(const std::string& str);
 bool 	isValidIpv4(const std::string& address);

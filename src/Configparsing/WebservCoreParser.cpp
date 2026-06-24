@@ -322,22 +322,3 @@ void WebservCoreParser::_parseTryFiles(const std::string& d,
     (void)c;
     (void)l;
 }
-
-void WebservCoreParser::_parseReturn(Tokens& t, const ConfCtx& c)
-{
-	//checking of statusCodes 
-	
-	std::string uri;
-	
-	if (!t.empty() && !_isDelimiter(t.front()))
-	{
-		uri = t.front();
-		t.pop_front();
-	}
-	
-	auto* locConf = dynamic_cast<LocCoreConf*>(getLocConfPtr(c));
-	if (!locConf)
-		throw (std::runtime_error("return: no location context"));
-
-	locConf->redirectCode = ;
-}

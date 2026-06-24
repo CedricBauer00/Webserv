@@ -8,7 +8,9 @@
 
 struct HttpCoreConf : HttpConf {
 	Tokens	lowerLevelDirectives; // directives that can be specified in http block and inherited by all servers and locations, e.g., error_log, client_max_body_size
+
 	virtual ~HttpCoreConf() = default;
+
 	Tokens	getlowerLevelDirectives() override { return lowerLevelDirectives; };
 };
 
@@ -40,6 +42,8 @@ struct SrvCoreConf : SrvConf {
 		underscore_is_valid(_underscore_is_valid),
 		flags(_flags)
 	{}
+	virtual ~SrvCoreConf() = default;
+
 	void	inheritFrom(const SrvConf& other) override {
 		auto& conf = dynamic_cast<const SrvCoreConf&>(other);
 		if (serverNames.empty() && !conf.serverNames.empty())
@@ -86,8 +90,6 @@ struct LocCoreConf : LocConf {
 
 	std::unordered_map<unsigned long, ErrorPage>	errPages;
 
-	std::optional<unsigned long>	redirectCode;
-
 	LocCoreConf() = delete;
 	LocCoreConf(
 		const LocNode* locNodePtr) 
@@ -95,8 +97,8 @@ struct LocCoreConf : LocConf {
 		nameLen(locNodePtr->name.size())
 	{}
 	LocCoreConf(
-		std::optional<unsigned int> _allowedMethods,
-		std::string _root,
+		std::optional<unsigned int>	_allowedMethods,
+		std::string	_root,
 		std::optional<bool> _alias,
 		std::string _postRedirect,
 		std::optional<unsigned long> _clientMaxBodySize,
@@ -106,8 +108,7 @@ struct LocCoreConf : LocConf {
 		std::optional<bool> _absoluteRedirect,
 		std::optional<bool> _logNotFound,
 		std::optional<bool> _chunkedTransferEncoding,
-		std::unordered_map<unsigned long, ErrorPage> _errPages,
-		std::optional<int>	_redirectCode = std::nullopt) // 301, 302, 303
+		std::unordered_map<unsigned long, ErrorPage> _errPages)
 		:
 		allowedMethods(_allowedMethods),
 		root(std::move(_root)),
@@ -120,9 +121,10 @@ struct LocCoreConf : LocConf {
 		absoluteRedirect(_absoluteRedirect),
 		logNotFound(_logNotFound),
 		chunkedTransferEncoding(_chunkedTransferEncoding),
-		errPages(std::move(_errPages)),
-		redirectCode( _redirectCode )
+		errPages(std::move(_errPages))
 	{}
+	virtual ~LocCoreConf() = default;
+
 	void	inheritFrom(const LocConf& other) override {
 		auto& conf = dynamic_cast<const LocCoreConf&>(other);
 		if (!allowedMethods.has_value() && conf.allowedMethods.has_value())
@@ -147,27 +149,23 @@ struct LocCoreConf : LocConf {
 			logNotFound = conf.logNotFound;
 		if (!chunkedTransferEncoding.has_value() && conf.chunkedTransferEncoding.has_value())
 			chunkedTransferEncoding = conf.chunkedTransferEncoding;
-<<<<<<< HEAD
-		if (!redirectCode.has_value() && conf.redirectCode.has_value())
-			redirectCode = conf.redirectCode;
-		if (!redirectUri.has_value() && conf.redirectUri.has_value())
-			redirectUri = conf.redirectUri;
-=======
 		for (const auto& item: conf.errPages) {
 			if (errPages.find(item.first) == errPages.end())
 				errPages[item.first] = item.second;
 		}
->>>>>>> c7d20ad56c0c69de451886ef9a61dbe0c9d15b7a
 	}
 };
 
 struct	HttpIndexConf : HttpConf {
 	Tokens	lowerLevelDirectives; // directives that can be specified in http block and inherited by all servers and locations, e.g., index, autoindex
 	virtual ~HttpIndexConf() = default;
+
 	Tokens	getlowerLevelDirectives() override { return lowerLevelDirectives; };
 };
 
 struct	SrvIndexConf : SrvConf {
+	virtual ~SrvIndexConf() = default; 
+
 	void	inheritFrom(const SrvConf& otherConf) override { (void)otherConf; };
 };
 
@@ -186,11 +184,41 @@ struct LocIndexConf : LocConf {
 		indexFiles(std::move(_indexFiles)),
 		autoindex(_autoindex)
 	{}
+	virtual ~LocIndexConf() = default;
+
 	void	inheritFrom(const LocConf& otherConf) override {
 		auto& conf = dynamic_cast<const LocIndexConf&>(otherConf);
 		if (indexFiles.empty() && !conf.indexFiles.empty())
 			indexFiles = conf.indexFiles;
 		if (!autoindex.has_value() && conf.autoindex.has_value())
 			autoindex = conf.autoindex;
+	}
+};
+
+struct	HttpRedirectConf : HttpConf {
+	virtual ~HttpRedirectConf() = default;
+
+	Tokens	getlowerLevelDirectives() override { return {}; };
+};
+
+struct	SrvRedirectConf : SrvConf {
+	virtual ~SrvRedirectConf() = default;
+
+	void	inheritFrom(const SrvConf& otherConf) override { (void)otherConf; };
+};
+
+struct	LocRedirectConf : LocConf {
+	std::optional<returnDirective>	retDirective;
+
+	LocRedirectConf() = default;
+	LocRedirectConf(
+		const LocNode* locNodePtr) 
+	{ (void)locNodePtr; }
+	virtual ~LocRedirectConf() = default;
+
+	void	inheritFrom(const LocConf& otherConf) override {
+		auto& conf = dynamic_cast<const LocRedirectConf&>(otherConf);
+		if (!retDirective.has_value() && conf.retDirective.has_value())
+			retDirective = conf.retDirective;
 	}
 };

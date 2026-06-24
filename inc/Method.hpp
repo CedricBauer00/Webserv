@@ -38,7 +38,6 @@ class Method
             const HttpParser& parser); // status codes 200, 402, 404
         bool    deleteMethod(std::string newPath, Response &res,
 			const HttpParser& parser); // status codes 200, 402, 404
-        void    whichRedirect( Response &res, const HttpParser& parser);
 };
 
 std::string getTimeStamp();

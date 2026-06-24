@@ -9,6 +9,9 @@ SRC	=	main.cpp \
 		Configparsing/WebservIndexParser.cpp \
 		Configparsing/WebservIndexMerger.cpp \
 		Configparsing/WebservIndexModule.cpp \
+		Configparsing/WebservRedirectParser.cpp \
+		Configparsing/WebservRedirectMerger.cpp \
+		Configparsing/WebservRedirectModule.cpp \
 		Configparsing/ConfigParser.cpp \
 		Configparsing/modules.cpp \
 		HttpException.cpp \

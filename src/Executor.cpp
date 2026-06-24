@@ -29,6 +29,9 @@ void	Executor::_resolveLocConfs() {
 		_locCoreConf = dynamic_cast<const LocCoreConf*>(_loc->locConfs[0].get());
 	if (1 < _loc->locConfs.size())
 		_locIndexConf = dynamic_cast<const LocIndexConf*>(_loc->locConfs[1].get());
+	if (2 < _loc->locConfs.size())
+		_locRedirectConf =\
+			dynamic_cast<const LocRedirectConf*>(_loc->locConfs[2].get());
 }
 
 void	Executor::_selectLocation(const LocNode& root)
@@ -101,7 +104,19 @@ void	Executor::process(uint32_t events) {
 
 				_selectLocation(*server->location.get()); // select location based on URI path
 				// std::cout << "Selected location: '" << _loc->name << "' with match type " << _loc->matchType << "\n";
-		
+
+				if (_locRedirectConf) {
+					std::string		path = _locRedirectConf->retDirective.value().path;
+					unsigned long	code = _locRedirectConf->retDirective.value().statusCode;
+
+					if (path.size())
+						_res.build({{"Location", path}}, std::to_string(code), statusCodeToReasonPhrase.at(code));
+					else
+						_res.build(std::to_string(code), statusCodeToReasonPhrase.at(code));
+					new Writer(*this, std::move(_res));
+					break;
+				}
+
 				if (_locCoreConf) {
 					_assertHttpMethodAllowed();
 					_resolveFilesystemPath();

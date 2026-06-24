@@ -6,13 +6,14 @@
 
 class	Executor: public AEventHandler {
 	private:
-		HttpParser			_parser;
+		HttpParser				_parser;
 		std::function<const Srv*(const std::string&)> _selectServer;
-		Response			_res;
-		const LocNode*		_loc{nullptr};
-		const LocCoreConf*	_locCoreConf{nullptr};
-		const LocIndexConf*	_locIndexConf{nullptr};
-		std::string			_fsPath;
+		Response				_res;
+		const LocNode*			_loc{nullptr};
+		const LocCoreConf*		_locCoreConf{nullptr};
+		const LocIndexConf*		_locIndexConf{nullptr};
+		const LocRedirectConf*	_locRedirectConf{nullptr};
+		std::string				_fsPath;
 
 		void	_resolveLocConfs();
 		void	_selectLocation(const LocNode& root);
