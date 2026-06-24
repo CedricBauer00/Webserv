@@ -48,7 +48,10 @@ class NotFound : public HttpException
 class MethodNotAllowed : public HttpException
 {
     public:
-        MethodNotAllowed() : HttpException(405, statusCodeToReasonPhrase.at(405)) {}
+        MethodNotAllowed(std::unordered_map<std::string, std::string>&& headers)
+		: HttpException(405,
+			statusCodeToReasonPhrase.at(405),
+			std::move(headers)) {}
 };
 
 class PayloadTooLarge : public HttpException

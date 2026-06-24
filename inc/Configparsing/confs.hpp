@@ -58,7 +58,7 @@ struct SrvCoreConf : SrvConf {
 			merge_slashes = conf.merge_slashes;
 		if (!underscore_is_valid.has_value() && conf.underscore_is_valid.has_value())
 			underscore_is_valid = conf.underscore_is_valid;
-		if (!flags.has_value() == 0 && conf.flags.has_value())
+		if (!flags.has_value() && conf.flags.has_value())
 			flags = conf.flags;
 	}
 };

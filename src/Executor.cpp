@@ -66,7 +66,7 @@ void	Executor::_setWorkingDirAsFilesystemPath() {
 void	Executor::_assertHttpMethodAllowed() {
 	if (!(_parser.getMethodMask() & *_locCoreConf->allowedMethods)) {
 		std::cerr << "Requested method not allowed" << "\n";
-		throw MethodNotAllowed();
+		throw MethodNotAllowed({{"ALLOW", std::string("GET, POST")}});
 	}
 }
 

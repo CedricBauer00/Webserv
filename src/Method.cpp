@@ -126,7 +126,11 @@ bool    Method::postMethod(
 bool    Method::_ranCGI(
 	const std::string &path, Response &res, const HttpParser& parser)
 {
-	if (parser.getPath().compare(0, 5, "/cgi/") == 0) {
+	const std::string&	reqPath = parser.getPath();
+	std::size_t			len = reqPath.length();
+
+	if (reqPath.compare(len - 3, 3, ".sh") == 0
+	|| reqPath.compare(len - 3, 3, ".py") == 0 ) {
 		_runCgi(path, res, parser);
 		return true;
 	}
@@ -170,6 +174,12 @@ void    Method::_runCgi(
 			(char *)srvProtocol.c_str(),
 			NULL };
 
+		std::filesystem::path p(path);
+		if (chdir(p.parent_path().c_str()) == -1) {
+			perror("chdir");
+			_exit(1);
+		}
+
 		close( inPipe[ 1 ] );
         close( outPipe[ 0 ] );
         dup2( inPipe[ 0 ], STDIN_FILENO );
@@ -177,8 +187,8 @@ void    Method::_runCgi(
         close( inPipe[ 0 ] );
         close( outPipe[ 1 ] );
 
-        char *argv[] = {(char *)path.c_str(), NULL};
-        execve(path.c_str(), argv, envp ); // returned direkt aus function?
+        char *argv[] = {(char *)p.filename().c_str(), NULL};
+        execve(p.filename().c_str(), argv, envp ); // returned direkt aus function?
 
         perror("execve failed");
         _exit(1);

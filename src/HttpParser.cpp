@@ -217,7 +217,7 @@ void    HttpParser::_checkStartLine() // eventuell direkt Execution instance cre
         throw BadRequest();
     }
     if ( _startLine[ 0 ] != "GET" && _startLine[ 0 ] != "POST" && _startLine[ 0 ] != "DELETE" )
-        throw MethodNotAllowed();    
+        throw MethodNotImplemented();    
     if ( _startLine[ 2 ].substr( 0, 4 ) != "HTTP" )
     {
         std::cout << RED << "Not an HTTP protocol" << RESET << std::endl;////

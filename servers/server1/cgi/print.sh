@@ -12,6 +12,7 @@ echo "Port:   $SERVER_PORT\r"
 echo "Proto:  $SERVER_PROTOCOL\r"
 echo "CGI:    $GATEWAY_INTERFACE\r"
 
+echo "pwd: $(pwd)\r"
 input=$(cat)
-echo "------BODY FOLLOWS-------"
+echo "------POST BODY FOLLOWS-------"
 echo "$input"
