@@ -11,7 +11,6 @@ BodyReader::BodyReader(AEventHandler& handler,
         EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET,
         Epoller::EpollOperation::Modify),
 	_parser(std::move(parser)) {
-    handler.setFd(-1);
 	std::cout << "FD " << _fd << ": [BodyReader] created" << std::endl;
 }
 

@@ -3,7 +3,7 @@
 #include "../inc/Epoller.hpp"
 
 AEventHandler::AEventHandler(
-	int fd,
+	int&& fd,
 	const std::vector<const Srv*>& servers,
 	const Epoller& epoller,
 	const uint32_t events,
@@ -13,6 +13,7 @@ AEventHandler::AEventHandler(
 		_epoller.modifyEventHandler(this, events);
 	else
 		_epoller.addEventHandler(this, events);
+    fd = -1;
 }
 
 AEventHandler::~AEventHandler() {
@@ -91,6 +92,10 @@ int	AEventHandler::getFd() const {
 	return _fd;
 }
 
+int&& AEventHandler::getFd() {
+    return std::move(_fd);
+}
+
 void*	AEventHandler::getInAddr(struct sockaddr_storage& st) const {
     if (st.ss_family == AF_INET) {
         return &(((struct sockaddr_in&)st).sin_addr);
@@ -111,6 +116,3 @@ void	AEventHandler::closeFd() {
 	std::cout << "FD " << _fd << ": closed" << std::endl;
 }
 
-void	AEventHandler::setFd(int fd) {
-	_fd = fd;
-}

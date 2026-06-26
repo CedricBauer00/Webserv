@@ -14,7 +14,6 @@ Executor::Executor(AEventHandler& handler,
 		Epoller::EpollOperation::Modify),
 	_parser(std::move(parser)),
 	_selectServer(std::move(selectServer)) {
-	handler.setFd(-1);
 	std::cout << "FD " << _fd << ": [Executor] created" << std::endl;
 }
 

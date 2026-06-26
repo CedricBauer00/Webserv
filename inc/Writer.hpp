@@ -5,8 +5,8 @@
 
 class Writer: public AEventHandler {
     private:
+		size_t		_sentBytes{0};
         Response	_res;
-        size_t		_sentBytes{0};
 
 		void	_sendToClient();
 

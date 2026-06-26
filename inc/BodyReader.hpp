@@ -10,7 +10,7 @@ class BodyReader: public AEventHandler {
 		HttpParser		_parser;
 		Response		_res;
 
-		void		_receiveFromClient();
+		void	_receiveFromClient();
 
 	public:
 		BodyReader() = delete;

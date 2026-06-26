@@ -11,7 +11,6 @@ Writer::Writer(AEventHandler& handler,
         EPOLLOUT | EPOLLRDHUP | EPOLLET,
         Epoller::EpollOperation::Modify),
     _res(std::move(res)) {
-    handler.setFd(-1);
 	std::cout << "FD " << _fd << ": [Writer] created" << std::endl;
 }
 

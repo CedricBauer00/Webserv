@@ -24,7 +24,7 @@ class Response
 	public:
 		Response();
 		Response(Response&& other) noexcept;
-			Response& operator=(Response&& other) noexcept;
+		Response& operator=(Response&& other) noexcept;
 		~Response();
 
 		void				build();

@@ -34,7 +34,7 @@ class AEventHandler {
 		};
 
 		AEventHandler() = delete;
-        AEventHandler(int fd,
+        AEventHandler(int&& fd,
 			const std::vector<const Srv*>& servers,
 			const Epoller& epoller,
 			const uint32_t events,
@@ -44,9 +44,9 @@ class AEventHandler {
 		const std::vector<const Srv*>&	getServers() const;
 		const Epoller&	getEpoller() const;
 		int				getFd() const;
+        int&&           getFd();
         void*			getInAddr(struct sockaddr_storage& st) const;
 		in_port_t		getPort(struct sockaddr_storage& st) const;
 		void			closeFd();
-        void            setFd(int fd);
         virtual void	process(uint32_t events) = 0;
 };
