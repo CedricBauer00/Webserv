@@ -3,6 +3,7 @@ NAME = server
 SRC	=	main.cpp \
 		HttpParser.cpp \
 		Configparsing/AWebservParser.cpp \
+		Configparsing/AWebservMerger.cpp \
 		Configparsing/WebservCoreParser.cpp \
 		Configparsing/WebservCoreMerger.cpp \
 		Configparsing/WebservCoreModule.cpp \
