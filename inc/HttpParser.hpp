@@ -60,6 +60,7 @@ class HttpParser
  
         void        parseHead(char* buffer, std::size_t count);
         void        parseBody(char* buffer, std::size_t count);
+		void		setMethod(const std::string& method);
         std::string trim( const std::string& value );
         void        checkHostHeader( const std::string& value );
         void        validatePort( std::string portStr );

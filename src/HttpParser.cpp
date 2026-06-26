@@ -232,7 +232,12 @@ void    HttpParser::_checkStartLine() // eventuell direkt Execution instance cre
 
 void    HttpParser::_setMethod() // eventuell hier Execution class instance createn, die die Method selbst speichert
 {
-    auto it = methodMap.find(_startLine[0]);
+    setMethod(_startLine[0]);  
+}
+
+void    HttpParser::setMethod(const std::string& method) // eventuell hier Execution class instance createn, die die Method selbst speichert
+{
+    auto it = methodMap.find(method);
     if (it == methodMap.end())
 		throw MethodNotImplemented();
 	_methodMask = it->second.first;

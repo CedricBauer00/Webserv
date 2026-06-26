@@ -162,6 +162,7 @@ void	Executor::process(uint32_t events) {
 					&& it->second.path != _parser.getPath()) {
 						_res.setRedirect(it->second.resCode);
 						_parser.setRedirectPath(std::string(it->second.path));
+						_parser.setMethod("GET");
 						continue;
 					}
 				}
