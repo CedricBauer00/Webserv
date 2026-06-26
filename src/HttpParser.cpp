@@ -52,6 +52,8 @@ void	HttpParser::parseHead(char* buffer, std::size_t count)
     std::string::size_type start = 0;
     std::string::size_type pos;
 
+    std::cout << "----request----\n\n" << _request << std::endl;
+
     while ((pos = _request.find("\r\n", start)) != std::string::npos)
     {
         std::string_view line(_request.data() + start, pos - start);
@@ -124,6 +126,7 @@ void	HttpParser::parseHead(char* buffer, std::size_t count)
 
         start = pos + 2;
     }
+
 	_request.erase(0, start);
 }
 

@@ -37,7 +37,8 @@ void	BodyReader::_receiveFromClient() {
 				std::string("FD ") + std::to_string(_fd)
 				+ ": [BodyReader] Client disconnected before completing body");
 		}
-        if (errno == EAGAIN || errno == EWOULDBLOCK)
+        std::cout << "enter" << std::endl;
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
             throw wouldBlockException();
         if (errno == EINTR)
             continue;

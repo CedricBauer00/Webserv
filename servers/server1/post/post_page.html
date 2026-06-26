@@ -52,6 +52,18 @@
             color: #e2e8f0;
             resize: vertical;
         }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #e2e8f0;
+            appearance: none;
+            cursor: pointer;
+        }
 
         button {
             margin-top: 15px;
@@ -76,14 +88,58 @@
     <main class="card">
         <h1><span class="method">POST</span> Body senden</h1>
 
-        <form method="POST" action="/cgi/test.py">
+        <form id="postForm" method="POST" action="/">
+
+            <label for="filepath">File path</label>
+            <input type="text" id="filepath" required placeholder="/uploads/">
+
+            <label for="filetype">File type</label>
+            <select id="filetype" required>
+                <option value="text/html">text/html</option>
+                <option value="text/css">text/css</option>
+                <option value="text/plain">text/plain</option>
+                <option value="application/javascript">application/javascript</option>
+                <option value="application/json">application/json</option>
+                <option value="application/xml">application/xml</option>
+                <option value="image/png">image/png</option>
+                <option value="image/jpeg">image/jpeg</option>
+            </select>
+
             <label for="body">Request Body</label>
             <textarea id="body" name="body" required></textarea>
 
             <button type="submit">POST</button>
         </form>
+        <script>
+            document.getElementById('postForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                let path = document.getElementById('filepath').value.trim();
+                if (!path) {
+                    alert('Pfad erforderlich');
+                    return;
+                }
+                if (path.startsWith('/')) path = path.substring(1);
+                const encoded = encodeURI(path);
+                const bodyContent = document.getElementById('body').value;
+                const fileType = document.getElementById('filetype').value;
+                const headers = {
+                    'Content-Type': fileType,
+                    'Content-Length': bodyContent.length.toString()
+                };
+                fetch(`/${encoded}`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: bodyContent
+                })
+                .then(r => r.text())
+                .then(text => { alert('Antwort: ' + text); })
+                .catch(err => { alert('Fehler: ' + err); });
+            });
+        </script>
 
         <a href="index.html">← Zurück</a>
     </main>
 </body>
 </html>
+
+
