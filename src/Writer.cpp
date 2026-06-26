@@ -1,7 +1,6 @@
 #include "../inc/Writer.hpp"
 #include "../inc/Epoller.hpp"
 #include "../inc/constants.h"
-// #include "../inc/Execution.hpp"
 
 Writer::Writer(AEventHandler& handler,
 	Response&& res)
@@ -21,10 +20,10 @@ Writer::~Writer() {
 void	Writer::_sendToClient() {
 	 std::cout << GREEN << "FD " << _fd
 	 << ": [Writer] Sending response to client.." << RESET << std::endl;
-	size_t total = _res.getResponse().size();
+	size_t total = _res.getText().size();
 	while (_sentBytes < total) {
 		ssize_t count = send(_fd,
-			_res.getResponse().c_str() + _sentBytes,
+			_res.getText().c_str() + _sentBytes,
 			total - _sentBytes,
 			0);
 		if (count == -1) {
@@ -37,6 +36,11 @@ void	Writer::_sendToClient() {
 			+ ": [Writer] Client disconnected, send did not finish");
 		}
 		_sentBytes += static_cast<size_t>(count);
+	}
+	if (_res.bodySize()) {
+		_res.mvBodyToText();
+		_sentBytes = 0;
+		_sendToClient();
 	}
 }
 

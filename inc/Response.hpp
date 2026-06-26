@@ -45,8 +45,10 @@ class Response
 		void				setRedirect(unsigned long statusCode);
 		void				setHeaders(const std::string& key,
 			const std::string& val);
-		const std::string&	getResponse() const;
+		void				mvBodyToText();
+		const std::string&	getText() const;
 		bool				wasRedirected() const;
+		std::size_t			bodySize() const;
 		void				clear();
 
 };
