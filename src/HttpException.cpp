@@ -2,15 +2,30 @@
 
 HttpException::HttpException(unsigned long statusCode, std::string reasonPhrase)
 	: _statusCode(statusCode),
-	_reasonPhrase(std::move(reasonPhrase))
-{}
+	_reasonPhrase(std::move(reasonPhrase)) {
+}
 
 HttpException::HttpException(unsigned long statusCode, std::string reasonPhrase,
 	std::unordered_map<std::string, std::string>&& headers)
     : _statusCode(statusCode),
 	_reasonPhrase(std::move(reasonPhrase)),
-	_headers(std::move(headers))
-{}
+	_headers(std::move(headers)){
+}
+
+HttpException::HttpException(HttpException&& other) noexcept
+: _statusCode(std::move(other._statusCode))
+, _reasonPhrase(std::move(other._reasonPhrase))
+, _headers(std::move(other._headers)) {
+}
+
+HttpException& HttpException::operator=(HttpException&& other) noexcept {
+	if (this != &other) {
+		_statusCode = std::move(other._statusCode);
+		_reasonPhrase = std::move(other._reasonPhrase);
+		_headers = std::move(other._headers);
+	}
+	return *this;
+}
 
 unsigned long	HttpException::getStatusCode() const {
 	return _statusCode;

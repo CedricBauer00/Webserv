@@ -15,6 +15,8 @@ class HttpException : public std::exception
         HttpException(unsigned long statusCode, std::string reasonPhrase);
         HttpException(unsigned long statusCode, std::string reasonPhrase,
             std::unordered_map<std::string, std::string>&& headers);
+        HttpException(HttpException&& other) noexcept;
+        HttpException& operator=(HttpException&& other) noexcept;
         ~HttpException();
         
         unsigned long		getStatusCode() const;

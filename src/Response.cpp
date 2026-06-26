@@ -16,8 +16,7 @@ Response::Response(Response&& other) noexcept
 }
 
 Response& Response::operator=(Response&& other) noexcept {
-    if (this != &other)
-    {
+    if (this != &other) {
         _response = std::move(other._response);
         _httpVersion = std::move(other._httpVersion);
         _statusCode = std::move(other._statusCode);

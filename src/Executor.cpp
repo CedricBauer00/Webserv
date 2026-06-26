@@ -161,9 +161,17 @@ void	Executor::process(uint32_t events) {
 					if (it != _locCoreConf->errPages.end()
 					&& it->second.path != _parser.getPath()) {
 						_res.setRedirect(it->second.resCode);
-						_parser.setRedirectPath(std::string(it->second.path));
-						_parser.setMethod("GET");
-						continue;
+						if (300 <= it->second.resCode && it->second.resCode < 400) {
+							e = HttpException(
+								it->second.resCode,
+								statusCodeToReasonPhrase.at(it->second.resCode),
+								{{"Location", it->second.path}});
+						}
+						else {
+							_parser.setRedirectPath(std::string(it->second.path));
+							_parser.setMethod("GET");
+							continue;
+						}
 					}
 				}
 				_res.build(std::move(e));
