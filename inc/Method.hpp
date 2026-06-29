@@ -38,6 +38,11 @@ class Method
             const HttpParser& parser); // status codes 200, 402, 404
         bool    deleteMethod(std::string newPath, Response &res,
 			const HttpParser& parser); // status codes 200, 402, 404
+        std::string normalize( const std::string& s );
+        std::vector<std::string> buildCgiEnvironment( const HttpParser& parser );
+		std::vector<char *> makeEnvp( std::vector<std::string> env );
+        void	addMandatoryHeaders( std::vector<std::string>& env, const HttpParser& parser );
+
 };
 
 std::string getTimeStamp();

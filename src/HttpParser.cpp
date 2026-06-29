@@ -39,6 +39,7 @@ HttpParser::HttpParser(HttpParser&& other) noexcept
 , _waitingForChunkData(other._waitingForChunkData)
 , _waitingForLastChunkCRLF(other._waitingForLastChunkCRLF)
 , _internalRedirect(other._internalRedirect)
+, _cookieHeader( other._cookieHeader )
 {
 	std::cout << "HttpParser move constructor called" << std::endl;
 }
@@ -51,8 +52,6 @@ void	HttpParser::parseHead(char* buffer, std::size_t count)
     _request.append(buffer, count);
     std::string::size_type start = 0;
     std::string::size_type pos;
-
-    std::cout << "----request----\n\n" << _request << std::endl;
 
     while ((pos = _request.find("\r\n", start)) != std::string::npos)
     {
@@ -120,10 +119,11 @@ void	HttpParser::parseHead(char* buffer, std::size_t count)
             }
             else if (key == "host")
                 checkHostHeader(value);
+            else if (key == "cookie")
+                setCookies( value );
 
             _headers[key] = value;
         }
-
         start = pos + 2;
     }
 
@@ -232,6 +232,52 @@ void    HttpParser::_checkStartLine() // eventuell direkt Execution instance cre
         throw HttpVersionNotSupported();
     }
 }
+
+const std::string HttpParser::getCookies() const
+{
+    return _cookieHeader;
+}
+
+void    HttpParser::setCookies( std::string value )
+{
+    _cookieHeader = value;
+}
+
+// void    HttpParser::parseCookies( const std::string& cookieHeader )
+// {
+//     size_t pos = 0;
+//     std::string remaining = cookieHeader;
+
+//     while ( ( pos = remaining.find(';') )  != std::string::npos )
+//     {
+//         std::string cookiePart = cookieHeader.substr( 0, pos );
+
+//         cookiePart = trim( cookiePart );
+//         size_t equalsPos = cookiePart.find('=');
+//         if ( equalsPos != std::string::npos )
+//         {
+//             Cookie c;
+//             c.name = cookiePart.substr( 0, equalsPos );
+//             c.value = cookiePart.substr( equalsPos + 1 );
+//             _cookies.push_back( c );
+//         }
+
+//         remaining.erase( 0, pos + 1 );
+//     }
+    
+//     if ( !remaining.empty() )
+//     {
+//         std::string remainingCookie = trim( remaining );
+//         size_t equalsPos = remainingCookie.find('=');
+//         if ( equalsPos != std::string::npos )
+//         {
+//             Cookie c;
+//             c.name = remainingCookie.substr( 0, equalsPos );
+//             c.value = remainingCookie.substr( equalsPos + 1 );
+//             _cookies.push_back( c );
+//         }
+//     }
+// }
 
 void    HttpParser::_setMethod() // eventuell hier Execution class instance createn, die die Method selbst speichert
 {

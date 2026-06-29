@@ -18,6 +18,13 @@
 
 #define MAX_BODY_SIZE 8192
 
+// struct Cookie {
+// 	std::string name;
+// 	std::string value;
+// 	std::string path;
+// 	// bool httpOnly;
+// };
+
 class HttpParser
 {
     private:
@@ -50,6 +57,8 @@ class HttpParser
 		void	_splitRequestTarget(std::string& requestTarget);
 		void	_normalizePath();
 		// void    _setHttpVersion();
+        // std::vector<Cookie> _cookies;
+        std::string         _cookieHeader;
 
     public:
         HttpParser();
@@ -65,6 +74,8 @@ class HttpParser
         void        checkHostHeader( const std::string& value );
         void        validatePort( std::string portStr );
         void		setRedirectPath(std::string&& redirectPath);
+        void        parseCookies( const std::string& cookieHeader );
+        void        setCookies( std::string value );
         
         const std::vector<std::string>&					getStartLine() const;
         const std::string&								getQuery() const;
@@ -82,6 +93,7 @@ class HttpParser
 		bool											headerHasContlen() const;
 		std::size_t										getContlen() const;
 		bool											isHTTP1p0() const;
+        const std::string                               getCookies() const;
 };
 
 bool    isInRange( int num, int min, int max );

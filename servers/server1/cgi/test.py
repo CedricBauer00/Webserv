@@ -9,6 +9,9 @@ if method == "GET":
     print("Content-Type: text/plain\r")
     print("\r")
 
+    print("Set-Cookie: session_id=abc123xyz789; HttpOnly; Path=/;\r")
+    print("Set-Cookie: user_pref=dark_mode; Path=/;\r")
+
     print(f"Method: {method}\r")
     print(f"Script: {os.environ.get('SCRIPT_NAME', '')}\r")
     print(f"Query:  {os.environ.get('QUERY_STRING', '')}\r")
@@ -26,6 +29,7 @@ if method == "GET":
 elif method == "POST":
     print("Status: 302 Found\r")
     print("Location: /get/\r")
+    print("Set-Cookie: session_id=new_session_456; HttpOnly; Path=/")
     print("\r")
 
 elif method == "DELETE":

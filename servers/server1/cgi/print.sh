@@ -11,6 +11,7 @@ echo "Host:   $SERVER_NAME\r"
 echo "Port:   $SERVER_PORT\r"
 echo "Proto:  $SERVER_PROTOCOL\r"
 echo "CGI:    $GATEWAY_INTERFACE\r"
+echo "Cookies: $HTTP_COOKIE\r"
 
 echo "\r"
 echo "pwd:    $(pwd)\r"

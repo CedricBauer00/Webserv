@@ -156,24 +156,34 @@ void    Method::_runCgi(
 
     if (pid == 0)
     {
-		std::string gateway = "GATEWAY_INTERFACE=" + std::string("CGI/1.1");
-        std::string query = "QUERY_STRING=" + parser.getQuery();
-		std::string raddr = "REMOTE_ADDR=" + std::string("203.0.113.42");
-		std::string reqMethod = "REQUEST_METHOD=" + parser.getMethodStr();
-		std::string scriptName = "SCRIPT_NAME=" + parser.getPath();
-		std::string srvName = "SERVER_NAME=" + parser.getHostName();
-		std::string srvPort = "SERVER_PORT=" + parser.getHostPort();
-		std::string srvProtocol = "SERVER_PROTOCOL=" + parser.getHttp();
+		// std::string reqMethod = "REQUEST_METHOD=" + parser.getMethodStr();
+		// std::string srvProtocol = "SERVER_PROTOCOL=" + parser.getHttp();
+		// std::string gateway = "GATEWAY_INTERFACE=" + std::string("CGI/1.1");
+		// std::string srvName = "SERVER_NAME=" + parser.getHostName();
+		// std::string srvPort = "SERVER_PORT=" + parser.getHostPort();
+		// std::string scriptName = "SCRIPT_NAME=" + parser.getPath();
+        // std::string query = "QUERY_STRING=" + parser.getQuery();
+		// std::string raddr = "REMOTE_ADDR=" + std::string("203.0.113.42");
+		// std::string cookies = "HTTP_COOKIE=" + parser.getCookies();
 
-        char *envp[] = {(char *)gateway.c_str(),
-			(char *)query.c_str(),
-			(char *)raddr.c_str(),
-			(char *)reqMethod.c_str(),
-			(char *)scriptName.c_str(),
-			(char *)srvName.c_str(),
-			(char *)srvPort.c_str(),
-			(char *)srvProtocol.c_str(),
-			NULL };
+		// std::cout << BLUE << "Cookies ENV = " << cookies << "\nHTTP: " << srvProtocol << RESET << std::endl;
+
+        // char *envp[] = {(char *)gateway.c_str(),
+		// 	(char *)query.c_str(),
+		// 	(char *)raddr.c_str(),
+		// 	(char *)reqMethod.c_str(),
+		// 	(char *)scriptName.c_str(),
+		// 	(char *)srvName.c_str(),
+		// 	(char *)srvPort.c_str(),
+		// 	(char *)srvProtocol.c_str(),
+		// 	NULL };
+
+		std::vector<std::string> env = buildCgiEnvironment( parser );
+		std::vector<char *> envp = makeEnvp( env );
+		for (size_t i = 0; i < env.size(); ++i )
+		{
+			std::cout << BLUE << env[i] << RESET << std::endl;
+		}
 
 		std::filesystem::path p(path);
 		if (chdir(p.parent_path().c_str()) == -1) {
@@ -189,7 +199,7 @@ void    Method::_runCgi(
         close( outPipe[ 1 ] );
 
         char *argv[] = {(char *)p.filename().c_str(), NULL};
-        execve(p.filename().c_str(), argv, envp ); // returned direkt aus function?
+        execve(p.filename().c_str(), argv, envp.data() ); // returned direkt aus function?
 
         perror("execve failed");
         _exit(1);
@@ -220,6 +230,70 @@ void    Method::_runCgi(
 		}
 		_parseCGIResponse(content, res);
     }
+}
+
+std::vector<std::string> Method::buildCgiEnvironment( const HttpParser& parser )
+{
+	std::vector<std::string> env;
+
+	const std::unordered_map<std::string, std::string> headers = parser.getHeaders();
+
+	for ( std::unordered_map<std::string, std::string>::const_iterator it = headers.begin();
+		it != headers.end(); ++it )
+	{
+		std::string envName = "HTTP_" + normalize( it->first );
+		std::string envVar = envName + "=" + it->second;
+		
+		env.push_back(envVar);
+	}
+	
+	addMandatoryHeaders( env, parser );
+
+	return env;
+}
+
+void	Method::addMandatoryHeaders( std::vector<std::string>& env, const HttpParser& parser )
+{
+	env.push_back("REQUEST_METHOD=" + parser.getMethodStr());
+	env.push_back("SERVER_PROTOCOL=" + parser.getHttp());
+	env.push_back("GATEWAY_INTERFACE=" + std::string("CGI/1.1"));
+	env.push_back("SERVER_NAME=" + parser.getHostName());
+	env.push_back("SERVER_PORT=" + parser.getHostPort());
+	env.push_back("SCRIPT_NAME=" + parser.getPath());
+    env.push_back("QUERY_STRING=" + parser.getQuery());
+	env.push_back("REMOTE_ADDR=" + std::string("203.0.113.42"));
+}
+
+std::vector<char *> Method::makeEnvp( std::vector<std::string> env )
+{
+	std::vector<char *> envp;
+	
+	envp.reserve( env.size() + 1 );
+
+	for ( std::vector<std::string>::const_iterator it = env.begin();
+		it != env.end(); ++it )
+	{
+		char *copy = new char[it->size() + 1];
+		std::strcpy(copy, it->c_str());
+		envp.push_back( copy );
+	}
+
+	envp.push_back( NULL );
+	return envp;
+}
+
+std::string Method::normalize( const std::string& s )
+{
+	std::string result = s;
+
+	for (size_t i = 0; i < result.size(); i++ )
+	{
+		if ( result[i] == '-' )
+			result[i] = '_';
+		else
+			result[i] = std::toupper(static_cast<unsigned char>(result[i]));
+	}
+	return result;
 }
 
 void	Method::_parseCGIResponse(const std::string& cgiRes, Response &htmlRes) {
