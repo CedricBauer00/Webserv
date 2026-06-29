@@ -4,25 +4,24 @@
 #include "../inc/HeadReader.hpp"
 
 Listener::Listener(const std::string& addr, 
-	const std::vector<const Srv*>& servers,
-	const Epoller& epoller)
-	: AEventHandler(_createListenFd(addr),
-		servers,
-		epoller,
+	const Epoller& epoller,
+	std::function<const Srv*(const std::string&)>&& selectServer)
+	: AEventHandler(createListenSock(addr),
 		EPOLLIN | EPOLLET,
-		Epoller::EpollOperation::Add),
-	_addr(addr) {
+		epoller,
+		std::move(selectServer)) {
 }
 
 Listener::~Listener() {
 	std::cout << "FD " << _fd << ": [Listener] destroyed" << std::endl;
 }
 
-int	Listener::_createListenFd(const std::string& addr) {
-    const unsigned int	BACKLOG{8192};
-	int 				fd, rv, yes=1;
-    struct addrinfo 	hints, *p;
-	std::string			ip;
+WebservSocket	Listener::createListenSock(const std::string& addr) {
+    const unsigned int		BACKLOG{8192};
+	int 					fd, rv, yes=1;
+    struct addrinfo 		hints, *p;
+	std::string				ip;
+	struct sockaddr_storage	st;
 
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_INET;
@@ -65,6 +64,7 @@ int	Listener::_createListenFd(const std::string& addr) {
 		freeaddrinfo(p);
 		throw std::runtime_error(std::string("bind: ") + strerror(errno));
 	}
+	st = *p->ai_addr;
 	freeaddrinfo(p);
 
 	if (listen(fd, BACKLOG) == -1) {
@@ -80,7 +80,7 @@ int	Listener::_createListenFd(const std::string& addr) {
 		throw;
 	}
 	std::cout << "FD " << fd << ": [Listener] Listening on " << addr << std::endl;
-	return fd;
+	return {fd, st};
 }
 
 void	Listener::_recover() {

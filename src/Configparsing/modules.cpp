@@ -1,6 +1,11 @@
 #include <algorithm>
 #include "../../inc/Configparsing/modules.hpp"
 
+WebservSocket::WebservSocket(WebservSocket&& other) noexcept
+: fd(other.fd), st(std::move(other.st)) {
+    other.fd = -1;
+}
+
 bool	isDigits(const std::string& str) {
     return !str.empty() && std::all_of(str.begin(), str.end(), ::isdigit);
 }

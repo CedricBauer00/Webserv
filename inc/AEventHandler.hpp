@@ -12,20 +12,11 @@
 #include "Configparsing/ConfigParser.hpp"
 #include "Configparsing/WebservCoreModule.hpp"
 #include "Epoller.hpp"
+#include "HttpParser.hpp"
+#include "Response.hpp"
 
 class AEventHandler {
-	protected:
-		int								_fd;
-		const std::vector<const Srv*>&	_servers;
-		const Epoller&					_epoller;
-
-        static int	_dupFd(int fd);
-		void		_setNonBlocking(int fd);
-        void    	_printSocketError();
-        std::function<const Srv*(const std::string&)>
-		_selectServerFactory();
-
-    public:
+	public:
 		class	wouldBlockException: public std::exception {
 			public:
 				const char* what() const throw() {
@@ -33,18 +24,34 @@ class AEventHandler {
 				}
 		};
 
+		static std::function<const Srv*(const std::string&)>
+		selectServerFactory(const std::vector<const Srv*>& srvs);
+
+	protected:
+		static int	_dupFd(int fd);
+		static void	_setNonBlocking(int fd);
+
+	protected:
+		WebservSocket									_sock;
+		uint32_t										_events;
+		const Epoller&									_epoller;
+		std::function<const Srv*(const std::string&)>	_selectServer;
+
+		void		_modifyEvent(const uint32_t events);
+        void    	_printSocketError();
+
+    public:
 		AEventHandler() = delete;
-        AEventHandler(int&& fd,
-			const std::vector<const Srv*>& servers,
-			const Epoller& epoller,
+        AEventHandler(WebservSocket&& sock,
 			const uint32_t events,
-			const Epoller::EpollOperation op);
+			const Epoller& epoller,
+			std::function<const Srv*(const std::string&)>&& selectServer);
+		AEventHandler(AEventHandler&& other) noexcept;
         virtual ~AEventHandler();
 
 		const std::vector<const Srv*>&	getServers() const;
 		const Epoller&	getEpoller() const;
 		int				getFd() const;
-        int&&           getFd();
         void*			getInAddr(struct sockaddr_storage& st) const;
 		in_port_t		getPort(struct sockaddr_storage& st) const;
 		void			closeFd();

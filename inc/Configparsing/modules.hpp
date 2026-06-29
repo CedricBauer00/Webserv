@@ -5,6 +5,7 @@
 #include <chrono>
 #include <string>
 #include <deque>
+#include <sys/socket.h>
 
 constexpr const unsigned int    LISTEN = (1 << 0);
 constexpr const unsigned int    DEFAULT_SERVER = (1 << 1);
@@ -79,18 +80,15 @@ struct	ConfCtx {
 	VecOfPtrs<LocConf>*		locConfs{nullptr};
 };
 
-struct WebservAddr {
-	std::string	ip;
-	std::string	port;
-};
+struct WebservSocket{
+	int			            fd{-1};
+	struct sockaddr_storage st;
 
-struct WebservConnection {
-	int			fd{-1};
-	WebservAddr	addr;
+    WebservSocket(WebservSocket&& other) noexcept;
 };
 
 struct WebservHttpRequest {
-	WebservConnection*									conn;
+	WebservSocket*										conn;
 	std::string											method, uri, httpVersion;
 	std::vector<std::pair<std::string, std::string>>	headers;
 };

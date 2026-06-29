@@ -1,26 +1,44 @@
 #include <string>
 #include "../inc/AEventHandler.hpp"
-#include "../inc/Epoller.hpp"
 
-AEventHandler::AEventHandler(
-	int&& fd,
-	const std::vector<const Srv*>& servers,
-	const Epoller& epoller,
+AEventHandler::AEventHandler(WebservSocket&& sock,
 	const uint32_t events,
-	const Epoller::EpollOperation op)
-    : _fd(fd), _servers(servers), _epoller(epoller) {
-	if (op == Epoller::EpollOperation::Modify)
-		_epoller.modifyEventHandler(this, events);
-	else
-		_epoller.addEventHandler(this, events);
-    fd = -1;
+	const Epoller& epoller,
+	std::function<const Srv*(const std::string&)>&& selectServer)
+: _sock(std::move(sock))
+, _events(events)
+, _epoller(epoller)
+, _selectServer(std::move(selectServer)) {
+	_epoller.addEventHandler(this, events);
+}
+
+AEventHandler::AEventHandler(AEventHandler&& other) noexcept
+: _sock(std::move(other._sock))
+, _events(other._events)
+, _epoller(other._epoller)
+, _selectServer(std::move(other._selectServer)) {
 }
 
 AEventHandler::~AEventHandler() {
-    if (_fd != -1) {
+    if (_sock.fd != -1) {
         _epoller.deleteEventHandler(this);
         closeFd();
     }
+}
+
+void	AEventHandler::_modifyEvent(const uint32_t events) {
+	_epoller.modifyEventHandler(this, events);
+}
+
+int	AEventHandler::_dupFd(int fd) {
+	int dupFd = dup(fd);
+
+	if (dupFd == -1) {
+		throw std::runtime_error(std::string("FD ")
+		+ std::to_string(fd) + ": " + strerror(errno));
+	}
+	std::cout << "FD " << fd << ": fd duplicated" << std::endl;
+	return dupFd;
 }
 
 void	AEventHandler::_setNonBlocking(int fd) {
@@ -36,32 +54,21 @@ void    AEventHandler::_printSocketError() {
     int err;
     socklen_t len = sizeof(err);
 
-    getsockopt(_fd, SOL_SOCKET, SO_ERROR, &err, &len);
-    std::cerr << "FD " << _fd << ": " << strerror(err) << std::endl;
-}
-
-int	AEventHandler::_dupFd(int fd) {
-	int dupFd = dup(fd);
-
-	if (dupFd == -1) {
-		throw std::runtime_error(std::string("FD ")
-		+ std::to_string(fd) + ": " + strerror(errno));
-	}
-	std::cout << "FD " << fd << ": fd duplicated" << std::endl;
-	return dupFd;
+    getsockopt(_sock.fd, SOL_SOCKET, SO_ERROR, &err, &len);
+    std::cerr << "FD " << _sock.fd << ": " << strerror(err) << std::endl;
 }
 
 std::function<const Srv*(const std::string&)>
-AEventHandler::_selectServerFactory()
+AEventHandler::selectServerFactory(const std::vector<const Srv*>& srvs)
 {
-	if (_servers.empty())
+	if (srvs.empty())
 		throw std::runtime_error("No servers configured");
-	if (_servers.size() == 1)
-		return [srv = _servers[0]](const std::string&) {
+	if (srvs.size() == 1)
+		return [srv = srvs[0]](const std::string&) {
 			return srv;
 		};
 	else
-		return [&servers = _servers](const std::string& hostname) {
+		return [&servers = srvs](const std::string& hostname) {
 			const Srv* defaultSrv = nullptr;
 			for (const Srv* srv : servers) {
 				if (srv->srvConfs.empty())
@@ -89,11 +96,7 @@ const Epoller&	AEventHandler::getEpoller() const {
 }
 
 int	AEventHandler::getFd() const {
-	return _fd;
-}
-
-int&& AEventHandler::getFd() {
-    return std::move(_fd);
+	return _sock.fd;
 }
 
 void*	AEventHandler::getInAddr(struct sockaddr_storage& st) const {
@@ -111,8 +114,8 @@ in_port_t	AEventHandler::getPort(struct sockaddr_storage& st) const {
 }
 
 void	AEventHandler::closeFd() {
-	if (close(_fd) == -1)
-		std::cerr << "FD " << _fd << ": " << strerror(errno) << std::endl;
-	std::cout << "FD " << _fd << ": closed" << std::endl;
+	if (close(_sock.fd) == -1)
+		std::cerr << "FD " << _sock.fd << ": " << strerror(errno) << std::endl;
+	std::cout << "FD " << _sock.fd << ": closed" << std::endl;
 }
 

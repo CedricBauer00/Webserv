@@ -5,17 +5,16 @@
 class Listener: public AEventHandler
 {
 	private:
-		const std::string&	_addr;
-
-		int		_createListenFd(const std::string& addr);
         void	_recover();
 
 	public:
 		Listener() = delete;
 		Listener(const std::string& addr,
-			const std::vector<const Srv*>& servers,
-			const Epoller& epoller);
+			const Epoller& epoller,
+			std::function<const Srv*(const std::string&)>&& selectServer);
 		virtual ~Listener();
+
+		static WebservSocket	createListenSock(const std::string& addr);
 
 		void	process(uint32_t events) override;
 };
