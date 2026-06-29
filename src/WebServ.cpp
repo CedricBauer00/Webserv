@@ -1,8 +1,11 @@
 #include "../inc/WebServ.hpp"
 
 WebServ::WebServ(char* configFilename)
-	: _confParser(configFilename), _epoller() {
+: _confParser(configFilename)
+, _epoller()
+, _addrToSelectServerMap() {
     _confParser.parseConfig();
+	_makeAddrToSelectServerMap();
 	// std::cout << "WebServ created" << std::endl;
 }
 
@@ -10,13 +13,49 @@ WebServ::~WebServ() {
 	// std::cout << "WebServ destroyed" << std::endl;
 }
 
-void	WebServ::_createListeners() {
+std::function<const Srv*(const std::string&)>
+WebServ::_selectServerFactory(const std::vector<const Srv*>& srvs)
+{
+	if (srvs.empty())
+		throw std::runtime_error("No servers configured");
+	if (srvs.size() == 1)
+		return [srv = srvs[0]](const std::string&) {
+			return srv;
+		};
+	else
+		return [&servers = srvs](const std::string& hostname) {
+			const Srv* defaultSrv = nullptr;
+			for (const Srv* srv : servers) {
+				if (srv->srvConfs.empty())
+					continue;
+				const auto* srvCoreConf =\
+				dynamic_cast<SrvCoreConf*>(srv->srvConfs[0].get());
+				const auto& names = srvCoreConf->serverNames;
+				if (names.find(hostname) != names.end())
+					return srv;
+				if (srvCoreConf->flags.has_value()
+                && (srvCoreConf->flags.value() & DEFAULT_SERVER))
+					defaultSrv = srv;
+			}
+			return defaultSrv != nullptr ? defaultSrv : servers[0];
+		};
+}
+
+void	WebServ::_makeAddrToSelectServerMap() {
 	if (_confParser.getAddrToServersMap().empty())
 		throw std::runtime_error("No servers defined in config file");
-	for (const auto& addrAndSrvNodes : _confParser.getAddrToServersMap()) {
-		new Listener(addrAndSrvNodes.first,
+	for (const auto& addrAndSrvNode : _confParser.getAddrToServersMap()) {
+		_addrToSelectServerMap[addrAndSrvNode.first] =\
+			_selectServerFactory(addrAndSrvNode.second);
+	}
+	
+}
+
+void	WebServ::_createListeners() {
+	for (const auto& addrAndSelectServerNode : _addrToSelectServerMap) {
+		new Listener(addrAndSelectServerNode.first,
             _epoller,
-            AEventHandler::selectServerFactory(addrAndSrvNodes.second));
+            addrAndSelectServerNode.second);
 	}
 }
 

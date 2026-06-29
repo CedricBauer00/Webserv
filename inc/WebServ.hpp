@@ -5,10 +5,19 @@
 #include "Listener.hpp"
 
 class WebServ {
-	private:
-		ConfigParser	_confParser;
-		Epoller			_epoller;
+	public:
+		using AddrToSelectServerFcnMap =\
+			std::unordered_map<std::string,
+			std::function<const Srv*(const std::string&)>>;
 
+	private:
+		ConfigParser				_confParser;
+		Epoller						_epoller;
+		AddrToSelectServerFcnMap	_addrToSelectServerMap;
+
+		std::function<const Srv*(const std::string&)>
+		_selectServerFactory(const std::vector<const Srv*>& srvs);
+		void	_makeAddrToSelectServerMap();
 		void	_createListeners();
 
 	public:

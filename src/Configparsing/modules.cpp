@@ -1,9 +1,29 @@
 #include <algorithm>
 #include "../../inc/Configparsing/modules.hpp"
 
+WebservSocket::WebservSocket() noexcept {
+}
+
+WebservSocket::WebservSocket(
+    int _fd, struct sockaddr_storage* _ss) noexcept
+: fd(_fd), ss(_ss) {
+}
+
 WebservSocket::WebservSocket(WebservSocket&& other) noexcept
-: fd(other.fd), st(std::move(other.st)) {
+: fd(other.fd), ss(other.ss) {
     other.fd = -1;
+}
+
+WebservSocket::~WebservSocket() {
+	if (fd != -1)
+		destroySocket();
+}
+
+void	WebservSocket::destroySocket() noexcept {
+	if (close(fd) == -1)
+		std::cerr << "FD " << fd << ": " << strerror(errno) << std::endl;
+	delete ss;
+	std::cout << "FD " << fd << ": closed" << std::endl;
 }
 
 bool	isDigits(const std::string& str) {

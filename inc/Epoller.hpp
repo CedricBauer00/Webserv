@@ -36,8 +36,8 @@ class Epoller {
 		Epoller();
 		~Epoller();
         int		getFd() const;
-		void	addEventHandler(AEventHandler* handler, const uint32_t events) const;
-        void	modifyEventHandler(AEventHandler* handler, const uint32_t events) const;
+		void	addEventHandler(AEventHandler* handler) const;
+        void	modifyEventHandler(AEventHandler* handler) const;
         void    deleteEventHandler(AEventHandler* handler) const;
 		void	runEventLoop() const;
 };

@@ -7,7 +7,6 @@
 class	Executor: public AEventHandler {
 	private:
 		HttpParser				_parser;
-		std::function<const Srv*(const std::string&)> _selectServer;
 		Response				_res;
 		const LocNode*			_loc{nullptr};
 		const LocCoreConf*		_locCoreConf{nullptr};
@@ -23,9 +22,9 @@ class	Executor: public AEventHandler {
 
 	public:
 		Executor() = delete;
-		Executor(AEventHandler& handler,
+		Executor(AEventHandler&& handler,
 			HttpParser&& parser,
-            std::function<const Srv*(const std::string&)>&& selectServer);
+			Response&& res);
 		virtual ~Executor();
 
 		void	process(uint32_t events) override;

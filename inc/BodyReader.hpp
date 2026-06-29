@@ -14,7 +14,9 @@ class BodyReader: public AEventHandler {
 
 	public:
 		BodyReader() = delete;
-		BodyReader(AEventHandler& handler, HttpParser&& parser);
+		BodyReader(AEventHandler&& handler,
+			HttpParser&& parser,
+			Response&& res);
 		virtual ~BodyReader();
 
 		void	process(uint32_t events) override;

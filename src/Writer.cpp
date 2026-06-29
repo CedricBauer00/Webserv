@@ -2,27 +2,25 @@
 #include "../inc/Epoller.hpp"
 #include "../inc/constants.h"
 
-Writer::Writer(AEventHandler& handler,
+Writer::Writer(AEventHandler&& handler,
+	HttpParser&& parser,
 	Response&& res)
-    : AEventHandler(handler.getFd(),
-        handler.getServers(),
-        handler.getEpoller(),
-        EPOLLOUT | EPOLLRDHUP | EPOLLET,
-        Epoller::EpollOperation::Modify),
-    _res(std::move(res)) {
-	std::cout << "FD " << _fd << ": [Writer] created" << std::endl;
+: AEventHandler(std::move(handler))
+, _parser(std::move(parser))
+, _res(std::move(res)) {
+	std::cout << "FD " << _sock.fd << ": [Writer] created" << std::endl;
 }
 
 Writer::~Writer() {
-    std::cout << "FD " << _fd << ": [Writer] destroyed" << std::endl;
+    std::cout << "FD " << _sock.fd << ": [Writer] destroyed" << std::endl;
 }
 
 void	Writer::_sendToClient() {
-	 std::cout << GREEN << "FD " << _fd
+	 std::cout << GREEN << "FD " << _sock.fd
 	 << ": [Writer] Sending response to client.." << RESET << std::endl;
 	size_t total = _res.getText().size();
 	while (_sentBytes < total) {
-		ssize_t count = send(_fd,
+		ssize_t count = send(_sock.fd,
 			_res.getText().c_str() + _sentBytes,
 			total - _sentBytes,
 			0);
@@ -32,7 +30,7 @@ void	Writer::_sendToClient() {
 			if (errno == EINTR)
 				continue; // Interrupted, try again
 			//TODO: have to supress SIGPIPE
-			throw std::runtime_error(std::string("FD ") + std::to_string(_fd)
+			throw std::runtime_error(std::string("FD ") + std::to_string(_sock.fd)
 			+ ": [Writer] Client disconnected, send did not finish");
 		}
 		_sentBytes += static_cast<size_t>(count);
@@ -47,7 +45,7 @@ void	Writer::_sendToClient() {
 void    Writer::process(uint32_t events) {
     if (events & (EPOLLERR | EPOLLHUP)) {
  		_printSocketError();
-        std::cerr << "FD " << _fd
+        std::cerr << "FD " << _sock.fd
 		<< ": [Writer] Client disconnected unexpectedly" << std::endl;
 		delete this;
     }

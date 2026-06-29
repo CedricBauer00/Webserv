@@ -5,23 +5,36 @@
 
 Listener::Listener(const std::string& addr, 
 	const Epoller& epoller,
-	std::function<const Srv*(const std::string&)>&& selectServer)
-	: AEventHandler(createListenSock(addr),
-		EPOLLIN | EPOLLET,
-		epoller,
-		std::move(selectServer)) {
+	const std::function<const Srv*(const std::string&)>& selectServer)
+: AEventHandler(createListenSock(addr),
+	EPOLLIN | EPOLLET,
+	epoller,
+	selectServer)
+, _addr(addr) {
 }
 
 Listener::~Listener() {
-	std::cout << "FD " << _fd << ": [Listener] destroyed" << std::endl;
+	std::cout << "FD " << _sock.fd << ": [Listener] destroyed" << std::endl;
+}
+
+void	Listener::_recover() {
+	_printSocketError();
+
+	try {
+		new Listener(_addr, epoller, selectSrv);
+	}
+	catch (const std::exception& e) {
+		std::cerr << e.what() << std::endl;
+	}
+	delete this;
 }
 
 WebservSocket	Listener::createListenSock(const std::string& addr) {
-    const unsigned int		BACKLOG{8192};
-	int 					fd, rv, yes=1;
-    struct addrinfo 		hints, *p;
-	std::string				ip;
-	struct sockaddr_storage	st;
+    const unsigned int	BACKLOG{8192};
+	int 				fd, rv, yes=1;
+    struct addrinfo 	hints, *p;
+	std::string			ip;
+	WebservSocket		ret;
 
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_INET;
@@ -64,35 +77,28 @@ WebservSocket	Listener::createListenSock(const std::string& addr) {
 		freeaddrinfo(p);
 		throw std::runtime_error(std::string("bind: ") + strerror(errno));
 	}
-	st = *p->ai_addr;
-	freeaddrinfo(p);
 
-	if (listen(fd, BACKLOG) == -1) {
-		close(fd);
-		throw std::runtime_error(std::string("listen: ") + strerror(errno));
-	}
-	
 	try {
-		_setNonBlocking(fd);
+		struct sockaddr_storage* ss = new struct sockaddr_storage;
+		memset(ss, 0, sizeof *ss);
+		memcpy(ss, p->ai_addr, p->ai_addrlen);
+		freeaddrinfo(p);
+		ret.fd = fd;
+		ret.ss = ss;
 	}
 	catch (const std::exception& e) {
 		close(fd);
+		freeaddrinfo(p);
 		throw;
 	}
-	std::cout << "FD " << fd << ": [Listener] Listening on " << addr << std::endl;
-	return {fd, st};
-}
 
-void	Listener::_recover() {
-	_printSocketError();
+	if (listen(ret.fd, BACKLOG) == -1) 
+		throw std::runtime_error(std::string("listen: ") + strerror(errno));
+	
+	_setNonBlocking(ret.fd);
 
-	try {
-		new Listener(_addr, _servers, _epoller);
-	}
-	catch (const std::exception& e) {
-		std::cerr << e.what() << std::endl;
-	}
-	delete this;
+	std::cout << "FD " << ret.fd << ": [Listener] Listening on " << addr << std::endl;
+	return ret;
 }
 
 void	Listener::process(uint32_t events) {

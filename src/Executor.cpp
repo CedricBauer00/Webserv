@@ -4,21 +4,17 @@
 #include "../inc/Writer.hpp"
 #include "../inc/BodyReader.hpp"
 
-Executor::Executor(AEventHandler& handler,
+Executor::Executor(AEventHandler&& handler,
 	HttpParser&& parser,
-	std::function<const Srv*(const std::string&)>&& selectServer)
-    : AEventHandler(handler.getFd(),
-        handler.getServers(),
-        handler.getEpoller(),
-        EPOLLOUT | EPOLLRDHUP | EPOLLET,
-		Epoller::EpollOperation::Modify),
-	_parser(std::move(parser)),
-	_selectServer(std::move(selectServer)) {
-	std::cout << "FD " << _fd << ": [Executor] created" << std::endl;
+	Response&& res)
+: AEventHandler(std::move(handler))
+, _parser(std::move(parser))
+, _res(std::move(res)) {
+	std::cout << "FD " << _sock.fd << ": [Executor] created" << std::endl;
 }
 
 Executor::~Executor() {
-	std::cout << "FD " << _fd << ": [Executor] destroyed" << std::endl;
+	std::cout << "FD " << _sock.fd << ": [Executor] destroyed" << std::endl;
 }
 
 void	Executor::_resolveLocConfs() {
@@ -89,13 +85,13 @@ void	Executor::_resolveFilesystemPath() {
 void	Executor::process(uint32_t events) {
 	if (events & (EPOLLERR | EPOLLHUP)) {
  		_printSocketError();
-        std::cerr << "FD " << _fd
+        std::cerr << "FD " << _sock.fd
 		<< ": [Executor] Client disconnected unexpectedly" << std::endl;
 		delete this;
     }
 
 	try {
-		auto server = _selectServer(_parser.getHostName()); // select server based on Host name
+		auto server = selectSrv(_parser.getHostName()); // select server based on Host name
 		if (!server->srvConfs.empty()) {
 			// std::cout << "server_name: ";
 			// for (const auto& item :
@@ -120,7 +116,8 @@ void	Executor::process(uint32_t events) {
 						_res.build({{"Location", path}}, std::to_string(code), statusCodeToReasonPhrase.at(code));
 					else
 						_res.build(std::to_string(code), statusCodeToReasonPhrase.at(code));
-					new Writer(*this, std::move(_res));
+					_modifyEvent(EPOLLOUT | EPOLLRDHUP | EPOLLET);
+					new Writer(std::move(*this), std::move(_parser), std::move(_res));
 					break;
 				}
 
@@ -138,10 +135,12 @@ void	Executor::process(uint32_t events) {
 					_parser.parseBody(nullptr, 0); //consume body remaining from header parsing
 					if (_parser.bodyStopReceived()) {
 						m.postMethod(_fsPath, _res, _parser);
-						new Writer(*this, std::move(_res));
+						_modifyEvent(EPOLLOUT | EPOLLRDHUP | EPOLLET);
+						new Writer(std::move(*this), std::move(_parser), std::move(_res));
 					}
 					else {
-						new BodyReader(*this, std::move(_parser));
+						_modifyEvent(EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
+						new BodyReader(std::move(*this), std::move(_parser), std::move(_res));
 					}
 					break;
 				}
@@ -152,7 +151,8 @@ void	Executor::process(uint32_t events) {
 				}
 				else
 					m.deleteMethod(_fsPath, _res, _parser);
-				new Writer(*this, std::move(_res));
+				_modifyEvent(EPOLLOUT | EPOLLRDHUP | EPOLLET);
+				new Writer(std::move(*this), std::move(_parser), std::move(_res));
 			}
 			catch ( HttpException& e )
 			{
@@ -175,13 +175,14 @@ void	Executor::process(uint32_t events) {
 					}
 				}
 				_res.build(std::move(e));
-				new Writer(*this, std::move(_res));
+				_modifyEvent(EPOLLOUT | EPOLLRDHUP | EPOLLET);
+				new Writer(std::move(*this), std::move(_parser), std::move(_res));
 			}
 			break;
 		}
 	}
 	catch (const std::exception& e) {
-		std::cerr << "FD " << _fd
+		std::cerr << "FD " << _sock.fd
 		<< ": [Executor] Error, " << e.what() << std::endl;
 	}
 	delete this; // Execution finished, destroy self

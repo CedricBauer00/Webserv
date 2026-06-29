@@ -26,34 +26,32 @@ int	Epoller::getFd() const {
 	return _epollfd;
 }
 
-void    Epoller::addEventHandler(
-	AEventHandler* handler, const uint32_t events) const {
+void    Epoller::addEventHandler(AEventHandler* handler) const {
 	struct epoll_event	ev;
     int					fd = handler->getFd();
 
-	ev.events = events;
+	ev.events = handler->getEvents();
 	ev.data.ptr = handler;
 	if (epoll_ctl(_epollfd, EPOLL_CTL_ADD, fd, &ev) == -1)
 		throw std::runtime_error(std::string("FD ")
 			+ std::to_string(fd)
             + ": <epoll_ctl[add]> " + strerror(errno));
 	std::cout << "FD " << fd
-	<< ": added to epoll with events " << _eventsToStr(events) << std::endl;
+	<< ": added to epoll with events " << _eventsToStr(ev.events) << std::endl;
 }
 
-void    Epoller::modifyEventHandler(
-	AEventHandler* handler, const uint32_t events) const {
+void    Epoller::modifyEventHandler(AEventHandler* handler) const {
 	struct epoll_event	ev;
 	int 				fd = handler->getFd();
 
-	ev.events = events;
+	ev.events = handler->getEvents();
 	ev.data.ptr = handler;
 	if (epoll_ctl(_epollfd, EPOLL_CTL_MOD, fd, &ev) == -1)
 		throw std::runtime_error(std::string("FD ")
 			+ std::to_string(fd)
 			+ ": <epoll_ctl[mod]> " + strerror(errno));
 	std::cout << "FD " << fd
-	<< ": modified in epoll with events " << _eventsToStr(events) << std::endl;
+	<< ": modified in epoll with events " << _eventsToStr(ev.events) << std::endl;
 }
 
 void    Epoller::deleteEventHandler(AEventHandler* handler) const {

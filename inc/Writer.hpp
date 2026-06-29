@@ -6,13 +6,16 @@
 class Writer: public AEventHandler {
     private:
 		size_t		_sentBytes{0};
+        HttpParser  _parser;
         Response	_res;
 
 		void	_sendToClient();
 
     public:
         Writer() = delete;
-        Writer(AEventHandler& handler, Response&& res);
+        Writer(AEventHandler&& handler,
+            HttpParser&& parser,
+            Response&& res);
         virtual ~Writer();
 
         void	process(uint32_t events) override;

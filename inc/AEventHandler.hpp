@@ -24,36 +24,32 @@ class AEventHandler {
 				}
 		};
 
-		static std::function<const Srv*(const std::string&)>
-		selectServerFactory(const std::vector<const Srv*>& srvs);
-
 	protected:
 		static int	_dupFd(int fd);
 		static void	_setNonBlocking(int fd);
 
 	protected:
-		WebservSocket									_sock;
-		uint32_t										_events;
-		const Epoller&									_epoller;
-		std::function<const Srv*(const std::string&)>	_selectServer;
+		WebservSocket	_sock;
+		uint32_t		_events;
 
 		void		_modifyEvent(const uint32_t events);
         void    	_printSocketError();
 
     public:
+		const Epoller&											epoller;
+		const std::function<const Srv*(const std::string&)>&	selectSrv;
+
 		AEventHandler() = delete;
         AEventHandler(WebservSocket&& sock,
 			const uint32_t events,
-			const Epoller& epoller,
-			std::function<const Srv*(const std::string&)>&& selectServer);
+			const Epoller& e,
+			const std::function<const Srv*(const std::string&)>& selectServer);
 		AEventHandler(AEventHandler&& other) noexcept;
         virtual ~AEventHandler();
 
-		const std::vector<const Srv*>&	getServers() const;
-		const Epoller&	getEpoller() const;
+		uint32_t		getEvents() const;
 		int				getFd() const;
         void*			getInAddr(struct sockaddr_storage& st) const;
 		in_port_t		getPort(struct sockaddr_storage& st) const;
-		void			closeFd();
         virtual void	process(uint32_t events) = 0;
 };

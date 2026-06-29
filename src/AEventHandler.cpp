@@ -4,30 +4,25 @@
 AEventHandler::AEventHandler(WebservSocket&& sock,
 	const uint32_t events,
 	const Epoller& epoller,
-	std::function<const Srv*(const std::string&)>&& selectServer)
+    const std::function<const Srv*(const std::string&)>& selectServer)
 : _sock(std::move(sock))
 , _events(events)
-, _epoller(epoller)
-, _selectServer(std::move(selectServer)) {
-	_epoller.addEventHandler(this, events);
+, epoller(epoller)
+, selectSrv(selectServer) {
+    epoller.addEventHandler(this);
 }
 
 AEventHandler::AEventHandler(AEventHandler&& other) noexcept
 : _sock(std::move(other._sock))
 , _events(other._events)
-, _epoller(other._epoller)
-, _selectServer(std::move(other._selectServer)) {
+, epoller(other.epoller)
+, selectSrv(other.selectSrv) {
+	epoller.modifyEventHandler(this);
 }
 
 AEventHandler::~AEventHandler() {
-    if (_sock.fd != -1) {
-        _epoller.deleteEventHandler(this);
-        closeFd();
-    }
-}
-
-void	AEventHandler::_modifyEvent(const uint32_t events) {
-	_epoller.modifyEventHandler(this, events);
+    if (_sock.fd != -1)
+        epoller.deleteEventHandler(this);
 }
 
 int	AEventHandler::_dupFd(int fd) {
@@ -50,6 +45,10 @@ void	AEventHandler::_setNonBlocking(int fd) {
 		throw std::runtime_error(std::string("fcntl set: ") + strerror(errno));
 }
 
+void	AEventHandler::_modifyEvent(const uint32_t events) {
+	_events = events;
+}
+
 void    AEventHandler::_printSocketError() {
     int err;
     socklen_t len = sizeof(err);
@@ -58,41 +57,9 @@ void    AEventHandler::_printSocketError() {
     std::cerr << "FD " << _sock.fd << ": " << strerror(err) << std::endl;
 }
 
-std::function<const Srv*(const std::string&)>
-AEventHandler::selectServerFactory(const std::vector<const Srv*>& srvs)
-{
-	if (srvs.empty())
-		throw std::runtime_error("No servers configured");
-	if (srvs.size() == 1)
-		return [srv = srvs[0]](const std::string&) {
-			return srv;
-		};
-	else
-		return [&servers = srvs](const std::string& hostname) {
-			const Srv* defaultSrv = nullptr;
-			for (const Srv* srv : servers) {
-				if (srv->srvConfs.empty())
-					continue;
-				const auto* srvCoreConf =\
-				dynamic_cast<SrvCoreConf*>(srv->srvConfs[0].get());
-				const auto& names = srvCoreConf->serverNames;
-				if (names.find(hostname) != names.end())
-					return srv;
-				if (srvCoreConf->flags.has_value()
-                && (srvCoreConf->flags.value() & DEFAULT_SERVER))
-					defaultSrv = srv;
-			}
-			return defaultSrv != nullptr ? defaultSrv : servers[0];
-		};
-}
 
-const std::vector<const Srv*>&	AEventHandler::getServers(
-) const {
-	return _servers;
-}
-
-const Epoller&	AEventHandler::getEpoller() const {
-	return _epoller;
+uint32_t AEventHandler::getEvents() const {
+	return _events;
 }
 
 int	AEventHandler::getFd() const {
@@ -112,10 +79,3 @@ in_port_t	AEventHandler::getPort(struct sockaddr_storage& st) const {
     }
     return ((struct sockaddr_in6&)st).sin6_port;
 }
-
-void	AEventHandler::closeFd() {
-	if (close(_sock.fd) == -1)
-		std::cerr << "FD " << _sock.fd << ": " << strerror(errno) << std::endl;
-	std::cout << "FD " << _sock.fd << ": closed" << std::endl;
-}
-
