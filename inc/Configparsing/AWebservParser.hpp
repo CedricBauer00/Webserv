@@ -64,7 +64,7 @@ void AWebservParser::_insertConf(VecOfPtrs<T>* confs, std::unique_ptr<T> conf)
 
 template<typename T, typename Factory>
 void AWebservParser::_ensureConfExists(VecOfPtrs<T>* confs, Factory makeConf) {
-	if (confs->size() <= static_cast<size_t>(_ctxIndex))
+	if (confs->size() <= static_cast<size_t>(_ctxIndex) || !(*confs)[_ctxIndex])
 		_insertConf<T>(confs, makeConf());
 };
 
