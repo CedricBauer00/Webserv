@@ -54,4 +54,6 @@ AI was used as a technical assistent during the developement process for the fol
 - **Research**: Gathering neccessary knowledge for the implementation of the project. Engaging in educational dialog for deepening understanding of different concepts.
 - **Architectural Guidance**: Refining the event-driven loop.
 - **Debugging**: Analyzing and resolving bugs and erros throughout the project.
-- Creating the Readme
+- **Readme**: Creating the Readme
+- **Testing**: Writing test requests for the Server
+- **Frontend**: For creating the visulization of the project AI was used.
