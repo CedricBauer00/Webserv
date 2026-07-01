@@ -129,12 +129,55 @@ bool    Method::_ranCGI(
 	const std::string&	reqPath = parser.getPath();
 	std::size_t			len = reqPath.length();
 
+	if (reqPath.compare(0, 5, "/cgi/") != 0)
+		return false;
+ 
 	if (reqPath.compare(len - 3, 3, ".sh") == 0
 	|| reqPath.compare(len - 3, 3, ".py") == 0 ) {
 		_runCgi(path, res, parser);
 		return true;
 	}
-	return false;
+	throw NotFound();
+}
+
+
+std::vector<std::string>	Method::_getCGIEnv(const HttpParser& parser)
+{
+	static auto normalize = [](const std::string& str) {
+		std::string result;
+
+		for (char c : str) {
+			if (c == '-')
+				result += '_';
+			else
+				result += std::toupper(static_cast<unsigned char>(c));
+		}
+		return result;
+	};
+
+	std::vector<std::string> env;
+
+	env.push_back("REQUEST_METHOD=" + parser.getMethodStr());
+    env.push_back("QUERY_STRING=" + parser.getQuery());
+	env.push_back("SCRIPT_NAME=" + parser.getPath());
+	env.push_back("PATH_INFO=");
+	env.push_back("GATEWAY_INTERFACE=CGI/1.1");
+	env.push_back("SERVER_NAME=" + parser.getHostName());
+	env.push_back("SERVER_PORT=" + parser.getHostPort());
+	env.push_back("SERVER_PROTOCOL=" + parser.getHttp());
+	env.push_back("REMOTE_ADDR=" + std::string("203.0.113.42"));
+
+	auto& headers = parser.getHeaders();
+	for (auto& header : headers) {
+		if (header.first == "content-length" || header.first == "content-type")
+			env.push_back(normalize(header.first) + "=" + header.second);
+		else
+			env.push_back("HTTP_" + normalize(header.first) + "=" + header.second);
+	}
+	if (!parser.getBody().empty() && headers.find("content-length") == headers.end())
+		env.push_back("CONTENT_LENGTH=" + std::to_string(parser.getBody().size()));
+
+	return env;
 }
 
 void    Method::_runCgi(
@@ -155,27 +198,7 @@ void    Method::_runCgi(
 
     if (pid == 0)
     {
-		std::vector<std::string> env;
-
-		env.push_back("GATEWAY_INTERFACE=CGI/1.1");
-		env.push_back("QUERY_STRING=" + parser.getQuery());
-		env.push_back("REMOTE_ADDR=203.0.113.42");
-		env.push_back("REQUEST_METHOD=" + parser.getMethodStr());
-		env.push_back("SCRIPT_NAME=" + parser.getPath());
-		env.push_back("SERVER_NAME=" + parser.getHostName());
-		env.push_back("SERVER_PORT=" + parser.getHostPort());
-		env.push_back("SERVER_PROTOCOL=" + parser.getHttp());
-		env.push_back("PATH_INFO=");
-		std::string cookie = "HTTP_COOKIE=";
-		auto it = parser.getHeaders().find("cookie");
-		if (it != parser.getHeaders().end())
-			cookie += it->second;
-		env.push_back(cookie);
-
-		if (parser.getMethodStr() == "POST") {
-			env.push_back("CONTENT_LENGTH=" + parser.getHeaders().at("content-length"));
-			env.push_back("CONTENT_TYPE=" + parser.getHeaders().at("content-type"));
-		}
+		std::vector<std::string> env = _getCGIEnv(parser);
 
         std::vector<char*> envp;
 		for (auto &e : env)

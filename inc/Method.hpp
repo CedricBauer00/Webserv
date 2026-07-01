@@ -24,6 +24,7 @@ class Method
 		void	_createAutoIndexPage(
 			const std::string &path, Response &res,const HttpParser& parser);
 		void	_parseCGIResponse(const std::string& cgiRes, Response &htmlRes);
+		std::vector<std::string>	_getCGIEnv(const HttpParser& parser);
         bool    _ranCGI(
             const std::string &path, Response &res, const HttpParser& parser);
         void    _runCgi(
