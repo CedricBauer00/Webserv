@@ -42,9 +42,16 @@ curl -v http://localhost:8080/index.html
 ## Resources
 
 ### References 
+- webserv: Building a Non-Blocking Web Server in C++98 (A 42 project)
+- Beej's Guide to Network Programming Using Internet Sockets
+- AI research for more specific questions on certain topics
+- peer to peer
+- nginx Beginner’s Guide
+
 
 ## AI Usage
 AI was used as a technical assistent during the developement process for the following tasks:
 - **Research**: Gathering neccessary knowledge for the implementation of the project. Engaging in educational dialog for deepening understanding of different concepts.
 - **Architectural Guidance**: Refining the event-driven loop.
 - **Debugging**: Analyzing and resolving bugs and erros throughout the project.
+- Creating the Readme
