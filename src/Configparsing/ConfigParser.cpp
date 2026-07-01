@@ -69,7 +69,7 @@ void	ConfigParser::_parseBlock(
 	}
 	else if (name == "server") {
 		_servers.emplace_back(std::make_unique<Srv>());
-		mapAddrToServer(std::string(IP) + ":" + PORT, *_servers.back().get());
+		mapAddrToServer(std::string(IP) + ":" + PORT, *_servers.back().get(), 0);
 		_confCtx.srvConfs = &_servers.back().get()->srvConfs;
 		_curLocNode = _servers.back().get()->location.get();
 		_confCtx.locConfs = &_curLocNode->locConfs;
@@ -189,12 +189,17 @@ const ConfigParser::AddrToServersMap&	ConfigParser::getAddrToServersMap() const
 }
 
 void	ConfigParser::mapAddrToServer(const std::string& addr,
-	const Srv& srv) {
+	const Srv& srv, unsigned long flags) {
 	if (!_addrToServersMap.count(addr)
 		|| (std::find(_addrToServersMap[addr].begin(),
 			_addrToServersMap[addr].end(),
-			&srv) == _addrToServersMap[addr].end())
-	) _addrToServersMap[addr].push_back(&srv);
+			&srv) == _addrToServersMap[addr].end())) {
+		if (flags & DEFAULT_SERVER)
+			_addrToServersMap[addr].insert(
+				_addrToServersMap[addr].begin(), &srv);
+		else
+			_addrToServersMap[addr].push_back(&srv);
+	}
 }
 
 void	ConfigParser::eraseMappingAddrToServer(const std::string& addr,

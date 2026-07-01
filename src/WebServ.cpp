@@ -24,20 +24,15 @@ WebServ::_selectServerFactory(const std::vector<const Srv*>& srvs)
 		};
 	else
 		return [&servers = srvs](const std::string& hostname) {
-			const Srv* defaultSrv = nullptr;
 			for (const Srv* srv : servers) {
 				if (srv->srvConfs.empty())
 					continue;
-				const auto* srvCoreConf =\
-				dynamic_cast<SrvCoreConf*>(srv->srvConfs[0].get());
-				const auto& names = srvCoreConf->serverNames;
+				const auto& names =\
+				dynamic_cast<SrvCoreConf*>(srv->srvConfs[0].get())->serverNames;
 				if (names.find(hostname) != names.end())
 					return srv;
-				if (srvCoreConf->flags.has_value()
-                && (srvCoreConf->flags.value() & DEFAULT_SERVER))
-					defaultSrv = srv;
 			}
-			return defaultSrv != nullptr ? defaultSrv : servers[0];
+			return servers[0];
 		};
 }
 

@@ -27,7 +27,7 @@ class ConfigParser {
 		const Srv&				getLastSrv() const;
 		const AddrToServersMap&	getAddrToServersMap() const;
 		void					mapAddrToServer(
-			const std::string& addr, const Srv&);
+			const std::string& addr, const Srv&, unsigned long flags);
 		void					eraseMappingAddrToServer(
 			const std::string& addr, const Srv& node);
 		void					setTokens(const Tokens& tokens);

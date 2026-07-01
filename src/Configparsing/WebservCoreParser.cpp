@@ -40,15 +40,16 @@ void	WebservCoreParser::_parseListen(Tokens& t, const ConfCtx& c,
 	if (!isValidPort(port))
 		throw std::runtime_error("Invalid listen port '" + port + "'");
 
-    if (ip != IP || port != PORT) {
-        p.mapAddrToServer(ip + ":" + port, p.getLastSrv());
-        p.eraseMappingAddrToServer(std::string(IP) + ":" + PORT,
-            p.getLastSrv());
-    }
 	SrvCoreConf* srvConf = dynamic_cast<SrvCoreConf*>(getSrvConfPtr(c));
 	srvConf->flags = LISTEN;
 	if (!t.empty() && t.front() == "default_server")
 		srvConf->flags.value() |= DEFAULT_SERVER, t.pop_front();
+
+	if (ip != IP || port != PORT) {
+        p.mapAddrToServer(ip + ":" + port, p.getLastSrv(), srvConf->flags.value());
+        p.eraseMappingAddrToServer(std::string(IP) + ":" + PORT,
+            p.getLastSrv());
+    }
 };
 
 void	WebservCoreParser::_parseServerNames(Tokens& t, const ConfCtx& c) {
