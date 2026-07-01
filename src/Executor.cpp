@@ -63,7 +63,7 @@ void	Executor::_assertHttpMethodAllowed() {
 		std::string	val;
 
 		for (const auto& item : methodMap) {
-			if (!(_parser.getMethodMask() & item.second.first)) {
+			if (*_locCoreConf->allowedMethods & item.second.first) {
 				if (val.size())
 					val.append(", ");
 				val.append(item.first);
