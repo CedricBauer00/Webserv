@@ -25,7 +25,7 @@ WebServ::_selectServerFactory(const std::vector<const Srv*>& srvs)
 	else
 		return [&servers = srvs](const std::string& hostname) {
 			for (const Srv* srv : servers) {
-				if (srv->srvConfs.empty())
+				if (srv->srvConfs.empty() || !srv->srvConfs[0])
 					continue;
 				const auto& names =\
 				dynamic_cast<SrvCoreConf*>(srv->srvConfs[0].get())->serverNames;

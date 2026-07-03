@@ -22,13 +22,11 @@ HeadReader::~HeadReader() {
 
 WebservSocket	HeadReader::acceptConn(int listenFd) {
 	socklen_t					addrLen{sizeof(struct sockaddr_storage)};
-	WebservSocket				ret;
+	WebservSocket				ret(-1, std::make_unique<struct sockaddr_storage>());
 
-	ret.ss = new struct sockaddr_storage;
 	ret.fd = accept(
-		listenFd, reinterpret_cast<struct sockaddr*>(ret.ss), &addrLen);
+		listenFd, reinterpret_cast<struct sockaddr*>(ret.ss.get()), &addrLen);
     if (ret.fd == -1) {
-		delete ret.ss;
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
 			throw wouldBlockException(); // No more incoming connections to accept
 		throw std::runtime_error(std::string("FD ")

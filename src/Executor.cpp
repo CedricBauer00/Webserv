@@ -55,7 +55,7 @@ void	Executor::_selectLocation(const LocNode& root)
 }
 
 void	Executor::_setWorkingDirAsFilesystemPath() {
-	_fsPath = std::filesystem::current_path().string();
+	_fsPath = std::filesystem::current_path().string() + _parser.getPath();
 }
 
 void	Executor::_assertHttpMethodAllowed() {
@@ -92,15 +92,15 @@ void	Executor::process(uint32_t events) {
 
 	try {
 		auto server = selectSrv(_parser.getHostName()); // select server based on Host name
-		if (!server->srvConfs.empty()) {
-			// std::cout << "server_name: ";
-			// for (const auto& item :
-			// 	dynamic_cast<SrvCoreConf*>(
-			// 		server->srvConfs[0].get())->serverNames) {
-			// 	std::cout << item << " ";
-			// }
-			// std::cout << '\n';
-		}
+		// if (!server->srvConfs.empty()) {
+		// 	std::cout << "server_name: ";
+		// 	for (const auto& item :
+		// 		dynamic_cast<SrvCoreConf*>(
+		// 			server->srvConfs[0].get())->serverNames) {
+		// 		std::cout << item << " ";
+		// 	}
+		// 	std::cout << '\n';
+		// }
 		while (true) {
 			try {
 				Method m;

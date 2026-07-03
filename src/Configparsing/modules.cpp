@@ -5,25 +5,22 @@ WebservSocket::WebservSocket() noexcept {
 }
 
 WebservSocket::WebservSocket(
-    int _fd, struct sockaddr_storage* _ss) noexcept
-: fd(_fd), ss(_ss) {
+    int _fd, std::unique_ptr<struct sockaddr_storage>&& _ss) noexcept
+: fd(_fd), ss(std::move(_ss)) {
+	memset(ss.get(), 0, sizeof *ss);
 }
 
 WebservSocket::WebservSocket(WebservSocket&& other) noexcept
-: fd(other.fd), ss(other.ss) {
+: fd(other.fd), ss(std::move(other.ss)) {
     other.fd = -1;
 }
 
 WebservSocket::~WebservSocket() {
-	if (fd != -1)
-		destroySocket();
-}
-
-void	WebservSocket::destroySocket() noexcept {
-	if (close(fd) == -1)
-		std::cerr << "FD " << fd << ": " << strerror(errno) << std::endl;
-	delete ss;
-	std::cout << "FD " << fd << ": closed" << std::endl;
+	if (fd != -1) {
+		if (close(fd) == -1)
+			std::cerr << "FD " << fd << ": " << strerror(errno) << std::endl;
+		std::cout << "FD " << fd << ": closed" << std::endl;
+	}
 }
 
 bool	isDigits(const std::string& str) {

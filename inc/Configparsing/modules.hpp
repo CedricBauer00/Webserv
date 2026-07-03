@@ -84,15 +84,13 @@ struct	ConfCtx {
 };
 
 struct WebservSocket{
-	int							fd{-1};
-	struct sockaddr_storage*	ss;
+	int											fd{-1};
+	std::unique_ptr<struct sockaddr_storage>	ss;
 
 	WebservSocket() noexcept;
-	WebservSocket(int _fd, struct sockaddr_storage* _ss) noexcept;
+	WebservSocket(int _fd, std::unique_ptr<struct sockaddr_storage>&& _ss) noexcept;
     WebservSocket(WebservSocket&& other) noexcept;
 	~WebservSocket();
-
-	void	destroySocket() noexcept;
 };
 
 struct WebservHttpRequest {

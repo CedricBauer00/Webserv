@@ -34,7 +34,7 @@ WebservSocket	Listener::createListenSock(const std::string& addr) {
 	int 				fd, rv, yes=1;
     struct addrinfo 	hints, *p;
 	std::string			ip;
-	WebservSocket		ret;
+	WebservSocket		ret(-1, std::make_unique<struct sockaddr_storage>());
 
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_INET;
@@ -78,19 +78,9 @@ WebservSocket	Listener::createListenSock(const std::string& addr) {
 		throw std::runtime_error(std::string("bind: ") + strerror(errno));
 	}
 
-	try {
-		struct sockaddr_storage* ss = new struct sockaddr_storage;
-		memset(ss, 0, sizeof *ss);
-		memcpy(ss, p->ai_addr, p->ai_addrlen);
-		freeaddrinfo(p);
-		ret.fd = fd;
-		ret.ss = ss;
-	}
-	catch (const std::exception& e) {
-		close(fd);
-		freeaddrinfo(p);
-		throw;
-	}
+    ret.fd = fd;
+    memcpy(ret.ss.get(), p->ai_addr, p->ai_addrlen);
+    freeaddrinfo(p);
 
 	if (listen(ret.fd, BACKLOG) == -1) 
 		throw std::runtime_error(std::string("listen: ") + strerror(errno));
