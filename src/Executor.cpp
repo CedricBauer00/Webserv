@@ -3,6 +3,9 @@
 #include "../inc/constants.h"
 #include "../inc/Writer.hpp"
 #include "../inc/BodyReader.hpp"
+#include "../inc/HttpChunkedBodyParser.hpp"
+#include "../inc/HttpContentBodyParser.hpp"
+#include "../inc/HttpEOFBodyParser.hpp"
 
 Executor::Executor(AEventHandler&& handler,
 	HttpParser&& parser,
@@ -130,8 +133,7 @@ void	Executor::process(uint32_t events) {
 
 				method whichMethod = _parser.getMethod();
 				if (whichMethod == METHOD_POST) {
-					if (_parser.headerHasContlen() && MAX_BODY_SIZE < _parser.getContlen())
-						throw PayloadTooLarge();
+					
 					_parser.parseBody(nullptr, 0); //consume body remaining from header parsing
 					if (_parser.bodyStopReceived()) {
 						m.postMethod(_fsPath, _res, _parser);
@@ -139,8 +141,19 @@ void	Executor::process(uint32_t events) {
 						new Writer(std::move(*this), std::move(_parser), std::move(_res));
 					}
 					else {
+						std::size_t	maxBodySize = std::numeric_limits<std::size_t>::max();
+						if (_locCoreConf)
+							maxBodySize = _locCoreConf->clientMaxBodySize.value();
 						_modifyEvent(EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
-						new BodyReader(std::move(*this), std::move(_parser), std::move(_res));
+						if (_parser.headerHasChunked())
+							new BodyReader(std::move(*this), std::move(_parser), std::move(_res));
+						else if (_parser.headerHasContlen())
+							new BodyReader(std::move(*this), std::move(_parser), std::move(_res));
+						else {
+							if (!_parser.isHTTP1p0())
+								throw BadRequest();
+							new BodyReader(std::move(*this), std::move(_parser), std::move(_res));
+						}
 					}
 					break;
 				}

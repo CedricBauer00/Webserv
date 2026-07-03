@@ -1,22 +1,21 @@
-#include "../inc/HttpParser.hpp"
+#include "../inc/AHttpParser.hpp"
 #include "../inc/Exceptions.hpp"
-#include "../inc/Utils.hpp"
 
-HttpParser::HttpParser() 
+AHttpParser::AHttpParser() 
 : _startLine(), _headers(), _body(), _bodyLength(0), _headStopReceived(false), _bodyStopReceived(false),
 _foundContlen( false ), _foundHost( false ), _contentLength( 0 ),
 _chunked( false ), _request(), _method( METHOD_GET ),
 _currentChunkSize(0), _waitingForChunkData(false), _waitingForLastChunkCRLF(false) {
 }
 
-HttpParser::HttpParser(const std::string& request ) 
+AHttpParser::AHttpParser(const std::string& request ) 
 : _startLine(), _headers(), _body(), _bodyLength(0), _headStopReceived(false), _bodyStopReceived(false),
 _foundContlen( false ), _foundHost( false ), _contentLength( 0 ),
 _chunked( false ), _request(request), _method( METHOD_GET ),
 _currentChunkSize(0), _waitingForChunkData(false), _waitingForLastChunkCRLF(false) {
 }
 
-HttpParser::HttpParser(HttpParser&& other) noexcept
+AHttpParser::AHttpParser(AHttpParser&& other) noexcept
 : _startLine( std::move( other._startLine ) )
 , _headers( std::move( other._headers ) )
 , _httpVersion( std::move( other._httpVersion ) )
@@ -40,94 +39,13 @@ HttpParser::HttpParser(HttpParser&& other) noexcept
 , _waitingForLastChunkCRLF(other._waitingForLastChunkCRLF)
 , _internalRedirect(other._internalRedirect)
 {
-	std::cout << "HttpParser move constructor called" << std::endl;
+	std::cout << "AHttpParser move constructor called" << std::endl;
 }
 
-HttpParser::~HttpParser() {
+AHttpParser::~AHttpParser() {
 }
 
-void	HttpParser::parseHead(char* buffer, std::size_t count)
-{
-    _request.append(buffer, count);
-    std::string::size_type start = 0;
-    std::string::size_type pos;
-
-    while ((pos = _request.find("\r\n", start)) != std::string::npos)
-    {
-        std::string_view line(_request.data() + start, pos - start);
-
-        if (line.empty())
-        {
-            _request.erase(0, pos + 2);
-			_headStopReceived = true;
-            return;
-        }
-
-        if (_startLine.empty())
-        {
-            std::size_t fieldStart = 0;
-            std::size_t fieldEnd = line.find(' ');
-            while (fieldEnd != std::string_view::npos)
-            {
-                _startLine.emplace_back(line.substr(fieldStart, fieldEnd - fieldStart));
-                fieldStart = fieldEnd + 1;
-                fieldEnd = line.find(' ', fieldStart);
-            }
-            _startLine.emplace_back(line.substr(fieldStart));
-            _checkStartLine();
-            _setMethod();
-            _decodeRequestTarget(_startLine[1]);
-            _splitRequestTarget(_startLine[1]);
-            _normalizePath();
-        }
-        else
-        {
-            std::size_t colon = line.find(':');
-            if (colon == std::string_view::npos || colon == 0)
-                throw BadRequest();
-            if (line[colon - 1] == ' ')
-                throw BadRequest();
-
-            std::string key(line.substr(0, colon));
-            std::string value(line.substr(colon + 1));
-
-            for (auto& x : key)
-                x = tolower(static_cast<unsigned char>(x));
-
-            value = trim(value);
-            key = trim(key);
-            if (key == "content-length" && _foundContlen == false)
-            {
-                if (_chunked)
-                    throw BadRequest();
-                if (!isAllDigits(value))
-                    throw BadRequest();
-                _foundContlen = true;
-                _contentLength = static_cast<std::size_t>(std::stoi(value));
-            }
-            else if (key == "transfer-encoding")
-            {
-				for (auto& x : value)
-                	x = tolower(static_cast<unsigned char>(x));
-				if (value == "chunked")
-				{
-					if (_foundContlen)
-						throw BadRequest();
-					_chunked = true;
-				}
-            }
-            else if (key == "host")
-                checkHostHeader(value);
-
-            _headers[key] = value;
-        }
-
-        start = pos + 2;
-    }
-	_request.erase(0, start);
-}
-
-void	HttpParser::parseBody(char* buffer, std::size_t count)
+void	AHttpParser::parseBody(char* buffer, std::size_t count)
 {
 	_request.append(buffer, count);
 	if (_chunked) {
@@ -204,7 +122,7 @@ void	HttpParser::parseBody(char* buffer, std::size_t count)
 	return;
 }
 
-void    HttpParser::_checkStartLine() // eventuell direkt Execution instance createn, die URI speichert
+void    AHttpParser::_checkStartLine() // eventuell direkt Execution instance createn, die URI speichert
 {
     if ( _startLine.size() != 3 )
     {
@@ -230,12 +148,12 @@ void    HttpParser::_checkStartLine() // eventuell direkt Execution instance cre
     }
 }
 
-void    HttpParser::_setMethod() // eventuell hier Execution class instance createn, die die Method selbst speichert
+void    AHttpParser::_setMethod() // eventuell hier Execution class instance createn, die die Method selbst speichert
 {
     setMethod(_startLine[0]);  
 }
 
-void    HttpParser::setMethod(const std::string& method) // eventuell hier Execution class instance createn, die die Method selbst speichert
+void    AHttpParser::setMethod(const std::string& method) // eventuell hier Execution class instance createn, die die Method selbst speichert
 {
     auto it = methodMap.find(method);
     if (it == methodMap.end())
@@ -244,7 +162,7 @@ void    HttpParser::setMethod(const std::string& method) // eventuell hier Execu
 	_method = it->second.second;    
 }
 
-std::string HttpParser::trim( const std::string& value )
+std::string AHttpParser::trim( const std::string& value )
 {
     std::string::size_type start = 0;
     while ( start < value.size() && std::isspace( static_cast<unsigned char>( value[ start ] ) ) )
@@ -256,7 +174,7 @@ std::string HttpParser::trim( const std::string& value )
     return ( value.substr( start, end - start ) );
 }
 
-void    HttpParser::validatePort( std::string port )
+void    AHttpParser::validatePort( std::string port )
 {
     if ( port.empty() || !isAllDigits( port ) )
         throw BadRequest();
@@ -280,7 +198,7 @@ std::string validateHostName( const std::string &hostName )
     return hostName;
 }
 
-void    HttpParser::checkHostHeader(const std::string& value )
+void    AHttpParser::checkHostHeader(const std::string& value )
 {
     if ( value.empty() )
         throw BadRequest();
@@ -347,87 +265,87 @@ void    HttpParser::checkHostHeader(const std::string& value )
     _foundHost = true;
 }
 
-void	HttpParser::setRedirectPath(std::string&& redirectPath) {
+void	AHttpParser::setRedirectPath(std::string&& redirectPath) {
 	_path = std::move(redirectPath);
 	_internalRedirect = true;
 }
 
-const std::vector<std::string>&    HttpParser::getStartLine() const
+const std::vector<std::string>&    AHttpParser::getStartLine() const
 {
 	return _startLine;
 }
 
-const std::string&	HttpParser::getQuery() const
+const std::string&	AHttpParser::getQuery() const
 {
 	return _query;
 }
 
-const std::unordered_map<std::string, std::string>&    HttpParser::getHeaders() const
+const std::unordered_map<std::string, std::string>&    AHttpParser::getHeaders() const
 {
 	return _headers;
 }
 
-const std::string&    HttpParser::getBody() const
+const std::string&    AHttpParser::getBody() const
 {
     return _body;
 }
 
-const std::string&	HttpParser::getMethodStr() const
+const std::string&	AHttpParser::getMethodStr() const
 {
 	return _startLine[0];
 }
 
-method  HttpParser::getMethod() const
+method  AHttpParser::getMethod() const
 {
     return _method;
 }
 
-unsigned int    HttpParser::getMethodMask() const
+unsigned int    AHttpParser::getMethodMask() const
 {
     return _methodMask;
 }
 
-const std::string&     HttpParser::getHostName() const
+const std::string&     AHttpParser::getHostName() const
 {
     return _hostName;
 }
 
-const std::string&     HttpParser::getHostPort() const
+const std::string&     AHttpParser::getHostPort() const
 {
     return _hostPort;
 }
 
-const std::string&     HttpParser::getPath() const
+const std::string&     AHttpParser::getPath() const
 {
     return _path;
 }
 
-const std::string&	HttpParser::getHttp() const 
+const std::string&	AHttpParser::getHttp() const 
 {
 	return  _startLine[2];
 }
 
-bool			HttpParser::headStopReceived() const {
+bool			AHttpParser::headStopReceived() const {
 	return _headStopReceived;
 }
 
-bool			HttpParser::bodyStopReceived() const {
+bool			AHttpParser::bodyStopReceived() const {
 	return _bodyStopReceived;
 }
 
-bool	HttpParser::headerHasContlen() const {
+bool	AHttpParser::headerHasContlen() const {
 	return _foundContlen;
 }
 
-std::size_t	HttpParser::getContlen() const {
+std::size_t	AHttpParser::getContlen() const {
 	return _contentLength;
 };
 
-bool	HttpParser::isHTTP1p0() const {
+bool	AHttpParser::isHTTP1p0() const {
 	return _startLine[2] == "HTTP/1.0";
 }
 
-void    HttpParser::_decodeRequestTarget(std::string& requestTarget)
+void    AHttpParser::_decodeRequestTarget(std::string& requestTarget)
 {
     for ( size_t i = 0; i < requestTarget.size(); ++i )
     {
@@ -440,7 +358,7 @@ void    HttpParser::_decodeRequestTarget(std::string& requestTarget)
     }
 }
 
-void    HttpParser::_splitRequestTarget(std::string& requestTarget) {
+void    AHttpParser::_splitRequestTarget(std::string& requestTarget) {
     std::string::size_type pos = requestTarget.find( '?' );
 
     if ( pos != std::string::npos )
@@ -452,7 +370,7 @@ void    HttpParser::_splitRequestTarget(std::string& requestTarget) {
         _path = requestTarget;
 }
 
-void    HttpParser::_normalizePath() {
+void    AHttpParser::_normalizePath() {
     std::istringstream iss( _path );
     std::vector<std::string> wholePath;
     std::string partStr;
@@ -483,12 +401,12 @@ void    HttpParser::_normalizePath() {
     _path = std::move(nPath);
 }
 
-bool	isInRange( int num, int min, int max )
+bool	AHttpParser::isInRange( int num, int min, int max )
 {
     return ( num >= min && num <= max );
 }
 
-bool	isIpv6Char( char c )
+bool	AHttpParser::isIpv6Char( char c )
 {
     return ( c == ':' || std::isxdigit( static_cast<unsigned char>( c ) ) );
 }

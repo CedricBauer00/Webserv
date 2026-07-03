@@ -12,12 +12,11 @@
 #include "MethodTypes.hpp"
 #include "Exceptions.hpp"
 #include "constants.h"
+#include "Utils.hpp"
 
-#define MAX_BODY_SIZE 8192
-
-class HttpParser
+class AHttpParser
 {
-    private:
+    protected:
         std::vector<std::string>						_startLine;
         std::unordered_map<std::string, std::string>	_headers;
         std::string			_httpVersion;
@@ -40,6 +39,7 @@ class HttpParser
 		bool 				_waitingForChunkData = false;
 		bool 				_waitingForLastChunkCRLF = false;
         bool                _internalRedirect = false;
+		std::size_t			_max_size = 8192;
 
         void	_setMethod();
         void	_checkStartLine();
@@ -49,12 +49,13 @@ class HttpParser
 		// void    _setHttpVersion();
 
     public:
-        HttpParser();
-        HttpParser(const std::string& request);
-        HttpParser(HttpParser&& other) noexcept;
-        HttpParser& operator=(HttpParser&& other) noexcept = default;
-        ~HttpParser();
+        AHttpParser();
+        AHttpParser(const std::string& request);
+        AHttpParser(AHttpParser&& other) noexcept;
+        AHttpParser& operator=(AHttpParser&& other) noexcept = default;
+        virtual ~AHttpParser();
  
+		virtual void	parse(char* buffer, std::size_t count) = 0;
         void        parseHead(char* buffer, std::size_t count);
         void        parseBody(char* buffer, std::size_t count);
 		void		setMethod(const std::string& method);
@@ -79,7 +80,7 @@ class HttpParser
 		bool											headerHasContlen() const;
 		std::size_t										getContlen() const;
 		bool											isHTTP1p0() const;
-};
 
-bool	isInRange( int num, int min, int max );
-bool	isIpv6Char( char c );
+		static bool	isInRange( int num, int min, int max );
+		static bool	isIpv6Char( char c );
+};

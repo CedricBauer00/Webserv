@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include "HeadReader.hpp"
 #include "Response.hpp"
 #include "Method.hpp"
