@@ -68,16 +68,36 @@
     <main class="card">
         <h1><span class="method">DELETE</span> Datei oder Verzeichnis löschen</h1>
 
-        <form method="POST" action="/delete_file"
-              onsubmit="this._method.value='DELETE'">
+        <form id="deleteForm">
+            <label for="deletepath">Path to delete</label>
+            <input type="text" id="deletepath" required?>
 
-            <label for="deletepath">Pfad zum Löschen</label>
-            <input type="text" id="deletepath" name="deletepath" required>
-
-            <input type="hidden" name="_method" value="DELETE">
-
-            <button type="submit">DELETE</button>
+            <button type="button" onclick="handleDelete()">DELETE</button>
         </form>
+
+        <script>
+            function handleDelete() {
+                const path = document.getElementById('deletepath').value.trim();
+                if (!path) {
+                    alert('Pfad erforderlich');
+                    return;
+                }
+                // Entferne führenden Slash
+                let cleanPath = path;
+                if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
+                const encoded = encodeURI(cleanPath);
+
+                fetch(`/${encoded}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type' : 'application/x-www-form-urlencoded',
+                    },
+                })
+                .then(response => response.text())
+                .then(text => { alert('Response: ' + text); })
+                .catch(err => { alert('Error: ' + err)});
+            }
+        </script>
 
         <a href="/index.html">← Zurück</a>
     </main>
