@@ -1,8 +1,6 @@
 #include "../inc/HttpEOFBodyParser.hpp"
 
 HttpEOFBodyParser::HttpEOFBodyParser() {
-	if (_data->startLine[2] != "HTTP/1.0")
-		throw BadRequest();
 }
 
 HttpEOFBodyParser::HttpEOFBodyParser(AHttpParser&& other, std::size_t max_size)

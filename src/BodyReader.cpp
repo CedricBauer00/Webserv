@@ -30,7 +30,7 @@ void	BodyReader::_receiveFromClient() {
             continue;
         }
         if (count == 0) {
-			if (_parser->isHTTP1p0())
+			if (_parser->http1p0Ended())
 				return; // Body fully received
             throw std::runtime_error(
 				std::string("FD ") + std::to_string(_sock.fd)

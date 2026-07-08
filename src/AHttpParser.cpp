@@ -10,6 +10,7 @@ AHttpParser::AHttpParser() : _data(std::make_unique<data>()) {
 
 AHttpParser::AHttpParser(AHttpParser&& other) noexcept
 : _data(std::move(other._data)) {
+    _data->parseCompleted = false;
 	std::cout << "AHttpParser move constructor called" << std::endl;
 }
 
@@ -228,8 +229,12 @@ std::size_t	AHttpParser::getContlen() const {
 	return _data->contentLength;
 };
 
-bool	AHttpParser::isHTTP1p0() const {
-	return _data->startLine[2] == "HTTP/1.0";
+bool	AHttpParser::http1p0Ended() const {
+	if (_data->startLine[2] == "HTTP/1.0") {
+		_data->parseCompleted = true;
+		return true;
+	}
+	return false;
 }
 
 void    AHttpParser::_decodeRequestTarget(std::string& requestTarget) {

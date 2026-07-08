@@ -64,29 +64,29 @@ struct SrvCoreConf : SrvConf {
 };
 
 struct LocCoreConf : LocConf {
-	std::size_t						nameLen{0};
+	std::size_t					nameLen{0};
 	// std::vector<WebservLocCoreConf> 	rawlocations;
 	// WebservLocTreeNode*					staticLocations;
 	// std::vector<WebservLocCoreConf*>	regexLocations;
 
 	// WebservPhase			phases[10];
-	std::optional<unsigned int>		allowedMethods; // bitmask of allowed methods {11}
+	std::optional<unsigned int>	allowedMethods; // bitmask of allowed methods {11}
 	// WebservHandler			handler; // handler for this location
-	std::string						root; // root directory for this location
-	std::optional<bool>				alias; // when true, location prefix to be replaced by root when serving files
-	std::string						postRedirect; // URI to redirect POST requests to
+	std::string					root; // root directory for this location
+	std::optional<bool>			alias; // when true, location prefix to be replaced by root when serving files
+	std::string					postRedirect; // URI to redirect POST requests to
 
-	std::optional<unsigned long>	clientMaxBodySize; // maximum allowed size of client request body in bytes
-	std::optional<unsigned long>	clientBodyBufferSize; // size of buffer used for reading client request body in bytes
+	std::optional<std::size_t>	clientMaxBodySize; // maximum allowed size of client request body in bytes
+	std::optional<std::size_t>	clientBodyBufferSize; // size of buffer used for reading client request body in bytes
 
-	std::optional<WebservMsec>		clientBodyTimeout; // maximum time to wait for client request body in milliseconds (408 Request Timeout)
-	std::optional<WebservMsec>		sendTimeout; // maximum time to wait for sending response to client in milliseconds (504 Gateway Timeout)
+	std::optional<WebservMsec>	clientBodyTimeout; // maximum time to wait for client request body in milliseconds (408 Request Timeout)
+	std::optional<WebservMsec>	sendTimeout; // maximum time to wait for sending response to client in milliseconds (504 Gateway Timeout)
 
-	std::optional<bool>				absoluteRedirect; // whether to use absolute URIs in redirects (e.g., Location header in 301/302 responses)
-	std::optional<bool>				logNotFound; // whether to log 404 Not Found errors
+	std::optional<bool>			absoluteRedirect; // whether to use absolute URIs in redirects (e.g., Location header in 301/302 responses)
+	std::optional<bool>			logNotFound; // whether to log 404 Not Found errors
 	// WebservErrorLog			errorLog;
 
-	std::optional<bool>				chunkedTransferEncoding; // whether to use chunked transfer encoding for responses with unknown content length
+	std::optional<bool>			chunkedTransferEncoding; // whether to use chunked transfer encoding for responses with unknown content length
 
 	std::unordered_map<unsigned long, ErrorPage>	errPages;
 
@@ -101,8 +101,8 @@ struct LocCoreConf : LocConf {
 		std::string	_root,
 		std::optional<bool> _alias,
 		std::string _postRedirect,
-		std::optional<unsigned long> _clientMaxBodySize,
-		std::optional<unsigned long> _clientBodyBufferSize,
+		std::optional<std::size_t> _clientMaxBodySize,
+		std::optional<std::size_t> _clientBodyBufferSize,
 		std::optional<WebservMsec> _clientBodyTimeout,
 		std::optional<WebservMsec> _sendTimeout,
 		std::optional<bool> _absoluteRedirect,

@@ -10,7 +10,7 @@ LocCoreConf(
 	std::filesystem::current_path().string(),
 	false,
 	{},
-	1000,
+	std::numeric_limits<std::size_t>::max(),
 	1000,
 	WebservMsec{1000},
 	WebservMsec{1000},

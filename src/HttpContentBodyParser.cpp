@@ -1,8 +1,6 @@
 #include "../inc/HttpContentBodyParser.hpp"
 
 HttpContentBodyParser::HttpContentBodyParser() {
-	if (_data->max_size < _data->contentLength)
-		throw PayloadTooLarge();
 }
 
 HttpContentBodyParser::HttpContentBodyParser(

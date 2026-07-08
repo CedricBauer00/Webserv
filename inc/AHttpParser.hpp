@@ -80,7 +80,7 @@ class AHttpParser
 		bool											headerHasChunked() const;
 		bool											headerHasContlen() const;
 		std::size_t										getContlen() const;
-		bool											isHTTP1p0() const;
+		bool											http1p0Ended() const;
 
 		static bool	isInRange( int num, int min, int max );
 		static bool	isIpv6Char( char c );

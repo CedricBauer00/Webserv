@@ -144,11 +144,11 @@ void	Executor::process(uint32_t events) {
 						bodyParser = std::make_unique<HttpContentBodyParser>(std::move(*_parser), maxBodySize);
 					else
 						bodyParser = std::make_unique<HttpEOFBodyParser>(std::move(*_parser), maxBodySize);
-					_parser->parse(nullptr, 0); //consume body remaining from header parsing
-					if (_parser->parseCompleted()) {
-						m.postMethod(_fsPath, _res, *_parser);
+					bodyParser->parse(nullptr, 0); //consume body remaining from header parsing
+					if (bodyParser->parseCompleted()) {
+						m.postMethod(_fsPath, _res, *bodyParser);
 						_modifyEvent(EPOLLOUT | EPOLLRDHUP | EPOLLET);
-						new Writer(std::move(*this), std::move(_parser), std::move(_res));
+						new Writer(std::move(*this), std::move(bodyParser), std::move(_res));
 					}
 					else {
 						_modifyEvent(EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);

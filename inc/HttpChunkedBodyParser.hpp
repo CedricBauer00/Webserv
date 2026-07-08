@@ -7,6 +7,9 @@ class	HttpChunkedBodyParser : public AHttpParser {
 		bool 		_waitingForLastChunkCRLF{false};
 
 	public:
+		HttpChunkedBodyParser();
 		HttpChunkedBodyParser(AHttpParser&& other, std::size_t max_size) noexcept;
+		virtual ~HttpChunkedBodyParser();
+
 		void	parse(char* buffer, std::size_t count) override;
 };
