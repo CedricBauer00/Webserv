@@ -27,9 +27,7 @@ class AHttpParser
 			std::string 		body;
 			std::size_t			bodyLength{0};
 			bool				parseCompleted{false};
-			// bool				_bodyStopReceived{false};
 			bool				foundContlen{false};
-			// bool				_foundHost{false};
 			std::size_t			contentLength{0};
 			bool				chunked{false};
 			std::string 		hostPort;
@@ -63,7 +61,9 @@ class AHttpParser
         void        checkHostHeader( const std::string& value );
         void        validatePort( std::string portStr );
         void		setRedirectPath(std::string&& redirectPath);
-        
+        bool		http1p0Ended();
+		void		unsetParseCompleted();
+
         const std::vector<std::string>&					getStartLine() const;
         const std::string&								getQuery() const;
         const std::unordered_map<std::string, std::string>&	getHeaders() const;
@@ -76,11 +76,9 @@ class AHttpParser
 		const std::string&								getPath() const;
         const std::string&                              getHttp() const;
 		bool											parseCompleted() const;
-		// bool											bodyStopReceived() const;
 		bool											headerHasChunked() const;
 		bool											headerHasContlen() const;
 		std::size_t										getContlen() const;
-		bool											http1p0Ended() const;
 
 		static bool	isInRange( int num, int min, int max );
 		static bool	isIpv6Char( char c );

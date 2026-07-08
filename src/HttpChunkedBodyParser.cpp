@@ -14,7 +14,6 @@ void	HttpChunkedBodyParser::parse(char* buffer, std::size_t count) {
 	_data->request.append(buffer, count);
 
 	while (true) {
-		std::cout << _data->request << "-------" << std::endl;
 		if (!_waitingForChunkData) {
 			std::string::size_type sizeEnd = _data->request.find("\r\n");
 
@@ -47,7 +46,6 @@ void	HttpChunkedBodyParser::parse(char* buffer, std::size_t count) {
 		}
 
 		if (_waitingForLastChunkCRLF) {
-			std::cout << "waiting for last chunk CRLF" << std::endl;
 			if (_data->request.size() < 2)
 				return;
 			if (_data->request[0] != '\r' || _data->request[1] != '\n')

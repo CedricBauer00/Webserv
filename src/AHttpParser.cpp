@@ -10,7 +10,6 @@ AHttpParser::AHttpParser() : _data(std::make_unique<data>()) {
 
 AHttpParser::AHttpParser(AHttpParser&& other) noexcept
 : _data(std::move(other._data)) {
-    _data->parseCompleted = false;
 	std::cout << "AHttpParser move constructor called" << std::endl;
 }
 
@@ -209,13 +208,13 @@ const std::string&	AHttpParser::getHttp() const {
 	return  _data->startLine[2];
 }
 
-bool			AHttpParser::parseCompleted() const {
+bool	AHttpParser::parseCompleted() const {
 	return _data->parseCompleted;
 }
 
-// bool			AHttpParser::bodyStopReceived() const {
-// 	return _data->bodyStopReceived;
-// }
+void	AHttpParser::unsetParseCompleted() {
+	_data->parseCompleted = false;
+}
 
 bool	AHttpParser::headerHasChunked() const {
 	return _data->chunked;
@@ -229,7 +228,7 @@ std::size_t	AHttpParser::getContlen() const {
 	return _data->contentLength;
 };
 
-bool	AHttpParser::http1p0Ended() const {
+bool	AHttpParser::http1p0Ended() {
 	if (_data->startLine[2] == "HTTP/1.0") {
 		_data->parseCompleted = true;
 		return true;

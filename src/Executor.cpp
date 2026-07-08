@@ -151,7 +151,7 @@ void	Executor::process(uint32_t events) {
 						new Writer(std::move(*this), std::move(bodyParser), std::move(_res));
 					}
 					else {
-						_modifyEvent(EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
+						_modifyEvent(EPOLLIN | EPOLLRDHUP | EPOLLET);
 						new BodyReader(std::move(*this), std::move(bodyParser), std::move(_res));
 					}
 					break;

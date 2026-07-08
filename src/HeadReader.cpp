@@ -46,8 +46,10 @@ void	HeadReader::_receiveFromClient() {
         ssize_t count = recv(_sock.fd, buffer, sizeof(buffer), 0);
         if (0 < count) {
 			_parser->parse(buffer, static_cast<std::size_t>(count));
-			if (_parser->parseCompleted())
+			if (_parser->parseCompleted()) {
+				_parser->unsetParseCompleted();
 				return; // Header fully received
+			}
 			continue;
         }
         if (count == 0)

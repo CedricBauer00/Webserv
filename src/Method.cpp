@@ -105,7 +105,7 @@ bool    Method::postMethod(
 
     if (!std::filesystem::is_directory(path))
 		throw Forbidden();
-	
+
 	auto it = parser.getHeaders().find("content-type");
 	if (it == parser.getHeaders().end())
 		throw BadRequest();
