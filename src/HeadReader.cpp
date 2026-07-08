@@ -8,7 +8,8 @@ HeadReader::HeadReader(const Listener& listener)
 : AEventHandler(acceptConn(listener.getFd()),
 	EPOLLIN | EPOLLRDHUP | EPOLLET,
 	listener.epoller,
-	listener.selectSrv) {
+	listener.selectSrv)
+, _parser(std::make_unique<HttpHeaderParser>) {
 	char	s[INET_ADDRSTRLEN];
 
 	inet_ntop(_sock.ss->ss_family, getInAddr(*_sock.ss), s, sizeof s);
@@ -44,13 +45,10 @@ void	HeadReader::_receiveFromClient() {
     while (true) {
         ssize_t count = recv(_sock.fd, buffer, sizeof(buffer), 0);
         if (0 < count) {
-			_parser.parseHead(buffer, static_cast<std::size_t>(count));
-			if (_parser.headStopReceived()) {
-				if (_parser.getStartLine().empty())
-					throw BadRequest();
+			_parser->parse(buffer, static_cast<std::size_t>(count));
+			if (_parser->parseCompleted())
 				return; // Header fully received
-			}
-            continue;
+			continue;
         }
         if (count == 0)
             throw std::runtime_error(

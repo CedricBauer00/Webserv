@@ -2,13 +2,13 @@
 
 #include "Listener.hpp"
 #include "Response.hpp"
-#include "HttpParser.hpp"
+#include "HttpHeaderParser.hpp"
 
 class HeadReader: public AEventHandler {
 	private:
-		const size_t	BUFFER_SIZE{4096};
-		HttpParser		_parser;
-		Response		_res;
+		const size_t	    			BUFFER_SIZE{4096};
+		std::unique_ptr<AHttpParser>	_parser;
+		Response		    			_res;
 
 		void		_receiveFromClient();
 
@@ -19,5 +19,5 @@ class HeadReader: public AEventHandler {
 
 		static WebservSocket	acceptConn(int listenFd);
 
-		void				process(uint32_t events) override;
+		void	process(uint32_t events) override;
 };

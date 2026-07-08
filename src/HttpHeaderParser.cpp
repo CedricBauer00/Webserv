@@ -1,36 +1,44 @@
 #include "../inc/HttpHeaderParser.hpp"
 
+HttpHeaderParser::HttpHeaderParser() {
+}
+
+HttpHeaderParser::~HttpHeaderParser() {
+};
+
 void	HttpHeaderParser::parse(char* buffer, std::size_t count) {
-	_request.append(buffer, count);
+	_data->request.append(buffer, count);
     std::string::size_type start = 0;
     std::string::size_type pos;
 
-    while ((pos = _request.find("\r\n", start)) != std::string::npos)
+    while ((pos = _data->request.find("\r\n", start)) != std::string::npos)
     {
-        std::string_view line(_request.data() + start, pos - start);
+        std::string_view line(_data->request.data() + start, pos - start);
 
         if (line.empty())
         {
-            _request.erase(0, pos + 2);
-			_headStopReceived = true;
+            if (_data->startLine.empty())
+                throw BadRequest();
+            _data->request.erase(0, pos + 2);
+			_data->parseCompleted = true;
             return;
         }
 
-        if (_startLine.empty())
+        if (_data->startLine.empty())
         {
             std::size_t fieldStart = 0;
             std::size_t fieldEnd = line.find(' ');
-            while (fieldEnd != std::string_view::npos)
-            {
-                _startLine.emplace_back(line.substr(fieldStart, fieldEnd - fieldStart));
+            while (fieldEnd != std::string_view::npos) {
+                _data->startLine.emplace_back(
+					line.substr(fieldStart, fieldEnd - fieldStart));
                 fieldStart = fieldEnd + 1;
                 fieldEnd = line.find(' ', fieldStart);
             }
-            _startLine.emplace_back(line.substr(fieldStart));
+            _data->startLine.emplace_back(line.substr(fieldStart));
             _checkStartLine();
             _setMethod();
-            _decodeRequestTarget(_startLine[1]);
-            _splitRequestTarget(_startLine[1]);
+            _decodeRequestTarget(_data->startLine[1]);
+            _splitRequestTarget(_data->startLine[1]);
             _normalizePath();
         }
         else
@@ -49,33 +57,30 @@ void	HttpHeaderParser::parse(char* buffer, std::size_t count) {
 
             value = trim(value);
             key = trim(key);
-            if (key == "content-length" && _foundContlen == false)
-            {
-                if (_chunked)
+            if (key == "content-length" && _data->foundContlen == false) {
+                if (_data->chunked)
                     throw BadRequest();
                 if (!isAllDigits(value))
                     throw BadRequest();
-                _foundContlen = true;
-                _contentLength = static_cast<std::size_t>(std::stoi(value));
+                _data->foundContlen = true;
+                _data->contentLength = static_cast<std::size_t>(std::stoi(value));
             }
-            else if (key == "transfer-encoding")
-            {
+            else if (key == "transfer-encoding") {
 				for (auto& x : value)
                 	x = tolower(static_cast<unsigned char>(x));
-				if (value == "chunked")
-				{
-					if (_foundContlen)
+				if (value == "chunked") {
+					if (_data->foundContlen)
 						throw BadRequest();
-					_chunked = true;
+					_data->chunked = true;
 				}
             }
             else if (key == "host")
                 checkHostHeader(value);
 
-            _headers[key] = value;
+            _data->headers[key] = value;
         }
 
         start = pos + 2;
     }
-	_request.erase(0, start);
+	_data->request.erase(0, start);
 }

@@ -6,9 +6,9 @@
 
 class BodyReader: public AEventHandler {
 	private:
-		const size_t	BUFFER_SIZE{4096};
-		HttpParser		_parser;
-		Response		_res;
+		const size_t					BUFFER_SIZE{4096};
+		std::unique_ptr<AHttpParser>	_parser;
+		Response						_res;
 
 		void	_receiveFromClient();
 

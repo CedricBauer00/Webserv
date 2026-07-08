@@ -149,11 +149,8 @@ void	Executor::process(uint32_t events) {
 							new BodyReader(std::move(*this), std::move(_parser), std::move(_res));
 						else if (_parser.headerHasContlen())
 							new BodyReader(std::move(*this), std::move(_parser), std::move(_res));
-						else {
-							if (!_parser.isHTTP1p0())
-								throw BadRequest();
+						else
 							new BodyReader(std::move(*this), std::move(_parser), std::move(_res));
-						}
 					}
 					break;
 				}

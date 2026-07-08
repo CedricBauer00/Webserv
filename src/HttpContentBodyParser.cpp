@@ -5,6 +5,9 @@ HttpContentBodyParser::HttpContentBodyParser() {
 		throw PayloadTooLarge();
 }
 
+HttpContentBodyParser::~HttpContentBodyParser() {
+}
+
 void	HttpContentBodyParser::parse(char* buffer, std::size_t count) {
 	_request.append(buffer, count);
 
@@ -15,5 +18,4 @@ void	HttpContentBodyParser::parse(char* buffer, std::size_t count) {
 	_request.erase(0, toCopy);
 	if (_body.size() == _contentLength)
 		_bodyStopReceived = true;
-	return;
 }

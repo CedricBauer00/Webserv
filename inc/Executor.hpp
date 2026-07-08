@@ -7,7 +7,7 @@
 
 class	Executor: public AEventHandler {
 	private:
-		HttpParser				_parser;
+		std::unique_ptr<AHttpParser>    _parser;
 		Response				_res;
 		const LocNode*			_loc{nullptr};
 		const LocCoreConf*		_locCoreConf{nullptr};
