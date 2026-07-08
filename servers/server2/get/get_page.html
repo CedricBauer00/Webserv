@@ -66,16 +66,30 @@
 </head>
 <body>
     <main class="card">
-        <h1><span class="method">GET</span> Datei abrufen</h1>
+        <h1><span class="method">GET</span> a file</h1>
 
-        <form method="GET" action="/get_file">
-            <label for="filepath">Dateipfad</label>
-            <input type="text" id="filepath" name="filepath" required>
+        <form id="getForm" method="GET" action="/">
+            <label for="filepath">File path</label>
+            <input type="text" id="filepath" required>
 
             <button type="submit">GET</button>
         </form>
+            <script>
+                document.getElementById('getForm').addEventListener('submit', function(e) {
+                    let path = document.getElementById('filepath').value.trim();
+                    if (!path) {
+                        // If user enters only '/', treat as root and avoid trailing slash
+                        this.action = '/';
+                        return;
+                    }
+                    // Entferne führenden Slash
+                    if (path.startsWith('/')) path = path.substring(1);
+                    const encoded = encodeURI(path);
+                    this.action = `/${encoded}`;
+                });
+            </script>
 
-        <a href="index.html">← Zurück</a>
+        <a href="/index.html">← Back</a>
     </main>
 </body>
 </html>

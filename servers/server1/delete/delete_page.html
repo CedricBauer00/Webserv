@@ -66,20 +66,54 @@
 </head>
 <body>
     <main class="card">
-        <h1><span class="method">DELETE</span> Datei oder Verzeichnis löschen</h1>
+        <h1><span class="method">DELETE</span> File or Directory</h1>
 
-        <form method="POST" action="/delete_file"
-              onsubmit="this._method.value='DELETE'">
-
-            <label for="deletepath">Pfad zum Löschen</label>
-            <input type="text" id="deletepath" name="deletepath" required>
-
-            <input type="hidden" name="_method" value="DELETE">
+        <form id="deleteForm" action="#" method="post">
+            <label for="deletepath">Path to delete</label>
+            <input type="text" id="deletepath" required>
 
             <button type="submit">DELETE</button>
         </form>
 
-        <a href="index.html">← Zurück</a>
+        <pre id="responseHeaders" style="white-space: pre-wrap;"></pre>
+
+        <script>
+            document.getElementById("deleteForm").addEventListener("submit", function(e) { 
+            e.preventDefault(); handleDelete();
+            });
+
+            function handleDelete() {
+                const path = document.getElementById('deletepath').value.trim();
+                if (!path) {
+                    alert('Path neccessary');
+                    return;
+                }
+                // Entferne führenden Slash
+                let cleanPath = path;
+                if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
+                const encoded = encodeURI(cleanPath);
+
+                fetch(`/${encoded}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type' : 'application/x-www-form-urlencoded',
+                    },
+                })
+               .then( async r => {
+                    const bodyContent = await r.text();
+
+                    const headerLines = [...r.headers.entries()]
+                                            .map(([k, v]) => `${k}: ${v}`)
+                                            .join('\n');
+                    const out = document.getElementById('responseHeaders');
+                    out.textContent = `Status: ${r.status}\n${headerLines}\n\n${bodyContent}`;
+
+                })
+                .catch(err => {alert('Fehler: ' + err); });
+            };
+        </script>
+
+        <a href="/index.html">← Back</a>
     </main>
 </body>
 </html>
