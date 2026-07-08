@@ -3,7 +3,7 @@
 #include "../inc/constants.h"
 
 Writer::Writer(AEventHandler&& handler,
-	HttpParser&& parser,
+	std::unique_ptr<AHttpParser>&& parser,
 	Response&& res)
 : AEventHandler(std::move(handler))
 , _parser(std::move(parser))

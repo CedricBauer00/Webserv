@@ -5,7 +5,7 @@
 #include "../inc/Writer.hpp"
 
 BodyReader::BodyReader(AEventHandler&& handler,
-	HttpParser&& parser,
+	std::unique_ptr<AHttpParser>&& parser,
 	Response&& res)
 : AEventHandler(std::move(handler))
 , _parser(std::move(parser))
@@ -24,13 +24,13 @@ void	BodyReader::_receiveFromClient() {
     while (true) {
         ssize_t count = recv(_sock.fd, buffer, sizeof(buffer), 0);
         if (0 < count) {
-			_parser.parseBody(buffer, static_cast<std::size_t>(count));
-			if (_parser.bodyStopReceived())
+			_parser->parse(buffer, static_cast<std::size_t>(count));
+			if (_parser->parseCompleted())
 				return; // Body fully received
             continue;
         }
         if (count == 0) {
-			if (_parser.bodyStopReceived() || _parser.isHTTP1p0())
+			if (_parser->isHTTP1p0())
 				return; // Body fully received
             throw std::runtime_error(
 				std::string("FD ") + std::to_string(_sock.fd)

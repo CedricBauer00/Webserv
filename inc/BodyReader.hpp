@@ -2,7 +2,7 @@
 
 #include "Executor.hpp"
 #include "Response.hpp"
-#include "HttpParser.hpp"
+#include "AHttpParser.hpp"
 
 class BodyReader: public AEventHandler {
 	private:
@@ -15,7 +15,7 @@ class BodyReader: public AEventHandler {
 	public:
 		BodyReader() = delete;
 		BodyReader(AEventHandler&& handler,
-			HttpParser&& parser,
+			std::unique_ptr<AHttpParser>&& parser,
 			Response&& res);
 		virtual ~BodyReader();
 

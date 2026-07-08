@@ -1,7 +1,13 @@
 #include "../inc/HttpEOFBodyParser.hpp"
 
 HttpEOFBodyParser::HttpEOFBodyParser() {
-	if (_startLine[2] != "HTTP/1.0")
+	if (_data->startLine[2] != "HTTP/1.0")
+		throw BadRequest();
+}
+
+HttpEOFBodyParser::HttpEOFBodyParser(AHttpParser&& other, std::size_t max_size)
+: AHttpParser(std::move(other), max_size) {
+	if (_data->startLine[2] != "HTTP/1.0")
 		throw BadRequest();
 }
 
@@ -9,7 +15,8 @@ HttpEOFBodyParser::~HttpEOFBodyParser() {
 }
 
 void	HttpEOFBodyParser::parse(char* buffer, std::size_t count) {
-	if (_max_size < count || (_max_size - count) < _body.size())
+	if (_data->max_size < count
+		|| (_data->max_size - count) < _data->body.size())
 		throw PayloadTooLarge();
-	_body.append(buffer, count);
+	_data->body.append(buffer, count);
 }

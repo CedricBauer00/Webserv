@@ -216,6 +216,10 @@ bool			AHttpParser::parseCompleted() const {
 // 	return _data->bodyStopReceived;
 // }
 
+bool	AHttpParser::headerHasChunked() const {
+	return _data->chunked;
+}
+
 bool	AHttpParser::headerHasContlen() const {
 	return _data->foundContlen;
 }

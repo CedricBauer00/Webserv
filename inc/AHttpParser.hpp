@@ -77,6 +77,7 @@ class AHttpParser
         const std::string&                              getHttp() const;
 		bool											parseCompleted() const;
 		// bool											bodyStopReceived() const;
+		bool											headerHasChunked() const;
 		bool											headerHasContlen() const;
 		std::size_t										getContlen() const;
 		bool											isHTTP1p0() const;

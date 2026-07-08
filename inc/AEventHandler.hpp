@@ -12,7 +12,7 @@
 #include "Configparsing/ConfigParser.hpp"
 #include "Configparsing/WebservCoreModule.hpp"
 #include "Epoller.hpp"
-#include "HttpParser.hpp"
+// #include "HttpParser.hpp"
 #include "Response.hpp"
 
 class AEventHandler {

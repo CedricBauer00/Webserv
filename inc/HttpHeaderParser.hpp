@@ -5,5 +5,5 @@ class	HttpHeaderParser : public AHttpParser {
 		HttpHeaderParser();
 		virtual ~HttpHeaderParser();
 
-		void	parse(char* buffer, std::size_t count);
+		void	parse(char* buffer, std::size_t count) override;
 };

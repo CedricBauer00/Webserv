@@ -5,16 +5,16 @@
 
 class Writer: public AEventHandler {
     private:
-		size_t		_sentBytes{0};
-        HttpParser  _parser;
-        Response	_res;
+		size_t							_sentBytes{0};
+		std::unique_ptr<AHttpParser>	_parser;
+        Response						_res;
 
 		void	_sendToClient();
 
     public:
         Writer() = delete;
         Writer(AEventHandler&& handler,
-            HttpParser&& parser,
+            std::unique_ptr<AHttpParser>&& parser,
             Response&& res);
         virtual ~Writer();
 

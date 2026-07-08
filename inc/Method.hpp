@@ -14,7 +14,7 @@
 #include <sys/wait.h>
 #include "../inc/Configparsing/WebservCoreModule.hpp"
 #include "../inc/Configparsing/WebservIndexModule.hpp"
-#include "HttpParser.hpp"
+#include "AHttpParser.hpp"
 
 class Method
 {
@@ -22,23 +22,23 @@ class Method
         std::string _fileContent;
 
 		void	_createAutoIndexPage(
-			const std::string &path, Response &res,const HttpParser& parser);
+			const std::string &path, Response &res,const AHttpParser& parser);
 		void	_parseCGIResponse(const std::string& cgiRes, Response &htmlRes);
-		std::vector<std::string>	_getCGIEnv(const HttpParser& parser);
+		std::vector<std::string>	_getCGIEnv(const AHttpParser& parser);
         bool    _ranCGI(
-            const std::string &path, Response &res, const HttpParser& parser);
+            const std::string &path, Response &res, const AHttpParser& parser);
         void    _runCgi(
-            const std::string &path, Response &res, const HttpParser& parser);
+            const std::string &path, Response &res, const AHttpParser& parser);
 
     public:
         Method();
         ~Method();
         bool    getMethod(const std::string &path, Response &res,
-            HttpParser& parser, const LocIndexConf* locIndexConf);
+            AHttpParser& parser, const LocIndexConf* locIndexConf);
         bool    postMethod(const std::string &path, Response &res,
-            const HttpParser& parser); // status codes 200, 402, 404
+            const AHttpParser& parser); // status codes 200, 402, 404
         bool    deleteMethod(std::string newPath, Response &res,
-			const HttpParser& parser); // status codes 200, 402, 404
+			const AHttpParser& parser); // status codes 200, 402, 404
 };
 
 std::string getTimeStamp();

@@ -1,56 +1,60 @@
 #include "../inc/HttpChunkedBodyParser.hpp"
 
+HttpChunkedBodyParser::HttpChunkedBodyParser(AHttpParser&& other, std::size_t max_size) noexcept
+: AHttpParser(std::move(other), max_size) {
+}
+
 void	HttpChunkedBodyParser::parse(char* buffer, std::size_t count) {
-	_request.append(buffer, count);
+	_data->request.append(buffer, count);
 
 	while (true) {
 		if (!_waitingForChunkData) {
-			std::string::size_type sizeEnd = _request.find("\r\n");
+			std::string::size_type sizeEnd = _data->request.find("\r\n");
 
 			if (sizeEnd == std::string::npos)
 				return;
 			for (size_t i = 0; i < sizeEnd; ++i) {
 				if (!std::isxdigit(
-						static_cast<unsigned char>(_request[i])))
+						static_cast<unsigned char>(_data->request[i])))
 					throw BadRequest();
 			}
 
 			try {
 				_currentChunkSize =
-					std::stoul(_request.substr(0, sizeEnd), nullptr, 16);
+					std::stoul(_data->request.substr(0, sizeEnd), nullptr, 16);
 			}
 			catch (...) {
 				throw BadRequest();
 			}
 
-			_request.erase(0, sizeEnd + 2);
+			_data->request.erase(0, sizeEnd + 2);
 			if (_currentChunkSize == 0) {
 				_waitingForLastChunkCRLF = true;
 				continue;
 			}
-			if(_max_size < _body.size() + _currentChunkSize)
+			if(_data->max_size < _currentChunkSize
+				|| (_data->max_size - _currentChunkSize) < _data->body.size())
 				throw PayloadTooLarge();
 			_waitingForChunkData = true;
 		}
 
 		if (_waitingForLastChunkCRLF) {
-			if (_request.size() < 2)
+			if (_data->request.size() < 2)
 				return;
-			if (_request[0] != '\r' || _request[1] != '\n')
+			if (_data->request[0] != '\r' || _data->request[1] != '\n')
 				throw BadRequest();
-			_request.erase(0, 2);
-			_bodyStopReceived = true;
-			_waitingForLastChunkCRLF = false;
+			_data->request.erase(0, 2);
+			_data->parseCompleted = true;
 			return;
 		}
 
-		if (_request.size() < _currentChunkSize + 2)
+		if (_data->request.size() < _currentChunkSize + 2)
 			return;
-		if (_request[_currentChunkSize] != '\r'
-			|| _request[_currentChunkSize + 1] != '\n')
+		if (_data->request[_currentChunkSize] != '\r'
+			|| _data->request[_currentChunkSize + 1] != '\n')
 			throw BadRequest();
-		_body.append(_request.data(), _currentChunkSize);
-		_request.erase(0, _currentChunkSize + 2);
+		_data->body.append(_data->request.data(), _currentChunkSize);
+		_data->request.erase(0, _currentChunkSize + 2);
 		_currentChunkSize = 0;
 		_waitingForChunkData = false;
 	}

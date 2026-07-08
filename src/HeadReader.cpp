@@ -9,7 +9,7 @@ HeadReader::HeadReader(const Listener& listener)
 	EPOLLIN | EPOLLRDHUP | EPOLLET,
 	listener.epoller,
 	listener.selectSrv)
-, _parser(std::make_unique<HttpHeaderParser>) {
+, _parser(std::make_unique<HttpHeaderParser>()) {
 	char	s[INET_ADDRSTRLEN];
 
 	inet_ntop(_sock.ss->ss_family, getInAddr(*_sock.ss), s, sizeof s);

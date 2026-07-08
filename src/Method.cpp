@@ -6,7 +6,7 @@ Method::Method() {}
 Method::~Method() {}
 
 void	Method::_createAutoIndexPage(const std::string &path, Response &res,
-	const HttpParser& parser)
+	const AHttpParser& parser)
 {
     std::string html;
 
@@ -36,7 +36,7 @@ void	Method::_createAutoIndexPage(const std::string &path, Response &res,
 }
 
 bool    Method::getMethod(const std::string &path, Response &res,
-	HttpParser& parser, const LocIndexConf* locIndexConf) // status codes 200, 402, 404
+	AHttpParser& parser, const LocIndexConf* locIndexConf) // status codes 200, 402, 404
 {
     std::error_code ec;
     if ( !std::filesystem::exists( path, ec ) )
@@ -81,7 +81,7 @@ bool    Method::getMethod(const std::string &path, Response &res,
 }
 
 bool    Method::deleteMethod(
-	std::string path, Response &res, const HttpParser& parser) // status codes 200, 402, 404
+	std::string path, Response &res, const AHttpParser& parser) // status codes 200, 402, 404
 {
 	if (_ranCGI(path, res, parser))
 		return true;
@@ -98,7 +98,7 @@ bool    Method::deleteMethod(
 }
 
 bool    Method::postMethod(
-	const std::string &path, Response &res, const HttpParser& parser) // status codes 200, 402, 404
+	const std::string &path, Response &res, const AHttpParser& parser) // status codes 200, 402, 404
 {
 	if (_ranCGI(path, res, parser))
 		return true;
@@ -124,7 +124,7 @@ bool    Method::postMethod(
 }
 
 bool    Method::_ranCGI(
-	const std::string &path, Response &res, const HttpParser& parser)
+	const std::string &path, Response &res, const AHttpParser& parser)
 {
 	const std::string&	reqPath = parser.getPath();
 	std::size_t			len = reqPath.length();
@@ -141,7 +141,7 @@ bool    Method::_ranCGI(
 }
 
 
-std::vector<std::string>	Method::_getCGIEnv(const HttpParser& parser)
+std::vector<std::string>	Method::_getCGIEnv(const AHttpParser& parser)
 {
 	static auto normalize = [](const std::string& str) {
 		std::string result;
@@ -181,7 +181,7 @@ std::vector<std::string>	Method::_getCGIEnv(const HttpParser& parser)
 }
 
 void    Method::_runCgi(
-	const std::string& path, Response &res, const HttpParser& parser) ///dynamic path form request instead of hardcoded getCgiScript function
+	const std::string& path, Response &res, const AHttpParser& parser) ///dynamic path form request instead of hardcoded getCgiScript function
 {
 	pid_t	pid;
     int 	inPipe[2];

@@ -7,7 +7,7 @@
 
 class	Executor: public AEventHandler {
 	private:
-		std::unique_ptr<AHttpParser>    _parser;
+		std::unique_ptr<AHttpParser>	_parser;
 		Response				_res;
 		const LocNode*			_loc{nullptr};
 		const LocCoreConf*		_locCoreConf{nullptr};
@@ -24,7 +24,7 @@ class	Executor: public AEventHandler {
 	public:
 		Executor() = delete;
 		Executor(AEventHandler&& handler,
-			HttpParser&& parser,
+			std::unique_ptr<AHttpParser>&& parser,
 			Response&& res);
 		virtual ~Executor();
 

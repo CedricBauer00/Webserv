@@ -8,7 +8,7 @@
 #include "../inc/HttpEOFBodyParser.hpp"
 
 Executor::Executor(AEventHandler&& handler,
-	HttpParser&& parser,
+	std::unique_ptr<AHttpParser>&& parser,
 	Response&& res)
 : AEventHandler(std::move(handler))
 , _parser(std::move(parser))
@@ -35,7 +35,7 @@ void	Executor::_resolveLocConfs() {
 void	Executor::_selectLocation(const LocNode& root)
 {
 	_loc = nullptr;
-	auto& uriPath = _parser.getPath();
+	auto& uriPath = _parser->getPath();
 	std::deque<const LocNode*> queue;
 
 	queue.push_back(&root);
@@ -58,11 +58,11 @@ void	Executor::_selectLocation(const LocNode& root)
 }
 
 void	Executor::_setWorkingDirAsFilesystemPath() {
-	_fsPath = std::filesystem::current_path().string() + _parser.getPath();
+	_fsPath = std::filesystem::current_path().string() + _parser->getPath();
 }
 
 void	Executor::_assertHttpMethodAllowed() {
-	if (!(_parser.getMethodMask() & *_locCoreConf->allowedMethods)) {
+	if (!(_parser->getMethodMask() & *_locCoreConf->allowedMethods)) {
 		std::string	val;
 
 		for (const auto& item : methodMap) {
@@ -79,9 +79,9 @@ void	Executor::_assertHttpMethodAllowed() {
 void	Executor::_resolveFilesystemPath() {
 	if (*_locCoreConf->alias)
 		_fsPath = _locCoreConf->root\
-			+ _parser.getPath().substr(_loc->name.size());
+			+ _parser->getPath().substr(_loc->name.size());
 	else 
-		_fsPath = _locCoreConf->root + _parser.getPath();
+		_fsPath = _locCoreConf->root + _parser->getPath();
 	// std::cout << "FilesystemPath: " << _fsPath << std::endl;
 }
 
@@ -94,7 +94,7 @@ void	Executor::process(uint32_t events) {
     }
 
 	try {
-		auto server = selectSrv(_parser.getHostName()); // select server based on Host name
+		auto server = selectSrv(_parser->getHostName()); // select server based on Host name
 		// if (!server->srvConfs.empty()) {
 		// 	std::cout << "server_name: ";
 		// 	for (const auto& item :
@@ -131,36 +131,38 @@ void	Executor::process(uint32_t events) {
 				else
 					_setWorkingDirAsFilesystemPath();
 
-				method whichMethod = _parser.getMethod();
+				method whichMethod = _parser->getMethod();
 				if (whichMethod == METHOD_POST) {
-					
-					_parser.parseBody(nullptr, 0); //consume body remaining from header parsing
-					if (_parser.bodyStopReceived()) {
-						m.postMethod(_fsPath, _res, _parser);
+					std::unique_ptr<AHttpParser> bodyParser;
+					std::size_t	maxBodySize = std::numeric_limits<std::size_t>::max();
+
+					if (_locCoreConf)
+						maxBodySize = _locCoreConf->clientMaxBodySize.value();
+					if (_parser->headerHasChunked())
+						bodyParser = std::make_unique<HttpChunkedBodyParser>(std::move(*_parser), maxBodySize);
+					else if (_parser->headerHasContlen())
+						bodyParser = std::make_unique<HttpContentBodyParser>(std::move(*_parser), maxBodySize);
+					else
+						bodyParser = std::make_unique<HttpEOFBodyParser>(std::move(*_parser), maxBodySize);
+					_parser->parse(nullptr, 0); //consume body remaining from header parsing
+					if (_parser->parseCompleted()) {
+						m.postMethod(_fsPath, _res, *_parser);
 						_modifyEvent(EPOLLOUT | EPOLLRDHUP | EPOLLET);
 						new Writer(std::move(*this), std::move(_parser), std::move(_res));
 					}
 					else {
-						std::size_t	maxBodySize = std::numeric_limits<std::size_t>::max();
-						if (_locCoreConf)
-							maxBodySize = _locCoreConf->clientMaxBodySize.value();
 						_modifyEvent(EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
-						if (_parser.headerHasChunked())
-							new BodyReader(std::move(*this), std::move(_parser), std::move(_res));
-						else if (_parser.headerHasContlen())
-							new BodyReader(std::move(*this), std::move(_parser), std::move(_res));
-						else
-							new BodyReader(std::move(*this), std::move(_parser), std::move(_res));
+						new BodyReader(std::move(*this), std::move(bodyParser), std::move(_res));
 					}
 					break;
 				}
 				
 				if (whichMethod == METHOD_GET) {
-					if (!m.getMethod(_fsPath, _res, _parser, _locIndexConf))
+					if (!m.getMethod(_fsPath, _res, *_parser, _locIndexConf))
 						continue;
 				}
 				else
-					m.deleteMethod(_fsPath, _res, _parser);
+					m.deleteMethod(_fsPath, _res, *_parser);
 				_modifyEvent(EPOLLOUT | EPOLLRDHUP | EPOLLET);
 				new Writer(std::move(*this), std::move(_parser), std::move(_res));
 			}
@@ -169,7 +171,7 @@ void	Executor::process(uint32_t events) {
 				if (_locCoreConf) {
 					auto it = _locCoreConf->errPages.find(e.getStatusCode());
 					if (it != _locCoreConf->errPages.end()
-					&& it->second.path != _parser.getPath()) {
+					&& it->second.path != _parser->getPath()) {
 						_res.setRedirect(it->second.resCode);
 						if (300 <= it->second.resCode && it->second.resCode < 400) {
 							e = HttpException(
@@ -178,8 +180,8 @@ void	Executor::process(uint32_t events) {
 								{{"Location", it->second.path}});
 						}
 						else {
-							_parser.setRedirectPath(std::string(it->second.path));
-							_parser.setMethod("GET");
+							_parser->setRedirectPath(std::string(it->second.path));
+							_parser->setMethod("GET");
 							continue;
 						}
 					}
