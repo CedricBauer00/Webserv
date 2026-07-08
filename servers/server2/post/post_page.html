@@ -86,7 +86,7 @@
 </head>
 <body>
     <main class="card">
-        <h1><span class="method">POST</span> Body senden</h1>
+        <h1><span class="method">POST</span> a File</h1>
 
         <form id="postForm" method="POST" action="/">
 
@@ -105,11 +105,14 @@
                 <option value="image/jpeg">image/jpeg</option>
             </select>
 
-            <label for="body">Request Body</label>
+            <label for="body">Request body</label>
             <textarea id="body" name="body" required></textarea>
 
             <button type="submit">POST</button>
         </form>
+
+        <pre id="responseHeaders" style="white-space: pre-wrap;"></pre>
+
         <script>
             document.getElementById('postForm').addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -131,13 +134,19 @@
                     headers: headers,
                     body: bodyContent
                 })
-                .then(r => r.text())
-                .then(text => { alert('Antwort: ' + text); })
-                .catch(err => { alert('Fehler: ' + err); });
+                .then(r => {
+                    const headerLines = [...r.headers.entries()]
+                                            .map(([k, v]) => `${k}: ${v}`)
+                                            .join('\n');
+                    const out = document.getElementById('responseHeaders');
+                    out.textContent = `Status: ${r.status}\n${headerLines}\n\n${bodyContent}`;
+
+                })
+                .catch(err => {alert('Fehler: ' + err); });
             });
         </script>
 
-        <a href="/index.html">← Zurück</a>
+        <a href="/index.html">← Back</a>
     </main>
 </body>
 </html>

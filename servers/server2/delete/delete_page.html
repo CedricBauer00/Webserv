@@ -66,20 +66,26 @@
 </head>
 <body>
     <main class="card">
-        <h1><span class="method">DELETE</span> Datei oder Verzeichnis löschen</h1>
+        <h1><span class="method">DELETE</span> File or Directory</h1>
 
-        <form id="deleteForm">
+        <form id="deleteForm" action="#" method="post">
             <label for="deletepath">Path to delete</label>
-            <input type="text" id="deletepath" required?>
+            <input type="text" id="deletepath" required>
 
-            <button type="button" onclick="handleDelete()">DELETE</button>
+            <button type="submit">DELETE</button>
         </form>
 
+        <pre id="responseHeaders" style="white-space: pre-wrap;"></pre>
+
         <script>
+            document.getElementById("deleteForm").addEventListener("submit", function(e) { 
+            e.preventDefault(); handleDelete();
+            });
+
             function handleDelete() {
                 const path = document.getElementById('deletepath').value.trim();
                 if (!path) {
-                    alert('Pfad erforderlich');
+                    alert('Path neccessary');
                     return;
                 }
                 // Entferne führenden Slash
@@ -93,13 +99,21 @@
                         'Content-Type' : 'application/x-www-form-urlencoded',
                     },
                 })
-                .then(response => response.text())
-                .then(text => { alert('Response: ' + text); })
-                .catch(err => { alert('Error: ' + err)});
-            }
+               .then( async r => {
+                    const bodyContent = await r.text();
+
+                    const headerLines = [...r.headers.entries()]
+                                            .map(([k, v]) => `${k}: ${v}`)
+                                            .join('\n');
+                    const out = document.getElementById('responseHeaders');
+                    out.textContent = `Status: ${r.status}\n${headerLines}\n\n${bodyContent}`;
+
+                })
+                .catch(err => {alert('Fehler: ' + err); });
+            };
         </script>
 
-        <a href="/index.html">← Zurück</a>
+        <a href="/index.html">← Back</a>
     </main>
 </body>
 </html>
