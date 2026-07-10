@@ -9,7 +9,8 @@ HeadReader::HeadReader(const Listener& listener)
 	EPOLLIN | EPOLLRDHUP | EPOLLET,
 	listener.epoller,
 	listener.selectSrv)
-, _parser(std::make_unique<HttpHeaderParser>()) {
+, _parser(std::make_unique<HttpHeaderParser>())
+, _res(std::make_unique<Response>()) {
 	// char	s[INET_ADDRSTRLEN];
 
 	// inet_ntop(_sock.ss->ss_family, getInAddr(*_sock.ss), s, sizeof s);
@@ -81,7 +82,7 @@ void    HeadReader::process(uint32_t events) {
 			new Executor(std::move(*this), std::move(_parser), std::move(_res));
 		}
 		catch (HttpException& e) {
-			_res.build(std::move(e));
+			_res->build(std::move(e));
 			_modifyEvent(EPOLLOUT | EPOLLRDHUP | EPOLLET);
 			new Writer(std::move(*this), std::move(_parser), std::move(_res));
 		}

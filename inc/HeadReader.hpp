@@ -8,7 +8,7 @@ class HeadReader: public AEventHandler {
 	private:
 		const size_t	    			BUFFER_SIZE{4096};
 		std::unique_ptr<AHttpParser>	_parser;
-		Response		    			_res;
+		std::unique_ptr<Response>		_res;
 
 		void		_receiveFromClient();
 

@@ -176,9 +176,7 @@ void WebservCoreParser::_parseAlias(Tokens& t, const ConfCtx& c) {
 		dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->alias = true;
 		dynamic_cast<LocCoreConf*>(getLocConfPtr(c))->root = t.front();
 	}
-	else {
-		t.pop_front();
-	}
+	t.pop_front();
 }
 
 void WebservCoreParser::_parseClientBodyBufferSize(const std::string& d,

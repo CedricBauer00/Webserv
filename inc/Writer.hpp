@@ -7,7 +7,7 @@ class Writer: public AEventHandler {
     private:
 		size_t							_sentBytes{0};
 		std::unique_ptr<AHttpParser>	_parser;
-        Response						_res;
+        std::unique_ptr<Response>		_res;
 
 		void	_sendToClient();
 
@@ -15,7 +15,7 @@ class Writer: public AEventHandler {
         Writer() = delete;
         Writer(AEventHandler&& handler,
             std::unique_ptr<AHttpParser>&& parser,
-            Response&& res);
+            std::unique_ptr<Response>&& res);
         virtual ~Writer();
 
         void	process(uint32_t events) override;

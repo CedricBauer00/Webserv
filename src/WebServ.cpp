@@ -6,6 +6,7 @@ WebServ::WebServ(char* configFilename)
 , _addrToSelectServerMap() {
     _confParser.parseConfig();
 	_makeAddrToSelectServerMap();
+	_ignoreSIGPIPE();
 	// std::cout << "WebServ created" << std::endl;
 }
 
@@ -51,6 +52,18 @@ void	WebServ::_createListeners() {
 		new Listener(addrAndSelectServerNode.first,
             _epoller,
             addrAndSelectServerNode.second);
+	}
+}
+
+void	WebServ::_ignoreSIGPIPE() {
+	struct sigaction sa;
+
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = SIG_IGN;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	if (sigaction(SIGPIPE, &sa, NULL) == -1) {
+		throw std::runtime_error("Failed to ignore SIGPIPE");
 	}
 }
 

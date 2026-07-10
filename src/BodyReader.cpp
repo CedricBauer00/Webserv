@@ -6,7 +6,7 @@
 
 BodyReader::BodyReader(AEventHandler&& handler,
 	std::unique_ptr<AHttpParser>&& parser,
-	Response&& res)
+	std::unique_ptr<Response>&& res)
 : AEventHandler(std::move(handler))
 , _parser(std::move(parser))
 , _res(std::move(res)) {
@@ -61,7 +61,7 @@ void    BodyReader::process(uint32_t events) {
 			new Executor(std::move(*this), std::move(_parser), std::move(_res));
 		}
 		catch (HttpException& e) {
-			_res.build(std::move(e));
+			_res->build(std::move(e));
 			_modifyEvent(EPOLLOUT | EPOLLRDHUP | EPOLLET);
 			new Writer(std::move(*this), std::move(_parser), std::move(_res));
 		}

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <signal.h>
 #include "Configparsing/ConfigParser.hpp"
 #include "Epoller.hpp"
 #include "Listener.hpp"
@@ -19,6 +20,7 @@ class WebServ {
 		_selectServerFactory(const std::vector<const Srv*>& srvs);
 		void	_makeAddrToSelectServerMap();
 		void	_createListeners();
+		void	_ignoreSIGPIPE();
 
 	public:
 		WebServ(char* configFilename);

@@ -9,7 +9,7 @@
 
 Executor::Executor(AEventHandler&& handler,
 	std::unique_ptr<AHttpParser>&& parser,
-	Response&& res)
+	std::unique_ptr<Response>&& res)
 : AEventHandler(std::move(handler))
 , _parser(std::move(parser))
 , _res(std::move(res)) {
@@ -116,9 +116,9 @@ void	Executor::process(uint32_t events) {
 					unsigned long	code = _locRedirectConf->retDirective.value().statusCode;
 
 					if (path.size())
-						_res.build({{"Location", path}}, std::to_string(code), statusCodeToReasonPhrase.at(code));
+						_res->build({{"Location", path}}, std::to_string(code), statusCodeToReasonPhrase.at(code));
 					else
-						_res.build(std::to_string(code), statusCodeToReasonPhrase.at(code));
+						_res->build(std::to_string(code), statusCodeToReasonPhrase.at(code));
 					_modifyEvent(EPOLLOUT | EPOLLRDHUP | EPOLLET);
 					new Writer(std::move(*this), std::move(_parser), std::move(_res));
 					break;
@@ -146,7 +146,7 @@ void	Executor::process(uint32_t events) {
 						bodyParser = std::make_unique<HttpEOFBodyParser>(std::move(*_parser), maxBodySize);
 					bodyParser->parse(nullptr, 0); //consume body remaining from header parsing
 					if (bodyParser->parseCompleted()) {
-						m.postMethod(_fsPath, _res, *bodyParser);
+						m.postMethod(_fsPath, *_res, *bodyParser);
 						_modifyEvent(EPOLLOUT | EPOLLRDHUP | EPOLLET);
 						new Writer(std::move(*this), std::move(bodyParser), std::move(_res));
 					}
@@ -158,11 +158,11 @@ void	Executor::process(uint32_t events) {
 				}
 				
 				if (whichMethod == METHOD_GET) {
-					if (!m.getMethod(_fsPath, _res, *_parser, _locIndexConf))
+					if (!m.getMethod(_fsPath, *_res, *_parser, _locIndexConf))
 						continue;
 				}
 				else
-					m.deleteMethod(_fsPath, _res, *_parser);
+					m.deleteMethod(_fsPath, *_res, *_parser);
 				_modifyEvent(EPOLLOUT | EPOLLRDHUP | EPOLLET);
 				new Writer(std::move(*this), std::move(_parser), std::move(_res));
 			}
@@ -172,7 +172,7 @@ void	Executor::process(uint32_t events) {
 					auto it = _locCoreConf->errPages.find(e.getStatusCode());
 					if (it != _locCoreConf->errPages.end()
 					&& it->second.path != _parser->getPath()) {
-						_res.setRedirect(it->second.resCode);
+						_res->setRedirect(it->second.resCode);
 						if (300 <= it->second.resCode && it->second.resCode < 400) {
 							e = HttpException(
 								it->second.resCode,
@@ -186,7 +186,7 @@ void	Executor::process(uint32_t events) {
 						}
 					}
 				}
-				_res.build(std::move(e));
+				_res->build(std::move(e));
 				_modifyEvent(EPOLLOUT | EPOLLRDHUP | EPOLLET);
 				new Writer(std::move(*this), std::move(_parser), std::move(_res));
 			}
