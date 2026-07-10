@@ -32,7 +32,7 @@ class AHttpParser
 			bool				chunked{false};
 			std::string 		hostPort;
 			std::string 		hostName;
-			method 		        method{METHOD_GET};
+			method 		        methodType{METHOD_GET};
 			unsigned int    	methodMask{methodMap.at("GET").first};
 			bool                internalRedirect{false};
 			std::size_t			max_size{8192};

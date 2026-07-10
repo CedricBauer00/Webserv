@@ -10,15 +10,15 @@ HeadReader::HeadReader(const Listener& listener)
 	listener.epoller,
 	listener.selectSrv)
 , _parser(std::make_unique<HttpHeaderParser>()) {
-	char	s[INET_ADDRSTRLEN];
+	// char	s[INET_ADDRSTRLEN];
 
-	inet_ntop(_sock.ss->ss_family, getInAddr(*_sock.ss), s, sizeof s);
-	std::cout << "FD " << _sock.fd << ": [HeadReader] accepted connection from "
-	<< s << ":" << ntohs(getPort(*_sock.ss)) << std::endl;
+	// inet_ntop(_sock.ss->ss_family, getInAddr(*_sock.ss), s, sizeof s);
+	// std::cout << "FD " << _sock.fd << ": [HeadReader] accepted connection from "
+	// << s << ":" << ntohs(getPort(*_sock.ss)) << std::endl;
 }
 
 HeadReader::~HeadReader() {
-    std::cout << "FD " << _sock.fd << ": [HeadReader] destroyed" << std::endl;
+    // std::cout << "FD " << _sock.fd << ": [HeadReader] destroyed" << std::endl;
 }
 
 WebservSocket	HeadReader::acceptConn(int listenFd) {
@@ -39,8 +39,8 @@ WebservSocket	HeadReader::acceptConn(int listenFd) {
 }
 
 void	HeadReader::_receiveFromClient() {
-     std::cout << BLUE << "FD " << _sock.fd << ": [HeadReader] Reading from client.."
-     << RESET << std::endl;
+    //  std::cout << BLUE << "FD " << _sock.fd << ": [HeadReader] Reading from client.."
+    //  << RESET << std::endl;
     char buffer[BUFFER_SIZE];
     while (true) {
         ssize_t count = recv(_sock.fd, buffer, sizeof(buffer), 0);

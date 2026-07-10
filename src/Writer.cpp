@@ -8,16 +8,16 @@ Writer::Writer(AEventHandler&& handler,
 : AEventHandler(std::move(handler))
 , _parser(std::move(parser))
 , _res(std::move(res)) {
-	std::cout << "FD " << _sock.fd << ": [Writer] created" << std::endl;
+	// std::cout << "FD " << _sock.fd << ": [Writer] created" << std::endl;
 }
 
 Writer::~Writer() {
-    std::cout << "FD " << _sock.fd << ": [Writer] destroyed" << std::endl;
+    // std::cout << "FD " << _sock.fd << ": [Writer] destroyed" << std::endl;
 }
 
 void	Writer::_sendToClient() {
-	 std::cout << GREEN << "FD " << _sock.fd
-	 << ": [Writer] Sending response to client.." << RESET << std::endl;
+	//  std::cout << GREEN << "FD " << _sock.fd
+	//  << ": [Writer] Sending response to client.." << RESET << std::endl;
 	size_t total = _res.getText().size();
 	while (_sentBytes < total) {
 		ssize_t count = send(_sock.fd,

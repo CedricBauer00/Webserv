@@ -19,7 +19,7 @@ WebservSocket::~WebservSocket() {
 	if (fd != -1) {
 		if (close(fd) == -1)
 			std::cerr << "FD " << fd << ": " << strerror(errno) << std::endl;
-		std::cout << "FD " << fd << ": closed" << std::endl;
+		// std::cout << "FD " << fd << ": closed" << std::endl;
 	}
 }
 

@@ -58,7 +58,7 @@ void    AHttpParser::setMethod(const std::string& method) {
     if (it == methodMap.end())
 		throw MethodNotImplemented();
 	_data->methodMask = it->second.first;
-	_data->method = it->second.second;    
+	_data->methodType = it->second.second;    
 }
 
 std::string AHttpParser::trim( const std::string& value ) {
@@ -185,7 +185,7 @@ const std::string&	AHttpParser::getMethodStr() const {
 }
 
 method  AHttpParser::getMethod() const {
-    return _data->method;
+    return _data->methodType;
 }
 
 unsigned int    AHttpParser::getMethodMask() const {

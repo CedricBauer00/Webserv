@@ -13,11 +13,11 @@ Executor::Executor(AEventHandler&& handler,
 : AEventHandler(std::move(handler))
 , _parser(std::move(parser))
 , _res(std::move(res)) {
-	std::cout << "FD " << _sock.fd << ": [Executor] created" << std::endl;
+	// std::cout << "FD " << _sock.fd << ": [Executor] created" << std::endl;
 }
 
 Executor::~Executor() {
-	std::cout << "FD " << _sock.fd << ": [Executor] destroyed" << std::endl;
+	// std::cout << "FD " << _sock.fd << ": [Executor] destroyed" << std::endl;
 }
 
 void	Executor::_resolveLocConfs() {

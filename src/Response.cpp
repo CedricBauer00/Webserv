@@ -12,7 +12,7 @@ Response::Response(Response&& other) noexcept
     , _headers(std::move(other._headers))
     , _body(std::move(other._body))
     , _internalRedirect(other._internalRedirect) {
-    std::cout << "Response move constructor called" << std::endl;
+    // std::cout << "Response move constructor called" << std::endl;
 }
 
 Response& Response::operator=(Response&& other) noexcept {
