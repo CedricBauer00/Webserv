@@ -10,7 +10,7 @@ AHttpParser::AHttpParser() : _data(std::make_unique<data>()) {
 
 AHttpParser::AHttpParser(AHttpParser&& other) noexcept
 : _data(std::move(other._data)) {
-	std::cout << "AHttpParser move constructor called" << std::endl;
+	// std::cout << "AHttpParser move constructor called" << std::endl;
 }
 
 AHttpParser::AHttpParser(AHttpParser&& other, std::size_t max_size) noexcept
