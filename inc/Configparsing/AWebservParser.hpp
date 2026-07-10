@@ -58,7 +58,8 @@ class AWebservParser : virtual public IWebservModule {
 template<typename T>
 void AWebservParser::_insertConf(VecOfPtrs<T>* confs, std::unique_ptr<T> conf)
 {
-    confs->resize(_ctxIndex + 1);
+	if (confs->size() <= static_cast<size_t>(_ctxIndex))
+    	confs->resize(_ctxIndex + 1);
     (*confs)[_ctxIndex] = std::move(conf);
 }
 
