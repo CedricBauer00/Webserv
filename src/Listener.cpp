@@ -99,11 +99,11 @@ void	Listener::process(uint32_t events) {
 
 	while (true) {
 		try {
-			std::cout << "FD " << getFd() << ": [Listener] Checking for incoming connections\n";
+			// std::cout << "FD " << getFd() << ": [Listener] Checking for incoming connections\n";
 			new HeadReader(*this); //Create Reader
 		}
 		catch (const wouldBlockException& e) {
-            std::cout << "FD " << getFd() << ": [Listener] No more incoming connections to accept\n";
+            // std::cout << "FD " << getFd() << ": [Listener] No more incoming connections to accept\n";
 			break; // No more incoming connections to accept
 		}
 		catch (const std::exception& e) {

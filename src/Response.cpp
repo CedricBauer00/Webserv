@@ -2,33 +2,11 @@
 #include "HttpException.hpp"
 #include "statusCodes.hpp"
 
-Response::Response() : _response(), _httpVersion(), _statusCode(), _reasonPhrase(), _headers(), _body() {}
-
-Response::Response(Response&& other) noexcept
-    : _response(std::move(other._response))
-    , _httpVersion(std::move(other._httpVersion))
-    , _statusCode(std::move(other._statusCode))
-    , _reasonPhrase(std::move(other._reasonPhrase))
-    , _headers(std::move(other._headers))
-    , _body(std::move(other._body))
-    , _internalRedirect(other._internalRedirect) {
-    std::cout << "Response move constructor called" << std::endl;
+Response::Response() {
 }
 
-Response& Response::operator=(Response&& other) noexcept {
-    if (this != &other) {
-        _response = std::move(other._response);
-        _httpVersion = std::move(other._httpVersion);
-        _statusCode = std::move(other._statusCode);
-        _reasonPhrase = std::move(other._reasonPhrase);
-        _headers = std::move(other._headers);
-        _body = std::move(other._body);
-        _internalRedirect = other._internalRedirect;
-    }
-    return *this;
+Response::~Response() {
 }
-
-Response::~Response() {}
 
 void    Response::build() {
     _response = "HTTP/1.0 " + _statusCode + " " + _reasonPhrase + "\r\n";

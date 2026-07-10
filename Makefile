@@ -1,7 +1,11 @@
 NAME = server
 
 SRC	=	main.cpp \
-		HttpParser.cpp \
+		AHttpParser.cpp \
+		HttpHeaderParser.cpp \
+		HttpChunkedBodyParser.cpp \
+		HttpContentBodyParser.cpp \
+		HttpEOFBodyParser.cpp \
 		Configparsing/AWebservParser.cpp \
 		Configparsing/AWebservMerger.cpp \
 		Configparsing/WebservCoreParser.cpp \

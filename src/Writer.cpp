@@ -3,25 +3,25 @@
 #include "../inc/constants.h"
 
 Writer::Writer(AEventHandler&& handler,
-	HttpParser&& parser,
-	Response&& res)
+	std::unique_ptr<AHttpParser>&& parser,
+	std::unique_ptr<Response>&& res)
 : AEventHandler(std::move(handler))
 , _parser(std::move(parser))
 , _res(std::move(res)) {
-	std::cout << "FD " << _sock.fd << ": [Writer] created" << std::endl;
+	// std::cout << "FD " << _sock.fd << ": [Writer] created" << std::endl;
 }
 
 Writer::~Writer() {
-    std::cout << "FD " << _sock.fd << ": [Writer] destroyed" << std::endl;
+    // std::cout << "FD " << _sock.fd << ": [Writer] destroyed" << std::endl;
 }
 
 void	Writer::_sendToClient() {
-	 std::cout << GREEN << "FD " << _sock.fd
-	 << ": [Writer] Sending response to client.." << RESET << std::endl;
-	size_t total = _res.getText().size();
+	//  std::cout << GREEN << "FD " << _sock.fd
+	//  << ": [Writer] Sending response to client.." << RESET << std::endl;
+	size_t total = _res->getText().size();
 	while (_sentBytes < total) {
 		ssize_t count = send(_sock.fd,
-			_res.getText().c_str() + _sentBytes,
+			_res->getText().c_str() + _sentBytes,
 			total - _sentBytes,
 			0);
 		if (count == -1) {
@@ -35,8 +35,8 @@ void	Writer::_sendToClient() {
 		}
 		_sentBytes += static_cast<size_t>(count);
 	}
-	if (_res.bodySize()) {
-		_res.mvBodyToText();
+	if (_res->bodySize()) {
+		_res->mvBodyToText();
 		_sentBytes = 0;
 		_sendToClient();
 	}

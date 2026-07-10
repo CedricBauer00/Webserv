@@ -5,8 +5,8 @@
 #include "../inc/Writer.hpp"
 
 BodyReader::BodyReader(AEventHandler&& handler,
-	HttpParser&& parser,
-	Response&& res)
+	std::unique_ptr<AHttpParser>&& parser,
+	std::unique_ptr<Response>&& res)
 : AEventHandler(std::move(handler))
 , _parser(std::move(parser))
 , _res(std::move(res)) {
@@ -24,13 +24,13 @@ void	BodyReader::_receiveFromClient() {
     while (true) {
         ssize_t count = recv(_sock.fd, buffer, sizeof(buffer), 0);
         if (0 < count) {
-			_parser.parseBody(buffer, static_cast<std::size_t>(count));
-			if (_parser.bodyStopReceived())
+			_parser->parse(buffer, static_cast<std::size_t>(count));
+			if (_parser->parseCompleted())
 				return; // Body fully received
             continue;
         }
         if (count == 0) {
-			if (_parser.bodyStopReceived() || _parser.isHTTP1p0())
+			if (_parser->http1p0Ended())
 				return; // Body fully received
             throw std::runtime_error(
 				std::string("FD ") + std::to_string(_sock.fd)
@@ -61,7 +61,7 @@ void    BodyReader::process(uint32_t events) {
 			new Executor(std::move(*this), std::move(_parser), std::move(_res));
 		}
 		catch (HttpException& e) {
-			_res.build(std::move(e));
+			_res->build(std::move(e));
 			_modifyEvent(EPOLLOUT | EPOLLRDHUP | EPOLLET);
 			new Writer(std::move(*this), std::move(_parser), std::move(_res));
 		}

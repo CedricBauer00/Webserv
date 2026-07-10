@@ -36,8 +36,8 @@ void    Epoller::addEventHandler(AEventHandler* handler) const {
 		throw std::runtime_error(std::string("FD ")
 			+ std::to_string(fd)
             + ": <epoll_ctl[add]> " + strerror(errno));
-	std::cout << "FD " << fd
-	<< ": added to epoll with events " << _eventsToStr(ev.events) << std::endl;
+	// std::cout << "FD " << fd
+	// << ": added to epoll with events " << _eventsToStr(ev.events) << std::endl;
 }
 
 void    Epoller::modifyEventHandler(AEventHandler* handler) const {
@@ -50,19 +50,20 @@ void    Epoller::modifyEventHandler(AEventHandler* handler) const {
 		throw std::runtime_error(std::string("FD ")
 			+ std::to_string(fd)
 			+ ": <epoll_ctl[mod]> " + strerror(errno));
-	std::cout << "FD " << fd
-	<< ": modified in epoll with events " << _eventsToStr(ev.events) << std::endl;
+	// std::cout << "FD " << fd
+	// << ": modified in epoll with events " << _eventsToStr(ev.events) << std::endl;
 }
 
 void    Epoller::deleteEventHandler(AEventHandler* handler) const {
     int fd = handler->getFd();
 
-    if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd, NULL) == -1)
+    if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd, NULL) == -1) {
         std::cerr << "FD " << fd
 		<< ": <epoll_ctl[del]> " << strerror(errno) << std::endl;
-    else
-        std::cout << "FD " << fd
-        << ": deleted from epoll" << std::endl;
+        return;
+    }
+    // std::cout << "FD " << fd
+    // << ": deleted from epoll" << std::endl;
 }
 
 void	Epoller::runEventLoop() const {

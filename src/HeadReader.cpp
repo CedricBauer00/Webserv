@@ -8,16 +8,18 @@ HeadReader::HeadReader(const Listener& listener)
 : AEventHandler(acceptConn(listener.getFd()),
 	EPOLLIN | EPOLLRDHUP | EPOLLET,
 	listener.epoller,
-	listener.selectSrv) {
-	char	s[INET_ADDRSTRLEN];
+	listener.selectSrv)
+, _parser(std::make_unique<HttpHeaderParser>())
+, _res(std::make_unique<Response>()) {
+	// char	s[INET_ADDRSTRLEN];
 
-	inet_ntop(_sock.ss->ss_family, getInAddr(*_sock.ss), s, sizeof s);
-	std::cout << "FD " << _sock.fd << ": [HeadReader] accepted connection from "
-	<< s << ":" << ntohs(getPort(*_sock.ss)) << std::endl;
+	// inet_ntop(_sock.ss->ss_family, getInAddr(*_sock.ss), s, sizeof s);
+	// std::cout << "FD " << _sock.fd << ": [HeadReader] accepted connection from "
+	// << s << ":" << ntohs(getPort(*_sock.ss)) << std::endl;
 }
 
 HeadReader::~HeadReader() {
-    std::cout << "FD " << _sock.fd << ": [HeadReader] destroyed" << std::endl;
+    // std::cout << "FD " << _sock.fd << ": [HeadReader] destroyed" << std::endl;
 }
 
 WebservSocket	HeadReader::acceptConn(int listenFd) {
@@ -38,19 +40,18 @@ WebservSocket	HeadReader::acceptConn(int listenFd) {
 }
 
 void	HeadReader::_receiveFromClient() {
-     std::cout << BLUE << "FD " << _sock.fd << ": [HeadReader] Reading from client.."
-     << RESET << std::endl;
+    //  std::cout << BLUE << "FD " << _sock.fd << ": [HeadReader] Reading from client.."
+    //  << RESET << std::endl;
     char buffer[BUFFER_SIZE];
     while (true) {
         ssize_t count = recv(_sock.fd, buffer, sizeof(buffer), 0);
         if (0 < count) {
-			_parser.parseHead(buffer, static_cast<std::size_t>(count));
-			if (_parser.headStopReceived()) {
-				if (_parser.getStartLine().empty())
-					throw BadRequest();
+			_parser->parse(buffer, static_cast<std::size_t>(count));
+			if (_parser->parseCompleted()) {
+				_parser->unsetParseCompleted();
 				return; // Header fully received
 			}
-            continue;
+			continue;
         }
         if (count == 0)
             throw std::runtime_error(
@@ -81,7 +82,7 @@ void    HeadReader::process(uint32_t events) {
 			new Executor(std::move(*this), std::move(_parser), std::move(_res));
 		}
 		catch (HttpException& e) {
-			_res.build(std::move(e));
+			_res->build(std::move(e));
 			_modifyEvent(EPOLLOUT | EPOLLRDHUP | EPOLLET);
 			new Writer(std::move(*this), std::move(_parser), std::move(_res));
 		}
