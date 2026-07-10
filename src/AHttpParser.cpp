@@ -10,7 +10,7 @@ AHttpParser::AHttpParser() : _data(std::make_unique<data>()) {
 
 AHttpParser::AHttpParser(AHttpParser&& other) noexcept
 : _data(std::move(other._data)) {
-	std::cout << "AHttpParser move constructor called" << std::endl;
+	// std::cout << "AHttpParser move constructor called" << std::endl;
 }
 
 AHttpParser::AHttpParser(AHttpParser&& other, std::size_t max_size) noexcept
@@ -35,7 +35,7 @@ void    AHttpParser::_checkStartLine() {
     if ( _data->startLine[ 0 ] != "GET"
     && _data->startLine[ 0 ] != "POST"
     && _data->startLine[ 0 ] != "DELETE" )
-        throw MethodNotImplemented();    
+        throw MethodNotAllowed( std::unordered_map<std::string, std::string>({{"Allow: ", "GET, DELETE, POST"}}));
     if ( _data->startLine[ 2 ].substr( 0, 4 ) != "HTTP" )
     {
         std::cout << RED << "Not an HTTP protocol" << RESET << std::endl;

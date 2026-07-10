@@ -38,8 +38,6 @@ void	Method::_createAutoIndexPage(const std::string &path, Response &res,
 bool    Method::getMethod(const std::string &path, Response &res,
 	AHttpParser& parser, const LocIndexConf* locIndexConf) // status codes 200, 402, 404
 {
-    std::cout << "Path:" << path << std::endl; 
-
     std::error_code ec;
     if ( !std::filesystem::exists( path, ec ) )
             throw NotFound();
@@ -76,7 +74,7 @@ bool    Method::getMethod(const std::string &path, Response &res,
                 return true;
             }
         }
-        throw Forbidden();
+        throw NotFound();
     }
     else
         throw Forbidden();
@@ -131,6 +129,12 @@ bool    Method::_ranCGI(
 	const std::string&	reqPath = parser.getPath();
 	std::size_t			len = reqPath.length();
 
+	if (reqPath.compare(len - 4, 4, ".bla") == 0 && parser.getMethod() == METHOD_POST) {
+		std::filesystem::path p(path);
+		_runCgi(std::string(p.parent_path()) + "/cgi_tester", res, parser);
+		return true;
+	}
+
 	if (reqPath.compare(0, 5, "/cgi/") != 0)
 		return false;
  
@@ -162,7 +166,7 @@ std::vector<std::string>	Method::_getCGIEnv(const AHttpParser& parser)
 	env.push_back("REQUEST_METHOD=" + parser.getMethodStr());
     env.push_back("QUERY_STRING=" + parser.getQuery());
 	env.push_back("SCRIPT_NAME=" + parser.getPath());
-	env.push_back("PATH_INFO=");
+	env.push_back("PATH_INFO=" + std::string("/youpi.bla"));
 	env.push_back("GATEWAY_INTERFACE=CGI/1.1");
 	env.push_back("SERVER_NAME=" + parser.getHostName());
 	env.push_back("SERVER_PORT=" + parser.getHostPort());
