@@ -1,6 +1,7 @@
 #include "../inc/HttpParser.hpp"
 #include "../inc/Exceptions.hpp"
 #include "../inc/Utils.hpp"
+#include <unordered_map>
 
 HttpParser::HttpParser() 
 : _startLine(), _headers(), _body(), _bodyLength(0), _headStopReceived(false), _bodyStopReceived(false),
@@ -217,7 +218,7 @@ void    HttpParser::_checkStartLine() // eventuell direkt Execution instance cre
         throw BadRequest();
     }
     if ( _startLine[ 0 ] != "GET" && _startLine[ 0 ] != "POST" && _startLine[ 0 ] != "DELETE" )
-        throw MethodNotImplemented();    
+        throw MethodNotAllowed( std::unordered_map<std::string, std::string>({{"Allow: ", "GET, DELETE, POST"}}));    
     if ( _startLine[ 2 ].substr( 0, 4 ) != "HTTP" )
     {
         std::cout << RED << "Not an HTTP protocol" << RESET << std::endl;////

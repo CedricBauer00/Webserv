@@ -38,6 +38,8 @@ void	Method::_createAutoIndexPage(const std::string &path, Response &res,
 bool    Method::getMethod(const std::string &path, Response &res,
 	HttpParser& parser, const LocIndexConf* locIndexConf) // status codes 200, 402, 404
 {
+    std::cout << "Path:" << path << std::endl; 
+
     std::error_code ec;
     if ( !std::filesystem::exists( path, ec ) )
             throw NotFound();
