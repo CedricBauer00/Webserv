@@ -40,7 +40,7 @@ OBJ := $(SRC:%.cpp=$(OBJ_DIR)/%.o)
 vpath %.cpp src
 
 CXX = c++
-CXXFLAGS = -g -Wall -Wextra -Werror -std=c++17 -Iinc
+CXXFLAGS = -g -Wall -Wextra -Werror -O2 -std=c++17 -Iinc
 
 all: $(NAME)
 

@@ -187,11 +187,16 @@ void    Method::_runCgi(
     int 	inPipe[2];
     int 	outPipe[2];
 
-    pipe(inPipe);
-    pipe(outPipe);
+    if (pipe(inPipe) == -1)
+        throw InternalServerError();
+    if (pipe(outPipe) == -1) {
+        close(inPipe[0]); close(inPipe[1]);
+        throw InternalServerError();
+    }
 
     pid = fork();
 	if (pid == -1) {
+        close(inPipe[0]); close(inPipe[1]); close(outPipe[0]); close(outPipe[1]);
 		perror("fork");
 		throw InternalServerError();
 	}
@@ -226,9 +231,15 @@ void    Method::_runCgi(
     }
     else
     {
+        int status;
+
 		close( inPipe[ 0 ] );
         close( outPipe[ 1 ] );
-		write(inPipe[1], parser.getBody().c_str(), parser.getBody().size());
+		if (write(inPipe[1], parser.getBody().c_str(), parser.getBody().size()) == -1) {
+			close(inPipe[1]); close(outPipe[0]);
+            waitpid(pid, &status, 0);
+			throw InternalServerError();
+		}
 		close(inPipe[ 1 ]);
 
         char buffer[ 1024 ];
@@ -241,7 +252,6 @@ void    Method::_runCgi(
 
         close( outPipe[ 0 ] );
 
-        int status;
         waitpid( pid, &status, 0 );
 		if (WIFEXITED(status)) {
 			int code = WEXITSTATUS(status);
