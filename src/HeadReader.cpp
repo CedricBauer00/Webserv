@@ -8,15 +8,30 @@ HeadReader::HeadReader(const Listener& listener)
 : AEventHandler(acceptConn(listener.getFd()),
 	EPOLLIN | EPOLLRDHUP | EPOLLET,
 	listener.epoller,
+	listener.timer,
 	listener.selectSrv)
 , _parser(std::make_unique<HttpHeaderParser>())
 , _res(std::make_unique<Response>()) {
-    timer ? timer->addHandler(std::unique_ptr<AEventHandler>(this)) : void();
+	timer->setHandler(this);
 	// char	s[INET_ADDRSTRLEN];
 
 	// inet_ntop(_sock.ss->ss_family, getInAddr(*_sock.ss), s, sizeof s);
 	// std::cout << "FD " << _sock.fd << ": [HeadReader] accepted connection from "
 	// << s << ":" << ntohs(getPort(*_sock.ss)) << std::endl;
+}
+
+HeadReader::HeadReader(AEventHandler&& handler,
+	std::string&& request)
+: AEventHandler(std::move(handler))
+, _parser(std::make_unique<HttpHeaderParser>(std::move(request)))
+, _res(std::make_unique<Response>()) {
+	_parser->parse(nullptr, 0); //consume header remaining from previous parsing
+	if (_parser->parseCompleted()) {
+		_parser->unsetParseCompleted();
+		_modifyEvent(EPOLLOUT | EPOLLRDHUP | EPOLLET);
+		new Executor(std::move(*this), std::move(_parser), std::move(_res));
+		delete this;
+	}
 }
 
 HeadReader::~HeadReader() {
@@ -76,7 +91,7 @@ void    HeadReader::process(uint32_t events) {
 		delete this;
     }
 
-	try{
+	try {
 		try {
 			_receiveFromClient();
 			_modifyEvent(EPOLLOUT | EPOLLRDHUP | EPOLLET);
@@ -89,6 +104,7 @@ void    HeadReader::process(uint32_t events) {
 		}
 	}
     catch (const wouldBlockException& e) {
+		_lastActivity = std::chrono::steady_clock::now();
 		return; // Nothing more to read now
 	}
 	catch (const std::exception& e) {

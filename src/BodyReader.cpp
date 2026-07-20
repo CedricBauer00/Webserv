@@ -67,6 +67,7 @@ void    BodyReader::process(uint32_t events) {
 		}
 	}
     catch (const wouldBlockException& e) {
+		_lastActivity = std::chrono::steady_clock::now();
 		return; // Nothing more to read now
 	}
 	catch (const std::exception& e) {

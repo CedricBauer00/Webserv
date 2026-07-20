@@ -3,6 +3,14 @@
 HttpHeaderParser::HttpHeaderParser() {
 }
 
+HttpHeaderParser::HttpHeaderParser(std::string&& request)
+: AHttpParser(std::move(request)) {
+}
+
+HttpHeaderParser::HttpHeaderParser(AHttpParser&& other)
+: AHttpParser(std::move(other)) {
+}
+
 HttpHeaderParser::~HttpHeaderParser() {
 };
 
@@ -14,7 +22,6 @@ void	HttpHeaderParser::parse(char* buffer, std::size_t count) {
     while ((pos = _data->request.find("\r\n", start)) != std::string::npos)
     {
         std::string_view line(_data->request.data() + start, pos - start);
-
         if (line.empty())
         {
             if (_data->startLine.empty())

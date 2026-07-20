@@ -49,10 +49,26 @@ void    Writer::process(uint32_t events) {
 		delete this;
     }
 
-	try{
-		_sendToClient();
+	try {
+		try {
+			_sendToClient();
+			if (_parser->getStartLine()[2] == "HTTP/1.1") {
+				auto it = _parser->getHeaders().find("connection");
+				if (it == _parser->getHeaders().end()
+				|| it->second == "keep-alive") {
+					_modifyEvent(EPOLLIN | EPOLLRDHUP | EPOLLET);
+					new HeadReader(std::move(*this), _parser->getRequest());
+				}
+			}
+		}
+		catch (HttpException& e) {
+			_res->build(std::move(e));
+			_modifyEvent(EPOLLOUT | EPOLLRDHUP | EPOLLET);
+			new Writer(std::move(*this), std::move(_parser), std::move(_res));
+		}
 	}
 	catch (const wouldBlockException& e) {
+		_lastActivity = std::chrono::steady_clock::now();
 		return; // Can't send more right now
 	}
 	catch (const std::exception& e) {

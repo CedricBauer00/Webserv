@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AEventHandler.hpp"
+#include "Timer.hpp"
 
 class Listener: public AEventHandler
 {
@@ -13,7 +14,8 @@ class Listener: public AEventHandler
 		Listener() = delete;
 		Listener(const std::string& addr,
 			const Epoller& epoller,
-			const std::function<const Srv*(const std::string&)>& selectServer);
+			Timer* const timer,
+			const std::function<const Srv*(const std::string&)>* selectServer);
 		virtual ~Listener();
 
 		static WebservSocket	createListenSock(const std::string& addr);

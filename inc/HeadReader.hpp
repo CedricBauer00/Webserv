@@ -15,6 +15,8 @@ class HeadReader: public AEventHandler {
 	public:
 		HeadReader() = delete;
 		HeadReader(const Listener& listener);
+		HeadReader(AEventHandler&& handler,
+			std::string&& request);
 		virtual ~HeadReader();
 
 		static WebservSocket	acceptConn(int listenFd);

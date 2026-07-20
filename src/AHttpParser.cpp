@@ -4,9 +4,10 @@
 AHttpParser::AHttpParser() : _data(std::make_unique<data>()) {
 }
 
-// AHttpParser::AHttpParser(const std::string& request ) 
-// : _request(request) {
-// }
+AHttpParser::AHttpParser(std::string&& request) 
+: _data(std::make_unique<data>()) {
+    _data->request = std::move(request);
+}
 
 AHttpParser::AHttpParser(AHttpParser&& other) noexcept
 : _data(std::move(other._data)) {
@@ -226,6 +227,10 @@ bool	AHttpParser::headerHasContlen() const {
 
 std::size_t	AHttpParser::getContlen() const {
 	return _data->contentLength;
+};
+
+std::string AHttpParser::getRequest() {
+	return std::move(_data->request);
 };
 
 bool	AHttpParser::http1p0Ended() {

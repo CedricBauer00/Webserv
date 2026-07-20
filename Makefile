@@ -24,6 +24,7 @@ SRC	=	main.cpp \
 		Utils.cpp \
 		Method.cpp \
 		Epoller.cpp \
+		Timer.cpp \
 		AEventHandler.cpp \
 		Listener.cpp \
 		HeadReader.cpp \

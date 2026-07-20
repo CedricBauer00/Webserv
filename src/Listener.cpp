@@ -5,10 +5,12 @@
 
 Listener::Listener(const std::string& addr, 
 	const Epoller& epoller,
-	const std::function<const Srv*(const std::string&)>& selectServer)
+	Timer* const timer,
+	const std::function<const Srv*(const std::string&)>* selectServer)
 : AEventHandler(createListenSock(addr),
 	EPOLLIN | EPOLLET,
 	epoller,
+	timer,
 	selectServer)
 , _addr(addr) {
 }
@@ -21,7 +23,7 @@ void	Listener::_recover() {
 	_printSocketError();
 
 	try {
-		new Listener(_addr, epoller, selectSrv);
+		new Listener(_addr, epoller, timer, selectSrv);
 	}
 	catch (const std::exception& e) {
 		std::cerr << e.what() << std::endl;

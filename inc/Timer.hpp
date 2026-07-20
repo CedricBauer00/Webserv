@@ -1,14 +1,14 @@
 #pragma once
 
 #include <sys/timerfd.h>
-#include "AEventHandler.hpp"
+#include "../inc/AEventHandler.hpp"
 
 constexpr int IDLE_TIMEOUT = 30; // seconds
 
 class Timer: public AEventHandler
 {
 	private:
-		std::unordered_map<int, std::unique_ptr<AEventHandler>>	handlers;
+		std::unordered_map<int, AEventHandler*>	handlers;
 
 		WebservSocket	_createTimer();
 
@@ -17,6 +17,8 @@ class Timer: public AEventHandler
 		Timer(const Epoller& epoller);
 		virtual ~Timer();
 
-		void	addHandler(std::unique_ptr<AEventHandler>&& handler);
-		void	process(uint32_t events) override;
-}
+		void			setHandler(AEventHandler* handler);
+		void			eraseHandler(const int fd);
+		AEventHandler*	getHandler(const int fd) const;
+		void			process(uint32_t events) override;
+};

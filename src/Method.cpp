@@ -107,6 +107,8 @@ bool    Method::postMethod(
 		throw Forbidden();
 
 	auto it = parser.getHeaders().find("content-type");
+	// RFC 7231, says if Content-Type is missing, the server can default to application/octet-stream,
+	// but we will throw BadRequest for simplicity
 	if (it == parser.getHeaders().end())
 		throw BadRequest();
 

@@ -47,7 +47,7 @@ class AHttpParser
 
     public:
         AHttpParser();
-        // AHttpParser(const std::string& request);
+        AHttpParser(std::string&& request);
         AHttpParser(AHttpParser&& other) noexcept;
         AHttpParser(AHttpParser&& other, std::size_t max_size) noexcept;
         AHttpParser& operator=(AHttpParser&& other) noexcept = default;
@@ -77,6 +77,7 @@ class AHttpParser
 		bool											headerHasChunked() const;
 		bool											headerHasContlen() const;
 		std::size_t										getContlen() const;
+		std::string										getRequest();
 
 		static bool	isInRange( int num, int min, int max );
 		static bool	isIpv6Char( char c );

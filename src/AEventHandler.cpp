@@ -5,7 +5,7 @@
 AEventHandler::AEventHandler(WebservSocket&& sock,
 	const uint32_t events,
 	const Epoller& epoller,
-    const Timer* timer,
+    Timer* const timer,
     const std::function<const Srv*(const std::string&)>* selectServer)
 : _sock(std::move(sock))
 , _events(events)
@@ -24,11 +24,15 @@ AEventHandler::AEventHandler(AEventHandler&& other) noexcept
 , timer(other.timer)
 , selectSrv(other.selectSrv) {
 	epoller.modifyEventHandler(this);
+    timer->setHandler(this);
 }
 
 AEventHandler::~AEventHandler() {
-    if (_sock.fd != -1)
-        epoller.deleteEventHandler(this);
+	if (_sock.fd != -1) {
+		epoller.deleteEventHandler(this);
+		if (timer)
+			timer->eraseHandler(_sock.fd);
+    }
 }
 
 int	AEventHandler::_dupFd(int fd) {

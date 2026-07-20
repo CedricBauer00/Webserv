@@ -39,7 +39,7 @@ class AEventHandler {
 
     public:
 		const Epoller&											epoller;
-		const Timer*											timer{nullptr};
+		Timer* const											timer{nullptr};
 		const std::function<const Srv*(const std::string&)>*	selectSrv{nullptr};
 
 	public:
@@ -47,7 +47,7 @@ class AEventHandler {
         AEventHandler(WebservSocket&& sock,
 			const uint32_t events,
 			const Epoller& e,
-			const Timer* timer = nullptr,
+			Timer* const timer = nullptr,
 			const std::function<const Srv*(const std::string&)>* selectServer = nullptr);
 		AEventHandler(AEventHandler&& other) noexcept;
         virtual ~AEventHandler();

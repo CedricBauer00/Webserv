@@ -94,7 +94,7 @@ void	Executor::process(uint32_t events) {
     }
 
 	try {
-		auto server = selectSrv(_parser->getHostName()); // select server based on Host name
+		auto server = (*selectSrv)(_parser->getHostName()); // select server based on Host name
 		// if (!server->srvConfs.empty()) {
 		// 	std::cout << "server_name: ";
 		// 	for (const auto& item :
