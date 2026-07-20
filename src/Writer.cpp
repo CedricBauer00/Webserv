@@ -29,7 +29,6 @@ void	Writer::_sendToClient() {
 				throw wouldBlockException();
 			if (errno == EINTR)
 				continue; // Interrupted, try again
-			//TODO: have to supress SIGPIPE
 			throw std::runtime_error(std::string("FD ") + std::to_string(_sock.fd)
 			+ ": [Writer] Client disconnected, send did not finish");
 		}

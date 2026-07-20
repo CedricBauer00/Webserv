@@ -92,8 +92,6 @@ WebservSocket	Listener::createListenSock(const std::string& addr) {
 }
 
 void	Listener::process(uint32_t events) {
-	
-
     if (events & (EPOLLERR | EPOLLHUP))
 		_recover();
 

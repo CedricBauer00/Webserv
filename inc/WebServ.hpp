@@ -4,6 +4,7 @@
 #include "Configparsing/ConfigParser.hpp"
 #include "Epoller.hpp"
 #include "Listener.hpp"
+#include "Timer.hpp"
 
 class WebServ {
 	public:
@@ -14,6 +15,7 @@ class WebServ {
 	private:
 		ConfigParser				_confParser;
 		Epoller						_epoller;
+        Timer						_timer;
 		AddrToSelectServerFcnMap	_addrToSelectServerMap;
 
 		std::function<const Srv*(const std::string&)>

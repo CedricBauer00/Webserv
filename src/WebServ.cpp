@@ -3,10 +3,11 @@
 WebServ::WebServ(char* configFilename)
 : _confParser(configFilename)
 , _epoller()
+, _timer(Timer(_epoller))
 , _addrToSelectServerMap() {
+	_ignoreSIGPIPE();
     _confParser.parseConfig();
 	_makeAddrToSelectServerMap();
-	_ignoreSIGPIPE();
 	// std::cout << "WebServ created" << std::endl;
 }
 
@@ -51,7 +52,8 @@ void	WebServ::_createListeners() {
 	for (const auto& addrAndSelectServerNode : _addrToSelectServerMap) {
 		new Listener(addrAndSelectServerNode.first,
             _epoller,
-            addrAndSelectServerNode.second);
+            &_timer,
+            &addrAndSelectServerNode.second);
 	}
 }
 

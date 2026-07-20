@@ -78,7 +78,7 @@ void	Epoller::runEventLoop() const {
                 std::string("FATAL ERROR [epoll_wait]: ") + strerror(errno));
 			// heap memory is not freed here. Doing so requires storing
 			// allocations as a list and free'ing them here, which by design 
-			// is avoided here to speed up event processing.
+			// is avoided to speed up event processing.
 		}
 		for (int n = 0; n < nfds; ++n) {
 			static_cast<AEventHandler*>(events[n].data.ptr)->process(

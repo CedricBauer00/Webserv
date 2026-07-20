@@ -12,8 +12,9 @@
 #include "Configparsing/ConfigParser.hpp"
 #include "Configparsing/WebservCoreModule.hpp"
 #include "Epoller.hpp"
-// #include "HttpParser.hpp"
 #include "Response.hpp"
+
+class Timer;
 
 class AEventHandler {
 	public:
@@ -29,21 +30,25 @@ class AEventHandler {
 		static void	_setNonBlocking(int fd);
 
 	protected:
-		WebservSocket	_sock;
-		uint32_t		_events;
+		WebservSocket							_sock;
+		uint32_t								_events;
+		std::chrono::steady_clock::time_point	_lastActivity;
 
 		void		_modifyEvent(const uint32_t events);
         void    	_printSocketError();
 
     public:
 		const Epoller&											epoller;
-		const std::function<const Srv*(const std::string&)>&	selectSrv;
+		const Timer*											timer{nullptr};
+		const std::function<const Srv*(const std::string&)>*	selectSrv{nullptr};
 
+	public:
 		AEventHandler() = delete;
         AEventHandler(WebservSocket&& sock,
 			const uint32_t events,
 			const Epoller& e,
-			const std::function<const Srv*(const std::string&)>& selectServer);
+			const Timer* timer = nullptr,
+			const std::function<const Srv*(const std::string&)>* selectServer = nullptr);
 		AEventHandler(AEventHandler&& other) noexcept;
         virtual ~AEventHandler();
 
@@ -51,5 +56,7 @@ class AEventHandler {
 		int				getFd() const;
         void*			getInAddr(struct sockaddr_storage& st) const;
 		in_port_t		getPort(struct sockaddr_storage& st) const;
+		std::chrono::steady_clock::time_point	getLastActivity() const;
+		void			setLastActivityToNow();
         virtual void	process(uint32_t events) = 0;
 };

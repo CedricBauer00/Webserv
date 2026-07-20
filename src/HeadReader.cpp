@@ -11,6 +11,7 @@ HeadReader::HeadReader(const Listener& listener)
 	listener.selectSrv)
 , _parser(std::make_unique<HttpHeaderParser>())
 , _res(std::make_unique<Response>()) {
+    timer ? timer->addHandler(std::unique_ptr<AEventHandler>(this)) : void();
 	// char	s[INET_ADDRSTRLEN];
 
 	// inet_ntop(_sock.ss->ss_family, getInAddr(*_sock.ss), s, sizeof s);

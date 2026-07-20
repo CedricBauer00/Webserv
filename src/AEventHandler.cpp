@@ -1,13 +1,17 @@
 #include <string>
 #include "../inc/AEventHandler.hpp"
+#include "../inc/Timer.hpp"
 
 AEventHandler::AEventHandler(WebservSocket&& sock,
 	const uint32_t events,
 	const Epoller& epoller,
-    const std::function<const Srv*(const std::string&)>& selectServer)
+    const Timer* timer,
+    const std::function<const Srv*(const std::string&)>* selectServer)
 : _sock(std::move(sock))
 , _events(events)
+, _lastActivity(std::chrono::steady_clock::now())
 , epoller(epoller)
+, timer(timer)
 , selectSrv(selectServer) {
     epoller.addEventHandler(this);
 }
@@ -15,7 +19,9 @@ AEventHandler::AEventHandler(WebservSocket&& sock,
 AEventHandler::AEventHandler(AEventHandler&& other) noexcept
 : _sock(std::move(other._sock))
 , _events(other._events)
+, _lastActivity(other._lastActivity)
 , epoller(other.epoller)
+, timer(other.timer)
 , selectSrv(other.selectSrv) {
 	epoller.modifyEventHandler(this);
 }
@@ -78,4 +84,12 @@ in_port_t	AEventHandler::getPort(struct sockaddr_storage& st) const {
         return ((struct sockaddr_in&)st).sin_port;
     }
     return ((struct sockaddr_in6&)st).sin6_port;
+}
+
+std::chrono::steady_clock::time_point AEventHandler::getLastActivity() const {
+	return _lastActivity;
+}
+
+void AEventHandler::setLastActivityToNow() {
+	_lastActivity = std::chrono::steady_clock::now();
 }

@@ -20,12 +20,10 @@ class AHttpParser
 		struct data {
 			std::vector<std::string>						startLine;
 			std::unordered_map<std::string, std::string>	headers;
-			std::string		    request;
-			std::string			httpVersion;
 			std::string			path;
 			std::string			query;
 			std::string 		body;
-			std::size_t			bodyLength{0};
+			std::string		    request;
 			bool				parseCompleted{false};
 			bool				foundContlen{false};
 			std::size_t			contentLength{0};
