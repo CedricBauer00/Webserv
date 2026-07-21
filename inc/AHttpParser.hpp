@@ -2,6 +2,7 @@
 
 #include <unistd.h>
 #include <string>
+#include <string_view>
 #include <cstring>
 #include <iostream>
 #include <vector>
@@ -18,16 +19,13 @@ class AHttpParser
 {
     public:
 		struct data {
-			std::vector<std::string>						startLine;
+			std::array<std::string, 3>						startLine;
 			std::unordered_map<std::string, std::string>	headers;
 			std::string			path;
 			std::string			query;
 			std::string 		body;
 			std::string		    request;
 			bool				parseCompleted{false};
-			bool				foundContlen{false};
-			std::size_t			contentLength{0};
-			bool				chunked{false};
 			std::string 		hostPort;
 			std::string 		hostName;
 			method 		        methodType{METHOD_GET};
@@ -38,12 +36,6 @@ class AHttpParser
 
     protected:
         std::unique_ptr<data>	_data;
-
-        void	_setMethod();
-        void	_checkStartLine();
-		void	_decodeRequestTarget(std::string& requestTarget);
-		void	_splitRequestTarget(std::string& requestTarget);
-		void	_normalizePath();
 
     public:
         AHttpParser();
@@ -56,13 +48,11 @@ class AHttpParser
 		virtual void	parse(char* buffer, std::size_t count) = 0;
 		void		setMethod(const std::string& method);
         std::string trim( const std::string& value );
-        void        checkHostHeader( const std::string& value );
-        void        validatePort( std::string portStr );
         void		setRedirectPath(std::string&& redirectPath);
         bool		http1p0Ended();
 		void		unsetParseCompleted();
 
-        const std::vector<std::string>&					getStartLine() const;
+        const std::array<std::string, 3>&				getStartLine() const;
         const std::string&								getQuery() const;
         const std::unordered_map<std::string, std::string>&	getHeaders() const;
         const std::string&								getBody() const;
@@ -76,9 +66,5 @@ class AHttpParser
 		bool											parseCompleted() const;
 		bool											headerHasChunked() const;
 		bool											headerHasContlen() const;
-		std::size_t										getContlen() const;
 		std::string										getRequest();
-
-		static bool	isInRange( int num, int min, int max );
-		static bool	isIpv6Char( char c );
 };
