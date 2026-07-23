@@ -3,7 +3,7 @@
 #include <sys/timerfd.h>
 #include "../inc/AEventHandler.hpp"
 
-constexpr int IDLE_TIMEOUT = 30; // seconds
+constexpr int IDLE_TIMEOUT = 600; // seconds
 
 class Timer: public AEventHandler
 {

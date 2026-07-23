@@ -9,13 +9,15 @@ Response::~Response() {
 }
 
 void    Response::build() {
-    _response = "HTTP/1.0 " + _statusCode + " " + _reasonPhrase + "\r\n";
+    _response = "HTTP/1.1 " + _statusCode + " " + _reasonPhrase + "\r\n";
 
     //set headers
     for (auto& x : _headers)
         _response += x.first + ": " + x.second + "\r\n";
 
-    _response += "Connection: Closed\r\n\r\n";
+    if (_headers.find("Content-Length") == _headers.end())
+        _response += "Content-Length: 0\r\n";
+    _response += "Connection: keep-alive\r\n\r\n";
 }
 
 void	Response::build(HttpException&& e) {
